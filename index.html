@@ -513,10 +513,10 @@ function onHit(s){
 
 /* ---- bosses ---- */
 const BOSSES = [
-  { id:'cobra', name:'킹코브라', obj:'킹코브라를', patterns:['lunge','fan','rapid'] },
-  { id:'eagle', name:'독수리 대장', obj:'독수리 대장을', patterns:['dive','twin','fan'] },
-  { id:'dog', name:'불독 두목', obj:'불독 두목을', patterns:['wall','lunge','rapid'] },
-  { id:'anaconda', name:'아나콘다', obj:'아나콘다를', patterns:['wall','lunge','twin'] },
+  { id:'cobra', name:'킹코브라', obj:'킹코브라를', patterns:['lunge','fan','rapid','charge'] },
+  { id:'eagle', name:'독수리 대장', obj:'독수리 대장을', patterns:['dive','twin','fan','charge'] },
+  { id:'dog', name:'불독 두목', obj:'불독 두목을', patterns:['wall','lunge','rapid','charge'] },
+  { id:'anaconda', name:'아나콘다', obj:'아나콘다를', patterns:['wall','lunge','twin','charge'] },
 ];
 const PROJ = {
   cobra: { kind:'snake', r:13, len:130, col:{ body:'#5f9e3c', spot:'#e8d27a', head:'#74b84b' } },
@@ -528,7 +528,7 @@ const VENOM = { kind:'venom', r:11, len:20 };
 let bannerQ = [];
 function pushBanner(text, sub, life){ const b = { text, sub, t:0, life }; if (!banner) banner = b; else bannerQ.push(b); }
 function bossNeed(){ return Math.min(6, 3 + Math.floor((S.stage - 1) / 2)); }
-function bossSpots(){ return [ { x:W/2, y:6*U }, { x:W - 6*U, y:H/2 }, { x:W/2, y:H - 6*U }, { x:6*U, y:H/2 } ]; }
+function bossSpots(){ return [ { x:W*0.3, y:6*U }, { x:W*0.7, y:6*U }, { x:W - 6*U, y:H*0.5 }, { x:W*0.72, y:H - 6*U }, { x:W*0.28, y:H - 6*U }, { x:6*U, y:H*0.5 } ]; }
 function bossOrigin(b){ const dx = W/2 - b.x, dy = H/2 - b.y, d = Math.hypot(dx, dy) || 1; return { x: b.x + dx/d*34*U, y: b.y + dy/d*34*U }; }
 
 function startBoss(){
@@ -568,7 +568,7 @@ function updateBoss(dt){
       if (opts.length){ b.spot = opts[Math.floor(Math.random()*opts.length)].i; b.phase = 'move'; b.t = 0.45; return; }
     }
     b.pattern = b.def.patterns[Math.floor(Math.random()*b.def.patterns.length)];
-    b.wind = Math.max(0.35, 0.6 + Math.random()*0.5 - b.loop*0.08 - S.stage*0.01);
+    b.wind = Math.max(0.35, 0.6 + Math.random()*0.5 - b.loop*0.08 - S.stage*0.01) + (b.pattern === 'charge' ? 0.3 : 0);
     b.windMax = b.wind; b.phase = 'wind';
     beep(160, 110, 0.18, 'sawtooth', 0.035);
   } else if (b.phase === 'move'){
@@ -584,6 +584,7 @@ function updateBoss(dt){
   }
 }
 
+function shakeScreen(a){ if (!reduceMotion) S.shake = Math.max(S.shake, a*U); }
 function mkProj(group, o, dx, dy, spec, speed){
   group.alive++;
   snakes.push({ state:'live', x:o.x, y:o.y, sx:o.x, sy:o.y, dx, dy, speed, r:spec.r, len:spec.len, kind:spec.kind,
@@ -598,7 +599,13 @@ function fireWave(b, pattern){
   const o = bossOrigin(b);
   let ax = cat.x - o.x, ay = cat.y - o.y; const ad = Math.hypot(ax, ay) || 1; ax /= ad; ay /= ad;
   const rot = (x, y, a) => [x*Math.cos(a) - y*Math.sin(a), x*Math.sin(a) + y*Math.cos(a)];
-  if (pattern === 'lunge' || pattern === 'dive'){
+  if (pattern === 'charge'){
+    group.charge = true; b.hidden = true;
+    const body = { kind:'boss', r:34, len:36 };
+    mkProj(group, { x:b.x, y:b.y }, ax, ay, body, base*0.95);
+    snakes[snakes.length - 1].bossId = b.def.id;
+    shakeScreen(6);
+  } else if (pattern === 'lunge' || pattern === 'dive'){
     mkProj(group, o, ax, ay, spec, base * (pattern === 'dive' ? 1.3 : 1.1));
   } else if (pattern === 'fan'){
     const fs = b.def.id === 'cobra' ? VENOM : spec;
@@ -680,6 +687,7 @@ function bossBrow(c, x, y, w){
 }
 
 function drawBoss(c, b){
+  if (b.hidden) return;
   const B = 52*U, id = b.def.id, ol = '#1a1517', dz = b.phase === 'leave';
   if (b.phase === 'wind' && S.showLane){
     const o = bossOrigin(b);
@@ -769,6 +777,21 @@ function drawBoss(c, b){
 
 function drawProj(c, s){
   if (s.kind === 'snake') return drawSnake(c, s);
+  if (s.kind === 'boss'){
+    const def = BOSSES.find(d => d.id === s.bossId) || BOSSES[0];
+    for (let i = 3; i >= 1; i--){
+      c.globalAlpha = 0.12*i;
+      c.fillStyle = '#ff6b7d'; c.beginPath(); c.arc(s.x - s.dx*i*16*U, s.y - s.dy*i*16*U, s.r*U*(1 - i*0.12), 0, TAU); c.fill();
+    }
+    c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(255,107,125,.55)'; c.lineWidth = 3; c.setLineDash([6, 6]);
+    c.beginPath(); c.arc(s.x, s.y, s.r*U, 0, TAU); c.stroke(); c.setLineDash([]);
+    const fake = { def, phase:'charge', x:s.x, y:s.y, wind:1, windMax:1, hurtT:0, hidden:false, spot:0 };
+    c.save(); c.translate(s.x, s.y); c.scale(0.78, 0.78); c.rotate(Math.sin(S.t*30)*0.08); c.translate(-s.x, -s.y);
+    drawBoss(c, fake);
+    c.restore();
+    return;
+  }
   const R = s.r*U, ang = Math.atan2(s.dy, s.dx);
   c.save(); c.translate(s.x, s.y);
   if (s.kind === 'venom'){
@@ -963,7 +986,13 @@ function update(dt){
     const away = (s.x - W/2)*s.dx + (s.y - H/2)*s.dy > 0;
     if (out && away){
       s.dead = true;
-      if (s.group){ s.group.alive--; if (s.group.alive <= 0) resolveGroup(s.group); }
+      if (s.group){
+        if (s.group.charge && s.kind === 'boss' && S.boss && S.boss.hidden){
+          const b = S.boss, sp = bossSpots()[b.spot], ex = sp.x - W/2, ey = sp.y - H/2, el = Math.hypot(ex, ey) || 1;
+          b.hidden = false; b.x = sp.x + ex/el*170*U; b.y = sp.y + ey/el*170*U;
+        }
+        s.group.alive--; if (s.group.alive <= 0) resolveGroup(s.group);
+      }
       else if (s.threat && !s.hit && S.mode === 'play') onDodge(s);
     }
   }
