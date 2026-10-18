@@ -139,8 +139,8 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
   <header class="bar">
     <div class="brand"><b>냥. 플</b><span>롤 큐 기다리는 동안 하는 플래시 반응 연습</span></div>
     <div class="tools">
-      <label class="vol" for="musicVol"><span>음악</span><input type="range" id="musicVol" min="0" max="100" step="5" value="50"></label>
-      <label class="vol" for="sfxVol"><span>효과음</span><input type="range" id="sfxVol" min="0" max="100" step="5" value="70"></label>
+      <label class="vol" for="musicVol"><span>음악</span><input type="range" id="musicVol" min="0" max="100" step="5" value="40"></label>
+      <label class="vol" for="sfxVol"><span>효과음</span><input type="range" id="sfxVol" min="0" max="100" step="5" value="85"></label>
       <button class="chip" id="homeBtn" type="button">홈</button>
       <button class="chip" id="pauseBtn" type="button">일시정지 (Esc)</button>
     </div>
@@ -325,14 +325,61 @@ function loadSkin(){ try { const v = +localStorage.getItem('nyangflash-skin'); r
 function saveSkin(v){ try { localStorage.setItem('nyangflash-skin', String(v)); } catch(e){} }
 
 /* ---- sound ---- */
-let AC = null, sfxVol = 0.7, musicVol = 0.5;
-function audio(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (AC && AC.state === 'suspended') AC.resume(); }
+let AC = null, sfxVol = 0.85, musicVol = 0.4;
+let sfxBus = null, musicBus = null, noiseBuf = null, duckLevel = 1;
+// Mix: music runs through its own bus that "ducks" (dips) whenever an important game sound plays,
+// and all sound effects go through a compressor so they stay on top of the music.
+function audio(){
+  if (!AC){
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+    if (AC){
+      const comp = AC.createDynamicsCompressor();
+      comp.threshold.value = -18; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
+      sfxBus = AC.createGain(); sfxBus.gain.value = 1.6; sfxBus.connect(comp).connect(AC.destination);
+      musicBus = AC.createGain(); musicBus.gain.value = musicVol; musicBus.connect(AC.destination);
+      Object.values(TRACKS).forEach(a => { try { AC.createMediaElementSource(a).connect(musicBus); a.volume = 1; a.routed = true; } catch(e){} });
+      noiseBuf = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate);
+      const ch = noiseBuf.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random()*2 - 1;
+    }
+  }
+  if (AC && AC.state === 'suspended') AC.resume();
+}
+function sfxOut(){ return sfxBus || AC.destination; }
+function duck(depth = 0.45, hold = 0.25){
+  if (!AC || !musicBus) return;
+  const t = AC.currentTime, g = musicBus.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+  g.linearRampToValueAtTime(musicVol*depth, t + 0.03);
+  g.setValueAtTime(musicVol*depth, t + hold);
+  g.linearRampToValueAtTime(musicVol, t + hold + 0.35);
+}
 function beep(f1, f2, dur, type='square', vol=0.05, delay=0){
   if (!AC || sfxVol <= 0) return;
   const t0 = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.setValueAtTime(f1, t0); o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
   g.gain.setValueAtTime(Math.max(0.0002, vol * sfxVol * 1.4), t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  o.connect(g).connect(sfxOut()); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+// synthesized cat "meow": a sawtooth through a moving band-pass filter, pitch rising then falling
+function meow(pitch = 1, len = 0.38, vol = 0.09){
+  if (!AC || sfxVol <= 0) return;
+  const t0 = AC.currentTime, o = AC.createOscillator(), f = AC.createBiquadFilter(), g = AC.createGain(), lfo = AC.createOscillator(), lg = AC.createGain();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(420*pitch, t0); o.frequency.linearRampToValueAtTime(760*pitch, t0 + len*0.35); o.frequency.linearRampToValueAtTime(520*pitch, t0 + len);
+  lfo.frequency.value = 7; lg.gain.value = 14*pitch; lfo.connect(lg).connect(o.frequency);
+  f.type = 'bandpass'; f.Q.value = 6;
+  f.frequency.setValueAtTime(900*pitch, t0); f.frequency.linearRampToValueAtTime(1900*pitch, t0 + len*0.35); f.frequency.linearRampToValueAtTime(1100*pitch, t0 + len);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol*sfxVol*2.2, t0 + 0.05); g.gain.setValueAtTime(vol*sfxVol*2.2, t0 + len*0.6); g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+  o.connect(f).connect(g).connect(sfxOut());
+  o.start(t0); lfo.start(t0); o.stop(t0 + len + 0.02); lfo.stop(t0 + len + 0.02);
+}
+// snake hiss: filtered white noise
+function hiss(len = 0.22, vol = 0.05){
+  if (!AC || !noiseBuf || sfxVol <= 0) return;
+  const t0 = AC.currentTime, src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 3800;
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol*sfxVol*2, t0 + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+  src.connect(f).connect(g).connect(sfxOut()); src.start(t0); src.stop(t0 + len + 0.02);
 }
 
 /* ---- music ---- */
@@ -343,12 +390,12 @@ const TRACKS = {};
   TRACKS[n] = a;
 });
 let curTrack = null;
-function applyMusicVol(){ Object.values(TRACKS).forEach(a => a.volume = musicVol); if (curTrack){ if (musicVol <= 0) curTrack.pause(); else if (curTrack.paused && curTrack.wantPlay && S.mode !== 'paused') curTrack.play().catch(() => {}); } }
+function applyMusicVol(){ if (musicBus){ musicBus.gain.cancelScheduledValues(AC.currentTime); musicBus.gain.setValueAtTime(musicVol, AC.currentTime); } Object.values(TRACKS).forEach(a => a.volume = a.routed ? 1 : musicVol); if (curTrack){ if (musicVol <= 0) curTrack.pause(); else if (curTrack.paused && curTrack.wantPlay && S.mode !== 'paused') curTrack.play().catch(() => {}); } }
 function playTrack(name){
   const a = TRACKS[name];
   if (curTrack === a){ a.wantPlay = true; if (a.paused && musicVol > 0) a.play().catch(() => {}); return; }
   stopMusic();
-  curTrack = a; a.wantPlay = true; a.currentTime = 0; a.volume = musicVol;
+  curTrack = a; a.wantPlay = true; a.currentTime = 0; a.volume = a.routed ? 1 : musicVol;
   if (musicVol > 0) a.play().catch(() => {});
 }
 function pauseMusic(){ if (curTrack) curTrack.pause(); }
@@ -440,7 +487,7 @@ function launch(s){
   }
   s.dx = dx/d; s.dy = dy/d; s.state = 'live'; s.launchedAt = S.t;
   s.threat = !s.fake;
-  beep(220, 160, 0.08, 'triangle', 0.025);
+  hiss(0.2, 0.045);
 }
 
 function threatOf(s){
@@ -477,7 +524,7 @@ function flash(){
   for (let i = 1; i <= 4; i++) ghosts.push({ x: fx + (cat.x-fx)*i/5, y: fy + (cat.y-fy)*i/5, life:0.25, t:0 });
   burst(fx, fy, '#ffe9a6', 10, 1); burst(cat.x, cat.y, '#ffc94a', 16, 1.4);
   ringFx(fx, fy); ringFx(cat.x, cat.y);
-  beep(520, 1500, 0.12, 'triangle', 0.06);
+  beep(520, 1500, 0.12, 'triangle', 0.07); duck(0.5, 0.18);
 
   if (!best){
     if (ate) return;
@@ -489,7 +536,7 @@ function flash(){
   bestT = Math.max(0, bestT - lag);
   const margin = Math.round(bestT * 1000);
   let g, color;
-  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; S.perfect++; S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.035, 0.05); }
+  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; S.perfect++; S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
   else if (bestT <= 0.3){ g = 'GOOD'; color = '#8fdc5b'; S.good++; S.margins.push(margin); }
   else { g = '빠름'; color = '#f5ebd3'; S.early++; }
   threatening.forEach(s => { s.grade = g; if (s.group) s.group.grade = g; });
@@ -540,7 +587,7 @@ function checkForm(){
     S.form = f;
     floats.push({ x:cat.x, y:cat.y - 120*U, text:'변신! ' + FORMS[f].name, sub:S.combo + ' 콤보 달성', color:'rgb(' + FORMS[f].aura + ')', life:1.4, size:32, t:0 });
     burst(cat.x, cat.y, 'rgb(' + FORMS[f].aura + ')', 26, 1.6); ringFx(cat.x, cat.y);
-    [523, 784, 1047, 1568].forEach((q, i) => beep(q, q, 0.09, 'square', 0.035, i*0.06));
+    meow(1.15, 0.42, 0.1); [784, 1047, 1568].forEach((q, i) => beep(q, q, 0.09, 'square', 0.035, 0.25 + i*0.06)); duck(0.35, 0.6);
   } else if (f < S.form){
     if (S.form > 0) floats.push({ x:cat.x, y:cat.y - 120*U, text:'변신 해제...', sub:'', color:'#9fb19c', life:1, size:22, t:0 });
     S.form = f;
@@ -559,7 +606,7 @@ function onHit(s){
   const lines = ['뱀한테 졌다냥...', '앗 물렸다!', '이 뱀이...!', '냐아앙!'];
   addFloat(lines[Math.floor(Math.random()*lines.length)], '', '#ff6b7d', 1.1, 28);
   burst(cat.x, cat.y, '#ff6b7d', 18, 1.2);
-  beep(320, 70, 0.4, 'sawtooth', 0.07);
+  beep(320, 70, 0.3, 'sawtooth', 0.06); meow(0.8, 0.45, 0.1); duck(0.3, 0.5);
   if (S.lives <= 0){ S.mode = 'dying'; S.dieT = 1.1; playTrack('gameover'); }
 }
 
@@ -622,7 +669,7 @@ function updateBoss(dt){
     b.pattern = b.def.patterns[Math.floor(Math.random()*b.def.patterns.length)];
     b.wind = (Math.max(0.35, 0.6 + Math.random()*0.5 - b.loop*0.08 - S.stage*0.01) + (b.pattern === 'charge' ? 0.3 : 0)) * (S.hard ? 0.75 : 1);
     b.windMax = b.wind; b.phase = 'wind';
-    beep(160, 110, 0.18, 'sawtooth', 0.035);
+    beep(160, 110, 0.22, 'sawtooth', 0.05); duck(0.55, 0.4);
   } else if (b.phase === 'move'){
     b.t -= dt; if (b.t <= 0){ b.phase = 'idle'; b.t = 0.15; }
   } else if (b.phase === 'wind'){
@@ -717,7 +764,7 @@ function defeatBoss(){
   const b = S.boss;
   S.bossKills++;
   burst(b.x, b.y, '#ffc94a', 30, 2); burst(b.x, b.y, '#8fdc5b', 20, 1.6);
-  [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, 0.12, 'square', 0.04, i*0.09));
+  meow(1.1, 0.5, 0.1); [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, 0.12, 'square', 0.04, 0.3 + i*0.09)); duck(0.3, 1.0);
   const bonus = Math.round(1000 * S.stage * HM()); S.score += bonus;
   const ex = b.x - W/2, ey = b.y - H/2, el = Math.hypot(ex, ey) || 1;
   b.phase = 'leave'; b.lx = ex/el; b.ly = ey/el; b.t = 0.9;
@@ -898,7 +945,7 @@ function eatCans(fx, fy){
       if (k.gold){ text = '황금 캔!'; if (S.lives < 3){ S.lives++; text = '황금 캔! 생선 +1'; } }
       floats.push({ x:cat.x, y:cat.y - 95*U, text, sub:'+' + pts.toLocaleString('ko-KR'), color: k.gold ? '#ffc94a' : '#ff9fb4', life:1.1, size:28, t:0 });
       burst(k.x, k.y, k.gold ? '#ffc94a' : '#ff9fb4', 18, 1.2);
-      [784, 1047, 1319].forEach((f, i) => beep(f, f, 0.07, 'triangle', 0.04, i*0.05));
+      meow(1.25, 0.3, 0.09); [1047, 1319].forEach((f, i) => beep(f, f, 0.06, 'triangle', 0.035, 0.2 + i*0.05)); duck(0.4, 0.35);
     }
   }
   foods = foods.filter(k => !k.eaten);
@@ -956,6 +1003,7 @@ function start(){
   cat.x = W/2; cat.y = H/2;
   banner = S.hard ? { text:'HARD · STAGE 1', sub:'안내선 없음. 오늘 남은 도전 ' + hardLeft() + '번', t:0, life:2.2 } : { text:'STAGE 1', sub:'뱀이 온다! F 또는 D로 피하세요', t:0, life:2 };
   playTrack(stageTrack());
+  meow(1, 0.35, 0.08);
   netStartRun();
   showOnly(null);
   cv.focus({ preventScroll:true });
@@ -1582,8 +1630,8 @@ $('homeBtn').onclick = () => {
 };
 $('menuBtn').onclick = toTitle;
 $('pauseBtn').onclick = () => { if (S.mode === 'play') pause(); else if (S.mode === 'paused') resume(); };
-function loadVol(){ try { const v = JSON.parse(localStorage.getItem('nyangflash-vol')); if (v){ musicVol = v.m; sfxVol = v.s; } } catch(e){} }
-function saveVol(){ try { localStorage.setItem('nyangflash-vol', JSON.stringify({ m:musicVol, s:sfxVol })); } catch(e){} }
+function loadVol(){ try { const v = JSON.parse(localStorage.getItem('nyangflash-vol2')); if (v){ musicVol = v.m; sfxVol = v.s; } } catch(e){} }
+function saveVol(){ try { localStorage.setItem('nyangflash-vol2', JSON.stringify({ m:musicVol, s:sfxVol })); } catch(e){} }
 loadVol();
 $('musicVol').value = Math.round(musicVol*100); $('sfxVol').value = Math.round(sfxVol*100);
 applyMusicVol();
