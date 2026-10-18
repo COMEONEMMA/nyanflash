@@ -119,7 +119,8 @@ async function handle(req, env, url) {
       ).bind(week, p.id, score, stage, bossKills, now).run();
     }
     const best = improved ? score : before.score;
-    return json({ ok: true, improved, best, rank: await rankOf(db, week, best) });
+    const total = await db.prepare('SELECT COUNT(*) AS n FROM scores WHERE week = ?').bind(week).first();
+    return json({ ok: true, improved, best, rank: await rankOf(db, week, best), total: total ? total.n : 1 });
   }
 
   return json({ error: '없는 주소예요.' }, 404);

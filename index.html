@@ -97,6 +97,15 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 #copyText{width:100%;min-height:120px;font:inherit;font-size:13px;color:var(--cream);background:var(--night);border:1.5px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
 .tierline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
 .tier{display:inline-flex;align-items:center;gap:6px;padding:2px 12px 0;border-radius:999px;border:2px solid currentColor;background:var(--night);font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1}
+.rankres{display:flex;align-items:center;gap:16px;background:var(--night);border:2px solid var(--line);border-radius:16px;padding:12px 18px}
+.rankres img{width:104px;height:104px;flex:none;animation:pop .55s cubic-bezier(.2,1.6,.4,1)}
+.rr-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rr-text b{font-family:var(--f-display);font-weight:700;font-size:46px;line-height:1}
+.rank-now{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.1;color:var(--amber)}
+.rank-now small{font-family:var(--f-body);font-size:13px;color:var(--muted);font-weight:400}
+.tier img{width:22px;height:22px;margin-left:-6px}
+@keyframes pop{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.rankres img{animation:none}}
 .promo{margin:0;font-size:16px;color:var(--cream)}
 .promo b{font-family:var(--f-display);font-size:24px;font-weight:700}
 .foot{display:flex;flex-direction:column;gap:4px;border-top:1.5px dashed var(--line);padding-top:12px;font-size:12.5px;color:var(--muted);line-height:1.6}
@@ -174,6 +183,14 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
     <section class="overlay" id="overOv" hidden>
       <div class="panel">
         <h2 id="overTitle">뱀의 승리...</h2>
+        <div class="rankres">
+          <img id="tierImg" alt="">
+          <div class="rr-text">
+            <span class="label">이번 주 티어</span>
+            <b id="tierName"></b>
+            <span class="rank-now" id="rankNow"></span>
+          </div>
+        </div>
         <p class="promo" id="promo"></p>
         <p class="verdict" id="verdict"></p>
         <div class="stats">
@@ -872,7 +889,10 @@ function endGame(){
     promo.append('이번 주 티어 '); promo.append(tierBadge(tierOf(wk.best)));
     promo.append(' · 최고 ' + wk.best.toLocaleString('ko-KR') + '점까지 ' + (wk.best - S.score).toLocaleString('ko-KR') + '점 남았어요');
   }
-  netFinishRun(promo);
+  const wt = tierOf(wk.best);
+  $('tierImg').src = emblemURL(wt.idx); $('tierImg').alt = wt.label + ' 티어 엠블럼';
+  $('tierName').textContent = wt.label; $('tierName').style.color = wt.color;
+  netFinishRun($('rankNow'));
   lastResult = { tier: tierOf(wk.best).label, eaten:S.eaten, bossKills:S.bossKills, stage:S.stage, score:S.score, maxCombo:S.maxCombo, perfect:S.perfect, whiff:S.whiff, avg, fast, skin:S.skin, isBest: isBest && S.score > 0 };
   $('shareMsg').textContent = ''; $('copyText').hidden = true; $('cardBox').hidden = true;
   const b = loadBest();
@@ -1411,7 +1431,65 @@ function loadWeek(){
   return { week: weekKey(), best: 0 };
 }
 function saveWeek(v){ try { localStorage.setItem('nyangflash-week', JSON.stringify(v)); } catch(e){} }
-function tierBadge(t){ const b = document.createElement('span'); b.className = 'tier'; b.style.color = t.color; b.textContent = t.label; return b; }
+function shade(hex, k){
+  const n = parseInt(hex.slice(1), 16);
+  const f = v => Math.max(0, Math.min(255, Math.round(v*k)));
+  return 'rgb(' + f(n >> 16) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
+}
+function drawEmblem(c, x, y, R, idx){
+  const col = TIERS[idx].color, ol = '#0b120e';
+  c.save(); c.translate(x, y); c.lineJoin = 'round'; c.lineCap = 'round';
+  c.strokeStyle = ol; c.lineWidth = R*0.08;
+  if (idx >= 7){
+    [-1, 1].forEach(sd => {
+      for (let i = 0; i < 3; i++){
+        c.fillStyle = shade(col, 0.95 - i*0.12);
+        c.beginPath(); c.ellipse(sd*R*(0.78 + i*0.14), -R*(0.1 - i*0.18), R*0.42, R*0.14, sd*(0.5 - i*0.35), 0, Math.PI*2); c.fill(); c.stroke();
+      }
+    });
+  }
+  [-1, 1].forEach(sd => {
+    c.fillStyle = shade(col, 0.6);
+    c.beginPath(); c.moveTo(sd*R*0.2, -R*0.72); c.lineTo(sd*R*0.66, -R*1.02); c.lineTo(sd*R*0.66, -R*0.42); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#f6a9b6';
+    c.beginPath(); c.moveTo(sd*R*0.34, -R*0.7); c.lineTo(sd*R*0.6, -R*0.88); c.lineTo(sd*R*0.6, -R*0.56); c.closePath(); c.fill();
+  });
+  const shield = () => {
+    c.beginPath(); c.moveTo(0, -R*0.88); c.lineTo(R*0.72, -R*0.6); c.lineTo(R*0.66, R*0.2);
+    c.quadraticCurveTo(R*0.5, R*0.72, 0, R*0.98); c.quadraticCurveTo(-R*0.5, R*0.72, -R*0.66, R*0.2); c.lineTo(-R*0.72, -R*0.6); c.closePath();
+  };
+  const g = c.createLinearGradient(0, -R, 0, R);
+  g.addColorStop(0, shade(col, 1.25)); g.addColorStop(0.5, col); g.addColorStop(1, shade(col, 0.55));
+  c.fillStyle = g; shield(); c.fill(); c.stroke();
+  c.save(); c.scale(0.78, 0.78); c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = R*0.05; shield(); c.stroke(); c.restore();
+  // centre plate
+  c.fillStyle = shade(col, 0.45);
+  if (idx < 3){ c.beginPath(); c.arc(0, R*0.02, R*0.36, 0, Math.PI*2); c.fill(); c.stroke(); }
+  else if (idx < 7){ c.beginPath(); c.moveTo(0, -R*0.4); c.lineTo(R*0.36, 0); c.lineTo(0, R*0.44); c.lineTo(-R*0.36, 0); c.closePath(); c.fill(); c.stroke(); }
+  else { c.beginPath(); for (let i = 0; i < 10; i++){ const a = i*Math.PI/5 - Math.PI/2, r = i % 2 ? R*0.2 : R*0.44; c.lineTo(Math.cos(a)*r, Math.sin(a)*r + R*0.02); } c.closePath(); c.fill(); c.stroke(); }
+  // paw print
+  c.fillStyle = shade(col, 1.4);
+  c.beginPath(); c.ellipse(0, R*0.1, R*0.13, R*0.1, 0, 0, Math.PI*2); c.fill();
+  [[-0.15, -0.06], [-0.05, -0.13], [0.05, -0.13], [0.15, -0.06]].forEach(([px, py]) => { c.beginPath(); c.arc(px*R, py*R, R*0.045, 0, Math.PI*2); c.fill(); });
+  if (idx === 9){
+    c.fillStyle = '#ffc94a';
+    c.beginPath(); c.moveTo(-R*0.3, -R*0.86); c.lineTo(-R*0.3, -R*1.12); c.lineTo(-R*0.15, -R*0.98); c.lineTo(0, -R*1.2); c.lineTo(R*0.15, -R*0.98); c.lineTo(R*0.3, -R*1.12); c.lineTo(R*0.3, -R*0.86); c.closePath(); c.fill(); c.stroke();
+  }
+  c.restore();
+}
+const emblemCache = {};
+function emblemURL(idx){
+  if (emblemCache[idx]) return emblemCache[idx];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 160;
+  drawEmblem(cv.getContext('2d'), 80, 88, 62, idx);
+  return (emblemCache[idx] = cv.toDataURL('image/png'));
+}
+function tierBadge(t){
+  const b = document.createElement('span'); b.className = 'tier'; b.style.color = t.color;
+  const im = document.createElement('img'); im.src = emblemURL(t.idx); im.alt = '';
+  b.append(im, document.createTextNode(t.label));
+  return b;
+}
 function renderTier(){
   const w = loadWeek(), el = $('tierLine');
   el.textContent = '';
@@ -1454,21 +1532,31 @@ function netStartRun(){
   if (!NET.nick) return;
   api('/api/run/start', {}).then(j => { if (j.runId) NET.runId = j.runId; }).catch(() => {});
 }
-function netFinishRun(promo){
-  const add = (t) => { const sp = document.createElement('span'); sp.textContent = t; promo.append(sp); };
+function netFinishRun(el){
+  el.textContent = '';
+  const small = (t) => { const sm = document.createElement('small'); sm.textContent = t; return sm; };
   if (!NET.nick){
     const b = document.createElement('button'); b.className = 'mini'; b.type = 'button';
-    b.textContent = '닉네임 등록하고 주간 랭킹 도전'; b.onclick = () => openRank();
-    promo.append(' '); promo.append(b);
+    b.textContent = '닉네임 등록하고 내 순위 보기'; b.onclick = () => openRank();
+    el.append(b);
     return;
   }
-  if (!NET.runId) return;
+  el.textContent = '순위 확인 중...';
+  const show = (rank, total, improved) => {
+    el.textContent = '이번 주 ' + rank + '위 ';
+    el.append(small('/ ' + total + '명' + (improved ? ' · 기록 갱신!' : '')));
+  };
+  const fallback = () => api('/api/leaderboard').then(j => {
+    if (j.me && j.me.rank) show(j.me.rank, j.total, false);
+    else { el.textContent = ''; el.append(small('이번 판은 랭킹에 반영되지 않았어요.')); }
+  }).catch(() => { el.textContent = ''; el.append(small('랭킹 서버에 연결하지 못했어요.')); });
+  if (!NET.runId){ fallback(); return; }
   const runId = NET.runId; NET.runId = null;
   api('/api/run/finish', { runId, score:S.score, stage:S.stage, bossKills:S.bossKills, durationMs:Math.round(S.playMs) })
     .then(j => {
-      if (j.ok) add(' · 주간 랭킹 ' + j.rank + '위' + (j.improved ? ' (갱신!)' : ''));
-      else if (j.reason) add(' · ' + j.reason);
-    }).catch(() => {});
+      if (j.ok) show(j.rank, j.total || j.rank, j.improved);
+      else { el.textContent = ''; el.append(small(j.reason || j.error || '이번 판은 랭킹에 반영되지 않았어요.')); }
+    }).catch(fallback);
 }
 let rankFrom = null;
 function openRank(){
@@ -1587,6 +1675,7 @@ function drawCard(r){
   c.font = F(30); const bw = c.measureText(badge).width + 40;
   c.fillStyle = '#8fdc5b'; roundRect(c, 520, 145, bw, 50, 25); c.fill();
   c.fillStyle = '#132016'; c.fillText(badge, 540, 181);
+  drawEmblem(c, w - 140, 120, 70, TIERS.findIndex(t => r.tier.startsWith(t.name)));
   c.font = F(26); c.fillStyle = '#9fb19c'; c.fillText('SCORE', 520, 262);
   c.font = F(96); c.fillStyle = '#f5ebd3'; c.fillText(r.score.toLocaleString('ko-KR'), 520, 350);
   const stats = [
