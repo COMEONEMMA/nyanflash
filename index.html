@@ -1,11 +1,31 @@
+<!-- © 2026 냥. 플 (Nyan Flash) · nyanflash.com · All rights reserved. 무단 복제·수정·재배포 금지. 문의 xmas42@naver.com -->
 <!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="롤 큐 기다리는 동안 하는 플래시 반응 연습 게임. 날아오는 뱀을 F·D로 피하세요.">
-<meta property="og:title" content="냥. 플">
-<meta property="og:description" content="고양이로 뱀 피하는 플래시 반응 연습 게임">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style id="antiClickjack">html{display:none!important}</style>
+<script>if (window.self === window.top) { document.getElementById('antiClickjack').remove(); } else { window.top.location = window.self.location; }</script>
+<meta name="description" content="롤 큐 기다리는 동안 하는 플래시 반응 연습 게임. 날아오는 뱀을 F·D 플래시로 피하세요.">
+<meta name="author" content="냥. 플 (Nyan Flash)">
+<meta name="copyright" content="© 2026 냥. 플 (Nyan Flash). All rights reserved.">
+<meta name="theme-color" content="#111c17">
+<link rel="canonical" href="https://nyanflash.com/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nyanflash.com/">
+<meta property="og:site_name" content="냥. 플">
+<meta property="og:title" content="냥. 플 · Nyan Flash">
+<meta property="og:description" content="날아오는 뱀을 F·D 플래시로 피하는 고양이 반응 연습 게임">
+<meta property="og:image" content="https://nyanflash.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>냥. 플</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dongle:wght@400;700&family=Gowun+Dodum&display=swap">
@@ -75,6 +95,13 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .share-msg{font-size:14px;color:var(--venom)}
 #cardImg{width:100%;max-width:100%;border-radius:12px;border:2px solid var(--line);display:block}
 #copyText{width:100%;min-height:120px;font:inherit;font-size:13px;color:var(--cream);background:var(--night);border:1.5px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.tierline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.tier{display:inline-flex;align-items:center;gap:6px;padding:2px 12px 0;border-radius:999px;border:2px solid currentColor;background:var(--night);font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1}
+.promo{margin:0;font-size:16px;color:var(--cream)}
+.promo b{font-family:var(--f-display);font-size:24px;font-weight:700}
+.foot{display:flex;flex-direction:column;gap:4px;border-top:1.5px dashed var(--line);padding-top:12px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.foot a{color:var(--cream)}
+.mini{font:inherit;font-size:12px;color:var(--cream);background:var(--night);border:1px solid var(--line);border-radius:6px;padding:1px 8px;cursor:pointer;margin-left:4px}
 .verdict{margin:0;font-size:16px;color:var(--cream);line-height:1.5}
 </style>
 
@@ -112,6 +139,11 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
           <button class="go" id="startBtn" type="button">시작 (Enter)</button>
           <span class="best" id="bestLine"></span>
         </div>
+        <div class="tierline" id="tierLine"></div>
+        <footer class="foot">
+          <span>문의 · 제보: <a href="mailto:xmas42@naver.com">xmas42@naver.com</a><button class="mini" id="copyMail" type="button">복사</button></span>
+          <span>© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.</span>
+        </footer>
       </div>
     </section>
 
@@ -129,6 +161,7 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
     <section class="overlay" id="overOv" hidden>
       <div class="panel">
         <h2 id="overTitle">뱀의 승리...</h2>
+        <p class="promo" id="promo"></p>
         <p class="verdict" id="verdict"></p>
         <div class="stats">
           <div class="stat hl"><span>스테이지</span><b id="stStage">1</b></div>
@@ -800,7 +833,18 @@ function endGame(){
   else if (avg < 130) v = '타이밍 아주 좋습니다. 맞기 직전에 쓰는 진짜 플래시 감각이에요.';
   else v = '나쁘지 않아요. 조금 더 참아서 평균 타이밍을 130ms 안쪽으로 줄여 보세요.';
   $('verdict').textContent = v;
-  lastResult = { eaten:S.eaten, bossKills:S.bossKills, stage:S.stage, score:S.score, maxCombo:S.maxCombo, perfect:S.perfect, whiff:S.whiff, avg, fast, skin:S.skin, isBest: isBest && S.score > 0 };
+  const wk = loadWeek(), oldT = wk.best > 0 ? tierOf(wk.best) : null, newT = tierOf(S.score);
+  const promo = $('promo'); promo.textContent = '';
+  if (S.score > wk.best){
+    wk.best = S.score; saveWeek(wk);
+    if (!oldT){ promo.append('이번 주 배치 완료! '); promo.append(tierBadge(newT)); }
+    else if (newT.rank > oldT.rank){ promo.append('승급! ' + oldT.label + ' → '); promo.append(tierBadge(newT)); }
+    else { promo.append('이번 주 최고 점수 갱신 · '); promo.append(tierBadge(newT)); }
+  } else {
+    promo.append('이번 주 티어 '); promo.append(tierBadge(tierOf(wk.best)));
+    promo.append(' · 최고 ' + wk.best.toLocaleString('ko-KR') + '점까지 ' + (wk.best - S.score).toLocaleString('ko-KR') + '점 남았어요');
+  }
+  lastResult = { tier: tierOf(wk.best).label, eaten:S.eaten, bossKills:S.bossKills, stage:S.stage, score:S.score, maxCombo:S.maxCombo, perfect:S.perfect, whiff:S.whiff, avg, fast, skin:S.skin, isBest: isBest && S.score > 0 };
   $('shareMsg').textContent = ''; $('copyText').hidden = true; $('cardBox').hidden = true;
   const b = loadBest();
   $('bestLine2').textContent = b ? '최고 기록 ' + b.score.toLocaleString('ko-KR') + '점 · 스테이지 ' + b.stage : '';
@@ -808,6 +852,7 @@ function endGame(){
 }
 
 function renderBest(){
+  renderTier();
   const b = loadBest();
   const left = Math.max(0, 3 - loadPlays());
   const best = b ? '최고 기록 ' + b.score.toLocaleString('ko-KR') + '점 · 스테이지 ' + b.stage : '첫 판이에요';
@@ -1278,6 +1323,10 @@ $('startBtn').onclick = start;
 $('againBtn').onclick = start;
 $('resumeBtn').onclick = resume;
 $('quitBtn').onclick = toTitle;
+$('copyMail').onclick = () => {
+  const done = () => { $('copyMail').textContent = '복사됨'; setTimeout(() => $('copyMail').textContent = '복사', 1500); };
+  try { navigator.clipboard.writeText('xmas42@naver.com').then(done, () => { $('copyMail').textContent = '직접 복사해 주세요'; }); } catch(e){ $('copyMail').textContent = '직접 복사해 주세요'; }
+};
 $('homeBtn').onclick = () => {
   if (S.mode === 'play'){ pause(); $('pauseLead').textContent = '홈으로 가면 지금 판은 끝나요. 계속할까요?'; $('quitBtn').focus(); }
   else if (S.mode !== 'title' && S.mode !== 'dying') toTitle();
@@ -1293,6 +1342,56 @@ $('musicVol').addEventListener('input', e => { musicVol = e.target.value/100; ap
 $('sfxVol').addEventListener('input', e => { sfxVol = e.target.value/100; saveVol(); });
 $('sfxVol').addEventListener('change', () => { audio(); beep(520, 1500, 0.12, 'triangle', 0.06); });
 
+/* ---- weekly tier ---- */
+const TIERS = [
+  { name:'아이언', min:0, color:'#a39d96' },
+  { name:'브론즈', min:3000, color:'#cf8c5c' },
+  { name:'실버', min:8000, color:'#c9d2dc' },
+  { name:'골드', min:15000, color:'#ffc94a' },
+  { name:'플래티넘', min:25000, color:'#5fd0c0' },
+  { name:'에메랄드', min:40000, color:'#4fd88a' },
+  { name:'다이아몬드', min:60000, color:'#8fb8ff' },
+  { name:'마스터', min:90000, color:'#c58cff' },
+  { name:'그랜드마스터', min:130000, color:'#ff7d8e' },
+  { name:'챌린저', min:180000, color:'#ffe9a6' },
+];
+function tierOf(score){
+  let i = 0;
+  TIERS.forEach((t, k) => { if (score >= t.min) i = k; });
+  const t = TIERS[i];
+  let label = t.name;
+  if (i < 7){
+    const q = (TIERS[i+1].min - t.min) / 4;
+    label += ' ' + (4 - Math.min(3, Math.floor((score - t.min) / q)));
+  }
+  return { name:t.name, color:t.color, idx:i, label, rank: i*4 + (i < 7 ? 4 - +label.slice(-1) : 0) };
+}
+function weekKey(){
+  const k = new Date(Date.now() + 9*3600e3);
+  const day = (k.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate() - day)).toISOString().slice(0, 10);
+}
+function loadWeek(){
+  try { const v = JSON.parse(localStorage.getItem('nyangflash-week')); if (v && v.week === weekKey()) return v; } catch(e){}
+  return { week: weekKey(), best: 0 };
+}
+function saveWeek(v){ try { localStorage.setItem('nyangflash-week', JSON.stringify(v)); } catch(e){} }
+function tierBadge(t){ const b = document.createElement('span'); b.className = 'tier'; b.style.color = t.color; b.textContent = t.label; return b; }
+function renderTier(){
+  const w = loadWeek(), el = $('tierLine');
+  el.textContent = '';
+  const lab = document.createElement('span'); lab.textContent = '이번 주 티어';
+  el.append(lab);
+  if (w.best > 0){
+    el.append(tierBadge(tierOf(w.best)));
+    const sc = document.createElement('span'); sc.textContent = w.best.toLocaleString('ko-KR') + '점 · 매주 월요일 0시 초기화';
+    el.append(sc);
+  } else {
+    const sc = document.createElement('span'); sc.textContent = '이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화';
+    el.append(sc);
+  }
+}
+
 /* ---- share ---- */
 let lastResult = null;
 function rankTitle(st){
@@ -1305,7 +1404,7 @@ function rankTitle(st){
 function shareText(r){
   const lines = [
     '🐱 냥. 플 결과',
-    '칭호: ' + rankTitle(r.stage) + ' (' + SKINS[r.skin].name + ')',
+    '이번 주 티어: ' + r.tier + ' · 칭호: ' + rankTitle(r.stage) + ' (' + SKINS[r.skin].name + ')',
     '스테이지 ' + r.stage + ' · ' + r.score.toLocaleString('ko-KR') + '점' + (r.isBest ? ' · 신기록!' : ''),
     '보스 격파 ' + r.bossKills + ' · 캔 ' + r.eaten + '개 냠 · 최대 콤보 ' + r.maxCombo + ' · PERFECT ' + r.perfect + ' · 헛플 ' + r.whiff,
   ];
@@ -1342,7 +1441,7 @@ function drawCard(r){
   c.textBaseline = 'alphabetic'; c.textAlign = 'left';
   c.font = F(64); c.lineWidth = 10; c.strokeStyle = '#0b120e';
   c.strokeText('냥. 플', 520, 130); c.fillStyle = '#ffc94a'; c.fillText('냥. 플', 520, 130);
-  const badge = rankTitle(r.stage) + (r.isBest ? ' · 신기록' : '');
+  const badge = r.tier + ' · ' + rankTitle(r.stage) + (r.isBest ? ' · 신기록' : '');
   c.font = F(30); const bw = c.measureText(badge).width + 40;
   c.fillStyle = '#8fdc5b'; roundRect(c, 520, 145, bw, 50, 25); c.fill();
   c.fillStyle = '#132016'; c.fillText(badge, 540, 181);
