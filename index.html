@@ -384,7 +384,7 @@ function hiss(len = 0.22, vol = 0.05){
 
 /* ---- music ---- */
 const TRACKS = {};
-['stage1','stage2','stage3','boss','gameover','hard1','hard2','hard3','hboss1','hboss2'].forEach(n => {
+['stage1','stage2','stage3','stage4','boss','gameover','hard1','hard2','hard3','hard4','hard5','hard6','hboss1','hboss2'].forEach(n => {
   const a = new Audio('bgm/' + n + '.mp3');
   a.loop = n !== 'gameover'; a.preload = n === 'stage1' ? 'auto' : 'metadata';
   TRACKS[n] = a;
@@ -401,7 +401,7 @@ function playTrack(name){
 function pauseMusic(){ if (curTrack) curTrack.pause(); }
 function resumeMusic(){ if (curTrack && curTrack.wantPlay && musicVol > 0) curTrack.play().catch(() => {}); }
 function stopMusic(){ if (curTrack){ curTrack.pause(); curTrack.wantPlay = false; } curTrack = null; }
-function stageTrack(){ return (S.hard ? 'hard' : 'stage') + (((S.stage - 1) % 3) + 1); }
+function stageTrack(){ return S.hard ? 'hard' + (((S.stage - 1) % 6) + 1) : 'stage' + (((S.stage - 1) % 4) + 1); }
 function bossTrack(){ return S.hard ? 'hboss' + (((S.stage - 1) % 2) + 1) : 'boss'; }
 
 /* ---- sizing ---- */
