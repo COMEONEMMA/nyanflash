@@ -16,7 +16,10 @@ async function init(db) {
     db.prepare('CREATE INDEX IF NOT EXISTS runs_player ON runs (player_id, started_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS scores (week TEXT NOT NULL, player_id TEXT NOT NULL, score INTEGER NOT NULL, stage INTEGER NOT NULL, boss_kills INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (week, player_id))'),
     db.prepare('CREATE INDEX IF NOT EXISTS scores_rank ON scores (week, score DESC)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS scores_hard (week TEXT NOT NULL, player_id TEXT NOT NULL, score INTEGER NOT NULL, stage INTEGER NOT NULL, boss_kills INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (week, player_id))'),
+    db.prepare('CREATE INDEX IF NOT EXISTS scores_hard_rank ON scores_hard (week, score DESC)'),
   ]);
+  try { await db.prepare("ALTER TABLE runs ADD COLUMN mode TEXT NOT NULL DEFAULT 'normal'").run(); } catch (e) { /* already there */ }
   ready = true;
 }
 async function sha256(s) {
@@ -42,8 +45,13 @@ async function readBody(req) {
 }
 const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
 
-async function rankOf(db, week, score) {
-  const r = await db.prepare('SELECT COUNT(*) AS n FROM scores WHERE week = ? AND score > ?').bind(week, score).first();
+const TABLE = (mode) => mode === 'hard' ? 'scores_hard' : 'scores';
+function dayStart(now = Date.now()) {
+  const k = new Date(now + 9 * 3600e3);
+  return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()) - 9 * 3600e3;
+}
+async function rankOf(db, week, score, mode) {
+  const r = await db.prepare(`SELECT COUNT(*) AS n FROM ${TABLE(mode)} WHERE week = ? AND score > ?`).bind(week, score).first();
   return (r ? r.n : 0) + 1;
 }
 
@@ -53,17 +61,19 @@ async function handle(req, env, url) {
 
   if (path === '/api/leaderboard' && req.method === 'GET') {
     const week = weekKey();
+    const mode = url.searchParams.get('mode') === 'hard' ? 'hard' : 'normal';
+    const T = TABLE(mode);
     const top = await db.prepare(
-      'SELECT p.nickname, s.score, s.stage, s.boss_kills AS bossKills FROM scores s JOIN players p ON p.id = s.player_id WHERE s.week = ? ORDER BY s.score DESC, s.updated_at ASC LIMIT 50'
+      `SELECT p.nickname, s.score, s.stage, s.boss_kills AS bossKills FROM ${T} s JOIN players p ON p.id = s.player_id WHERE s.week = ? ORDER BY s.score DESC, s.updated_at ASC LIMIT 50`
     ).bind(week).all();
-    const total = await db.prepare('SELECT COUNT(*) AS n FROM scores WHERE week = ?').bind(week).first();
+    const total = await db.prepare(`SELECT COUNT(*) AS n FROM ${T} WHERE week = ?`).bind(week).first();
     let me = null;
     const p = await playerOf(req, db);
     if (p && p.nickname) {
-      const mine = await db.prepare('SELECT score FROM scores WHERE week = ? AND player_id = ?').bind(week, p.id).first();
-      me = { nickname: p.nickname, score: mine ? mine.score : 0, rank: mine ? await rankOf(db, week, mine.score) : null };
+      const mine = await db.prepare(`SELECT score FROM ${T} WHERE week = ? AND player_id = ?`).bind(week, p.id).first();
+      me = { nickname: p.nickname, score: mine ? mine.score : 0, rank: mine ? await rankOf(db, week, mine.score, mode) : null };
     }
-    return json({ week, top: top.results || [], total: total ? total.n : 0, me });
+    return json({ week, mode, top: top.results || [], total: total ? total.n : 0, me });
   }
 
   if (req.method !== 'POST') return json({ error: '지원하지 않는 요청이에요.' }, 405);
@@ -90,8 +100,13 @@ async function handle(req, env, url) {
   if (path === '/api/run/start') {
     const last = await db.prepare('SELECT started_at FROM runs WHERE player_id = ? ORDER BY started_at DESC LIMIT 1').bind(p.id).first();
     if (last && now - last.started_at < 2500) return json({ error: '너무 빨라요.' }, 429);
+    const mode = body.mode === 'hard' ? 'hard' : 'normal';
+    if (mode === 'hard') {
+      const today = await db.prepare("SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND mode = 'hard' AND started_at >= ?").bind(p.id, dayStart(now)).first();
+      if (today && today.n >= 15) return json({ error: '오늘 하드 도전 횟수를 모두 썼어요.' }, 429);
+    }
     const runId = crypto.randomUUID();
-    await db.prepare('INSERT INTO runs (id, player_id, started_at) VALUES (?, ?, ?)').bind(runId, p.id, now).run();
+    await db.prepare('INSERT INTO runs (id, player_id, started_at, mode) VALUES (?, ?, ?, ?)').bind(runId, p.id, now, mode).run();
     if (Math.random() < 0.02) await db.prepare('DELETE FROM runs WHERE started_at < ?').bind(now - 2 * 86400e3).run();
     return json({ runId });
   }
@@ -101,26 +116,28 @@ async function handle(req, env, url) {
     if (typeof runId !== 'string' || runId.length > 64 || !isInt(score, 0, 1e9) || !isInt(stage, 1, 500) || !isInt(bossKills, 0, 500) || !isInt(durationMs, 0, 6 * 3600e3)) {
       return json({ error: '잘못된 기록이에요.' }, 400);
     }
-    const run = await db.prepare('UPDATE runs SET finished = 1 WHERE id = ? AND player_id = ? AND finished = 0 RETURNING started_at').bind(runId, p.id).first();
+    const run = await db.prepare('UPDATE runs SET finished = 1 WHERE id = ? AND player_id = ? AND finished = 0 RETURNING started_at, mode').bind(runId, p.id).first();
     if (!run) return json({ ok: false, reason: '이 판은 랭킹에 반영되지 않았어요.' }, 409);
     const elapsed = now - run.started_at;
     const sec = Math.min(durationMs, elapsed + 3000) / 1000;
     const plausible = durationMs <= elapsed + 3000
       && stage <= 1 + sec / 10
       && bossKills <= stage - 1
-      && score <= Math.max(3000, sec * 1200 * stage);
+      && score <= Math.max(4500, sec * 1200 * stage * (run.mode === 'hard' ? 1.6 : 1));
     if (!plausible) return json({ ok: false, reason: '기록이 비정상이라 랭킹에 반영되지 않았어요.' });
     const week = weekKey(now);
-    const before = await db.prepare('SELECT score FROM scores WHERE week = ? AND player_id = ?').bind(week, p.id).first();
+    const mode = run.mode === 'hard' ? 'hard' : 'normal';
+    const T = TABLE(mode);
+    const before = await db.prepare(`SELECT score FROM ${T} WHERE week = ? AND player_id = ?`).bind(week, p.id).first();
     const improved = !before || score > before.score;
     if (improved) {
       await db.prepare(
-        'INSERT INTO scores (week, player_id, score, stage, boss_kills, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(week, player_id) DO UPDATE SET score = excluded.score, stage = excluded.stage, boss_kills = excluded.boss_kills, updated_at = excluded.updated_at'
+        `INSERT INTO ${T} (week, player_id, score, stage, boss_kills, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(week, player_id) DO UPDATE SET score = excluded.score, stage = excluded.stage, boss_kills = excluded.boss_kills, updated_at = excluded.updated_at`
       ).bind(week, p.id, score, stage, bossKills, now).run();
     }
     const best = improved ? score : before.score;
-    const total = await db.prepare('SELECT COUNT(*) AS n FROM scores WHERE week = ?').bind(week).first();
-    return json({ ok: true, improved, best, rank: await rankOf(db, week, best), total: total ? total.n : 1 });
+    const total = await db.prepare(`SELECT COUNT(*) AS n FROM ${T} WHERE week = ?`).bind(week).first();
+    return json({ ok: true, mode, improved, best, rank: await rankOf(db, week, best, mode), total: total ? total.n : 1 });
   }
 
   return json({ error: '없는 주소예요.' }, 404);
