@@ -1523,7 +1523,8 @@ async function api(path, body){
     cache: 'no-store',
   });
   let j = {};
-  try { j = await r.json(); } catch(e){ throw new Error('offline'); }
+  const txt = await r.text();
+  try { j = JSON.parse(txt); } catch(e){ throw new Error('HTTP ' + r.status + ' · ' + txt.slice(0, 60).replace(/\s+/g, ' ')); }
   j.status = r.status;
   return j;
 }
@@ -1619,7 +1620,7 @@ function loadRank(){
     });
     if (j.me && j.me.rank) me.textContent = '내 순위: ' + j.me.rank + '위 / ' + j.total + '명 · ' + j.me.score.toLocaleString('ko-KR') + '점';
     else if (NET.nick) me.textContent = '이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.';
-  }).catch(() => { me.textContent = '랭킹 서버에 연결하지 못했어요. 주간 랭킹은 nyanflash.com에서 열려요.'; });
+  }).catch((e) => { console.error('leaderboard', e); me.textContent = '순위를 불러오지 못했어요. (' + (e && e.message ? e.message : '연결 실패') + ')'; });
 }
 
 /* ---- share ---- */
