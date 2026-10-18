@@ -8,9 +8,8 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
-  "observability": { "enabled": true }
-  // 랭킹을 켜려면 D1 데이터베이스를 만든 뒤 아래 주석을 풀고 database_id를 넣으세요.
-  // , "d1_databases": [
-  //   { "binding": "DB", "database_name": "nyanflash", "database_id": "여기에-ID" }
-  // ]
+  "observability": { "enabled": true },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "nyanflash", "database_id": "10f3fdb0-06cd-47f8-b4a2-3cdfd5d46ce6" }
+  ]
 }
