@@ -22,7 +22,7 @@
 <meta property="og:site_name" content="냥. 플">
 <meta property="og:title" content="냥. 플 · Nyan Flash">
 <meta property="og:description" content="날아오는 뱀을 F·D 플래시로 피하는 고양이 반응 연습 게임">
-<meta property="og:image" content="https://nyanflash.com/og.png">
+<meta property="og:image" content="https://nyanflash.com/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -102,6 +102,17 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .foot{display:flex;flex-direction:column;gap:4px;border-top:1.5px dashed var(--line);padding-top:12px;font-size:12.5px;color:var(--muted);line-height:1.6}
 .foot a{color:var(--cream)}
 .mini{font:inherit;font-size:12px;color:var(--cream);background:var(--night);border:1px solid var(--line);border-radius:6px;padding:1px 8px;cursor:pointer;margin-left:4px}
+.rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:min(46vh,420px);overflow:auto}
+.rank-list li{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;align-items:center;gap:10px;background:var(--night);border-radius:10px;padding:6px 12px}
+.rank-list li.me{outline:2px solid var(--amber)}
+.rank-list .no{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1;color:var(--muted);font-variant-numeric:tabular-nums}
+.rank-list li:nth-child(-n+3) .no{color:var(--amber)}
+.rank-list .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-list .sc{font-variant-numeric:tabular-nums;color:var(--cream)}
+.rank-list .tier{font-size:18px;padding:0 8px}
+.nickrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.nickrow input{font:inherit;font-size:16px;color:var(--cream);background:var(--night);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0;flex:1 1 160px}
+.netmsg{font-size:14px;color:var(--muted);margin:0}
 .verdict{margin:0;font-size:16px;color:var(--cream);line-height:1.5}
 </style>
 
@@ -134,9 +145,11 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
           <li><span>잘 피할수록 콤보가 쌓여 점수 배율이 최대 x3까지 올라가요.</span></li>
           <li><span>가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔 위에 딱 내려앉으면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.</span></li>
           <li><span>처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.</span></li>
+          <li><span>닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!</span></li>
         </ul>
         <div class="row">
           <button class="go" id="startBtn" type="button">시작 (Enter)</button>
+          <button class="ghost" id="rankBtn" type="button">주간 랭킹</button>
           <span class="best" id="bestLine"></span>
         </div>
         <div class="tierline" id="tierLine"></div>
@@ -174,6 +187,7 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
         <div class="row">
           <button class="go" id="againBtn" type="button">다시 (Enter)</button>
           <button class="ghost" id="menuBtn" type="button">홈으로</button>
+          <button class="ghost" id="rankBtn2" type="button">랭킹</button>
           <span class="best" id="bestLine2"></span>
         </div>
         <div class="share">
@@ -191,6 +205,19 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
               <span class="best">이미지를 우클릭하거나 길게 눌러서 저장할 수도 있어요</span>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+    <section class="overlay" id="rankOv" hidden>
+      <div class="panel">
+        <h2>이번 주 랭킹</h2>
+        <p class="netmsg" id="rankSub">매주 월요일 0시(한국 시간)에 초기화돼요.</p>
+        <div id="nickBox"></div>
+        <p class="netmsg" id="nickMsg" role="status"></p>
+        <ol class="rank-list" id="rankList"></ol>
+        <p class="netmsg" id="myRank"></p>
+        <div class="row">
+          <button class="ghost" id="rankClose" type="button">닫기 (Esc)</button>
         </div>
       </div>
     </section>
@@ -792,18 +819,19 @@ function ringFx(x, y){ parts.push({ ring:true, x, y, life:0.35, t:0 }); }
 
 /* ---- flow ---- */
 const $ = id => document.getElementById(id);
-function showOnly(id){ ['titleOv','pauseOv','overOv'].forEach(o => $(o).hidden = (o !== id)); }
+function showOnly(id){ ['titleOv','pauseOv','overOv','rankOv'].forEach(o => $(o).hidden = (o !== id)); }
 
 function start(){
   audio();
   const plays = loadPlays();
   savePlays(plays + 1);
   Object.assign(S, { mode:'play', stage:1, score:0, lives:3, dodges:0, stageDodges:0, combo:0, perfect:0, good:0, early:0, whiff:0,
-    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, showLane: plays < 3, cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
+    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, showLane: plays < 3, cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
   snakes = []; parts = []; floats = []; ghosts = []; foods = []; bannerQ = [];
   cat.x = W/2; cat.y = H/2;
   banner = { text:'STAGE 1', sub:'뱀이 온다! F 또는 D로 피하세요', t:0, life:2 };
   playTrack(stageTrack());
+  netStartRun();
   showOnly(null);
   cv.focus({ preventScroll:true });
 }
@@ -844,6 +872,7 @@ function endGame(){
     promo.append('이번 주 티어 '); promo.append(tierBadge(tierOf(wk.best)));
     promo.append(' · 최고 ' + wk.best.toLocaleString('ko-KR') + '점까지 ' + (wk.best - S.score).toLocaleString('ko-KR') + '점 남았어요');
   }
+  netFinishRun(promo);
   lastResult = { tier: tierOf(wk.best).label, eaten:S.eaten, bossKills:S.bossKills, stage:S.stage, score:S.score, maxCombo:S.maxCombo, perfect:S.perfect, whiff:S.whiff, avg, fast, skin:S.skin, isBest: isBest && S.score > 0 };
   $('shareMsg').textContent = ''; $('copyText').hidden = true; $('cardBox').hidden = true;
   const b = loadBest();
@@ -862,6 +891,7 @@ function renderBest(){
 /* ---- update ---- */
 function update(dt){
   S.t += dt;
+  if (S.mode === 'play') S.playMs += dt*1000;
   S.cd = Math.max(0, S.cd - dt);
   S.invuln = Math.max(0, S.invuln - dt);
   S.hurt = Math.max(0, S.hurt - dt);
@@ -1303,6 +1333,8 @@ cv.addEventListener('pointermove', setMouse);
 cv.addEventListener('pointerdown', e => { setMouse(e); if (e.pointerType !== 'mouse' && S.mode === 'play') flash(); });
 window.addEventListener('keydown', e => {
   const k = e.code;
+  if (e.target && e.target.tagName === 'INPUT'){ if (k === 'Escape' && S.mode === 'ranking') closeRank(); return; }
+  if (S.mode === 'ranking'){ if (k === 'Escape') closeRank(); return; }
   if (k === 'KeyF' || k === 'KeyD'){ if (S.mode === 'play'){ e.preventDefault(); if (!e.repeat) flash(); } return; }
   if (e.repeat) return;
   if (k === 'Escape' || k === 'KeyP'){ if (S.mode === 'play') pause(); else if (S.mode === 'paused') resume(); }
@@ -1323,6 +1355,9 @@ $('startBtn').onclick = start;
 $('againBtn').onclick = start;
 $('resumeBtn').onclick = resume;
 $('quitBtn').onclick = toTitle;
+$('rankBtn').onclick = openRank;
+$('rankBtn2').onclick = openRank;
+$('rankClose').onclick = closeRank;
 $('copyMail').onclick = () => {
   const done = () => { $('copyMail').textContent = '복사됨'; setTimeout(() => $('copyMail').textContent = '복사', 1500); };
   try { navigator.clipboard.writeText('xmas42@naver.com').then(done, () => { $('copyMail').textContent = '직접 복사해 주세요'; }); } catch(e){ $('copyMail').textContent = '직접 복사해 주세요'; }
@@ -1390,6 +1425,113 @@ function renderTier(){
     const sc = document.createElement('span'); sc.textContent = '이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화';
     el.append(sc);
   }
+}
+
+/* ---- online weekly ranking ---- */
+const NET = { token:null, nick:null, runId:null, down:false };
+function b64url(bytes){ return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+(function initNet(){
+  try { NET.token = localStorage.getItem('nyangflash-token'); NET.nick = localStorage.getItem('nyangflash-nick'); } catch(e){}
+  if (!NET.token || !/^[A-Za-z0-9_-]{32,64}$/.test(NET.token)){
+    NET.token = b64url(crypto.getRandomValues(new Uint8Array(32)));
+    try { localStorage.setItem('nyangflash-token', NET.token); } catch(e){}
+  }
+})();
+async function api(path, body){
+  const r = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'content-type':'application/json', 'x-player-token': NET.token },
+    body: body ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+  });
+  let j = {};
+  try { j = await r.json(); } catch(e){ throw new Error('offline'); }
+  j.status = r.status;
+  return j;
+}
+function netStartRun(){
+  NET.runId = null;
+  if (!NET.nick) return;
+  api('/api/run/start', {}).then(j => { if (j.runId) NET.runId = j.runId; }).catch(() => {});
+}
+function netFinishRun(promo){
+  const add = (t) => { const sp = document.createElement('span'); sp.textContent = t; promo.append(sp); };
+  if (!NET.nick){
+    const b = document.createElement('button'); b.className = 'mini'; b.type = 'button';
+    b.textContent = '닉네임 등록하고 주간 랭킹 도전'; b.onclick = () => openRank();
+    promo.append(' '); promo.append(b);
+    return;
+  }
+  if (!NET.runId) return;
+  const runId = NET.runId; NET.runId = null;
+  api('/api/run/finish', { runId, score:S.score, stage:S.stage, bossKills:S.bossKills, durationMs:Math.round(S.playMs) })
+    .then(j => {
+      if (j.ok) add(' · 주간 랭킹 ' + j.rank + '위' + (j.improved ? ' (갱신!)' : ''));
+      else if (j.reason) add(' · ' + j.reason);
+    }).catch(() => {});
+}
+let rankFrom = null;
+function openRank(){
+  rankFrom = S.mode; S.mode = 'ranking';
+  showOnly('rankOv'); renderNick(); loadRank();
+  $('rankClose').focus();
+}
+function closeRank(){
+  S.mode = rankFrom === 'over' ? 'over' : 'title';
+  showOnly(S.mode === 'over' ? 'overOv' : 'titleOv');
+  if (S.mode === 'title') renderBest();
+}
+function renderNick(){
+  const box = $('nickBox'); box.textContent = '';
+  const row = document.createElement('div'); row.className = 'nickrow';
+  if (NET.nick && !NET.editing){
+    const t = document.createElement('span'); t.textContent = '내 닉네임: ' + NET.nick;
+    const b = document.createElement('button'); b.className = 'mini'; b.type = 'button'; b.textContent = '변경';
+    b.onclick = () => { NET.editing = true; renderNick(); };
+    row.append(t, b);
+  } else {
+    const inp = document.createElement('input'); inp.id = 'nickInput'; inp.maxLength = 12; inp.placeholder = '닉네임 (한글·영문·숫자 2~12자)';
+    inp.autocomplete = 'off'; inp.spellcheck = false; if (NET.nick) inp.value = NET.nick;
+    const b = document.createElement('button'); b.className = 'go'; b.type = 'button'; b.textContent = '등록'; b.style.fontSize = '26px'; b.style.padding = '6px 18px';
+    const go = () => registerNick(inp.value.trim());
+    b.onclick = go; inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    row.append(inp, b);
+    setTimeout(() => inp.focus(), 0);
+  }
+  box.append(row);
+}
+function registerNick(nick){
+  const msg = $('nickMsg');
+  if (!/^[가-힣A-Za-z0-9_]{2,12}$/.test(nick)){ msg.textContent = '닉네임은 한글, 영문, 숫자, _ 로 2~12자예요.'; return; }
+  msg.textContent = '등록 중...';
+  api('/api/register', { nickname: nick }).then(j => {
+    if (j.ok){
+      NET.nick = j.nickname; NET.editing = false;
+      try { localStorage.setItem('nyangflash-nick', NET.nick); } catch(e){}
+      msg.textContent = '등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.';
+      renderNick(); loadRank();
+    } else msg.textContent = j.error || '등록하지 못했어요. 잠시 뒤에 다시 해 주세요.';
+  }).catch(() => { msg.textContent = '랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.'; });
+}
+function loadRank(){
+  const list = $('rankList'), me = $('myRank');
+  list.textContent = ''; me.textContent = '불러오는 중...';
+  api('/api/leaderboard').then(j => {
+    if (!j.top){ me.textContent = j.error || '랭킹을 불러오지 못했어요.'; return; }
+    me.textContent = '';
+    if (!j.top.length){ me.textContent = '이번 주 첫 기록의 주인공이 되어 보세요!'; }
+    j.top.forEach((r, i) => {
+      const li = document.createElement('li');
+      if (j.me && r.nickname === j.me.nickname) li.className = 'me';
+      const no = document.createElement('span'); no.className = 'no'; no.textContent = i + 1;
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.nickname;
+      const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString('ko-KR');
+      li.append(no, nm, tierBadge(tierOf(r.score)), sc);
+      list.append(li);
+    });
+    if (j.me && j.me.rank) me.textContent = '내 순위: ' + j.me.rank + '위 / ' + j.total + '명 · ' + j.me.score.toLocaleString('ko-KR') + '점';
+    else if (NET.nick) me.textContent = '이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.';
+  }).catch(() => { me.textContent = '랭킹 서버에 연결하지 못했어요. 주간 랭킹은 nyanflash.com에서 열려요.'; });
 }
 
 /* ---- share ---- */

@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nyanflash",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true }
+  // 랭킹을 켜려면 D1 데이터베이스를 만든 뒤 아래 주석을 풀고 database_id를 넣으세요.
+  // , "d1_databases": [
+  //   { "binding": "DB", "database_name": "nyanflash", "database_id": "여기에-ID" }
+  // ]
+}

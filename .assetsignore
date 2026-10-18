@@ -1,0 +1,10 @@
+.git
+.github
+src
+node_modules
+wrangler.jsonc
+wrangler.toml
+.assetsignore
+README.md
+LICENSE
+CNAME
