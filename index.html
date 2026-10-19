@@ -74,12 +74,34 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .lead{margin:0;color:var(--cream);opacity:.85;line-height:1.75;font-size:16px}
 .lead kbd,.rules kbd{font-family:var(--f-body);font-weight:700;font-size:13px;line-height:1.35;display:inline-block;vertical-align:1px;background:var(--night);border:1.5px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;color:var(--amber)}
 .label{font-size:13px;letter-spacing:.06em;color:var(--muted)}
-.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-@media (max-width:460px){.cats{grid-template-columns:repeat(2,1fr)}}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:460px){.cats{grid-template-columns:repeat(3,1fr)}}
 .cat{font:inherit;color:var(--cream);background:var(--night);border:2px solid var(--line);border-radius:14px;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
 .cat canvas{width:72px;height:72px}
 .cat b{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1}
 .cat small{color:var(--muted);font-size:13px}
+.cat .ab{color:var(--venom);font-size:12px;line-height:1.3;text-align:center}
+.cat{position:relative}
+.cat.locked canvas{filter:grayscale(1) brightness(.45)}
+.cat.locked{cursor:not-allowed;opacity:.8}
+.cat .lock{position:absolute;top:6px;right:8px;font-size:12px;color:var(--muted)}
+.missions{background:var(--night);border:1.5px solid var(--line);border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.missions .mh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
+.missions .mh b{font-family:var(--f-display);font-weight:700;font-size:24px;color:var(--cream);line-height:1}
+.mi{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:14px}
+.mi .ck{width:16px;height:16px;border-radius:50%;border:2px solid var(--line)}
+.mi.done .ck{background:var(--venom);border-color:var(--venom)}
+.mi.done .mt{color:var(--muted);text-decoration:line-through}
+.mi .mp{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.mbar{grid-column:2 / 4;height:5px;border-radius:999px;background:#0b120e;overflow:hidden}
+.mbar i{display:block;height:100%;background:var(--amber)}
+.vs{display:flex;align-items:center;gap:12px;background:#2a2717;border:2px solid var(--amber);border-radius:14px;padding:10px 14px}
+.vs img{width:48px;height:48px;flex:none}
+.vs > div{min-width:0;word-break:keep-all;overflow-wrap:break-word}
+.missions .mh{gap:8px;flex-wrap:wrap}
+@media (max-width:460px){.vs b{font-size:22px}}
+.vs b{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.05;color:var(--amber)}
+.vs span{font-size:13px;color:var(--muted)}
 .cat[aria-pressed="true"]{border-color:var(--amber);background:#2a2717}
 .rules{margin:0;padding:0;list-style:none;display:grid;gap:10px;font-size:15.5px;line-height:1.65;color:var(--cream)}
 .rules li{display:grid;grid-template-columns:22px 1fr;gap:6px}
@@ -131,6 +153,8 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .rank-list .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-list .sc{font-variant-numeric:tabular-nums;color:var(--cream)}
 .rank-list .tier{font-size:18px;padding:0 8px}
+.rank-list li{grid-template-columns:36px 30px minmax(0,1fr) auto auto}
+.rank-list .ci{width:30px;height:30px;image-rendering:auto}
 .nickrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .nickrow input{font:inherit;font-size:16px;color:var(--cream);background:var(--night);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0;flex:1 1 160px}
 .netmsg{font-size:14px;color:var(--muted);margin:0}
@@ -168,6 +192,8 @@ body.mobile #titleOv .panel > #startRow{order:1}
 body.mobile #titleOv .panel > #installBox{order:2}
 body.mobile #titleOv .panel > #modeLabel,body.mobile #titleOv .panel > #modeRow{order:3}
 body.mobile #titleOv .panel > #catLabel,body.mobile #titleOv .panel > #cats{order:4}
+body.mobile #titleOv .panel > #vsBox{order:1}
+body.mobile #titleOv .panel > #missionBox{order:4}
 body.mobile #titleOv .panel > #tierLine{order:5}
 body.mobile #titleOv .panel > .lead.m-only{order:6}
 body.mobile #titleOv .panel > #rulesBtn{order:7;align-self:flex-start}
@@ -204,12 +230,14 @@ body.standalone .install{display:none!important}
         <h1>냥. 플</h1>
         <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.</p>
         <p class="lead m-only">화면 아무 데나 손가락을 대고 피할 방향으로 쓱 끌었다가 <b>떼는 순간 플래시!</b> 끌지 않고 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.</p>
+        <div class="vs" id="vsBox" hidden></div>
         <div class="label" id="modeLabel">난이도</div>
         <div class="modes" id="modeRow">
           <button class="mode-btn" id="modeNormal" type="button" aria-pressed="true">노말</button>
           <button class="mode-btn hard" id="modeHard" type="button" aria-pressed="false">하드</button>
           <span class="mode-note" id="modeNote"></span>
         </div>
+        <div class="missions" id="missionBox"></div>
         <div class="label" id="catLabel">고양이 고르기</div>
         <div class="cats" id="cats"></div>
         <button class="mini m-only" id="rulesBtn" type="button">게임 방법 보기</button>
@@ -221,6 +249,7 @@ body.standalone .install{display:none!important}
           <li><span>가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔을 덮치거나 스치고 지나가면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.</span></li>
           <li><span>처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.</span></li>
           <li><span><b style="color:var(--hurt)">하드</b>: 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!</span></li>
+          <li><span>고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.</span></li>
           <li><span>닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!</span></li>
         </ul>
         <div class="row" id="startRow">
@@ -283,6 +312,7 @@ body.standalone .install{display:none!important}
           <div class="row">
             <button class="ghost" id="copyBtn" type="button">결과 문구 복사</button>
             <button class="ghost" id="cardBtn" type="button">이미지 카드 만들기</button>
+            <button class="ghost" id="vsBtn" type="button">도전 링크 복사</button>
             <span class="share-msg" id="shareMsg" role="status"></span>
           </div>
           <textarea id="copyText" readonly hidden aria-label="공유 문구"></textarea>
@@ -331,7 +361,23 @@ body.standalone .install{display:none!important}
 <script>
 const LANG = (() => { try { const v = localStorage.getItem('nyangflash-lang'); if (v === 'ko' || v === 'en') return v; } catch(e){} return /^ko/i.test(navigator.language || '') ? 'ko' : 'en'; })();
 const EN = {"냥. 플": "Nyan Flash", "롤 큐 기다리는 동안 하는 플래시 반응 연습": "Flash reaction practice while your LoL queue pops", "음악": "Music", "효과음": "SFX", "홈": "Home", "일시정지 (Esc)": "Pause (Esc)", "뱀이 날아오면": "When a snake flies in, press", "또는": "or", "! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.": " to blink toward your mouse cursor and dodge it.", "화면 아무 데나 손가락을 대고 피할 방향으로 쓱 끌었다가": "Touch anywhere, drag toward where you want to go, and", "떼는 순간 플래시!": "release to Flash!", "끌지 않고 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.": "A quick tap flashes toward the spot you tapped. Landscape works best. Mobile plays Normal mode only.", "난이도": "Difficulty", "노말": "Normal", "하드": "Hard", "고양이 고르기": "Pick your cat", "게임 방법 보기": "How to play", "게임 방법 닫기": "Hide how to play", "몸에 닿기 직전에 쓸수록 높은 판정.": "The closer to impact you Flash, the better the grade.", "· GOOD · 빠름. 닿기 몇 ms 전에 썼는지 보여줘요.": "· GOOD · EARLY. It shows how many ms before impact you flashed.", "빗나가는 뱀도 섞여 있어요. 괜히 쓰면 헛플이고 쿨타임 1초.": "Some snakes are going to miss you. Flash for nothing and it's a whiff, with a 1 second cooldown.", "8마리 피하면 보스 등장! 킹코브라, 독수리, 불독, 아나콘다가 각자 패턴으로 공격해요. PERFECT·GOOD으로 연속 3~6번 피해야 이기고 다음 스테이지로 가요.": "Dodge 8 snakes and a boss appears! King Cobra, Eagle Chief, Bulldog Boss and Anaconda each attack their own way. Beat them with 3 to 6 PERFECT or GOOD dodges in a row.", "잘 피할수록 콤보가 쌓여 점수 배율이 최대 x3까지 올라가요. 5·10·20 콤보마다 고양이가 변신해요!": "Clean dodges build a combo, up to x3 score. Your cat transforms at 5, 10 and 20 combo!", "가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔을 덮치거나 스치고 지나가면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.": "Cat food cans drift by. Flash onto or through one for bonus points. A shiny gold can restores a fish.", "처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.": "Snake paths are shown for your first 3 games only. Lose all 3 fish and the snakes win.", ": 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!": ": much faster snakes, no warnings, no guides. 3 tries a day, 1.5x score, its own ranking!", "닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!": "Register a nickname and your best score of the week sets your rank and tier. Resets every Monday!", "시작 (Enter)": "Start (Enter)", "주간 랭킹": "Weekly ranking", "홈 화면에 앱으로 추가": "Add to home screen", "문의 · 제보:": "Contact:", "복사": "Copy", "© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.": "© 2026 Nyan Flash (냥. 플). Copying, modifying, redistributing or commercially using the game's code, art or music without permission is prohibited.", "잠깐 멈춤": "Paused", "큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.": "Queue popped? Go play. The game pauses when you leave the window.", "계속 (Enter)": "Resume (Enter)", "홈으로": "Home", "뱀의 승리...": "The snakes win...", "이번 주 티어": "This week's tier", "스테이지": "Stage", "점수": "Score", "최대 콤보": "Max combo", "평균 타이밍 (닿기 전)": "Avg timing (before impact)", "보스 격파": "Bosses beaten", "PERFECT / 헛플": "PERFECT / Whiffs", "다시 (Enter)": "Again (Enter)", "랭킹": "Ranking", "결과 공유하기": "Share your result", "결과 문구 복사": "Copy result text", "이미지 카드 만들기": "Make image card", "이미지 복사": "Copy image", "이미지를 우클릭하거나 길게 눌러서 저장할 수도 있어요": "You can also right-click or long-press the image to save it", "오늘 하드 도전 끝!": "Out of Hard tries today!", "하드 모드는 하루 3번까지 무료예요. 광고를 보면 1번 더 도전할 수 있어요. 한국 시간 자정에 다시 3번이 충전돼요.": "Hard mode is free 3 times a day. Watch an ad for one more try. Tries refill at midnight KST.", "광고 자리": "Ad space", "광고 보고 1번 더": "Watch ad for 1 more", "노말 하기": "Play Normal", "이번 주 랭킹": "This week's ranking", "매주 월요일 0시(한국 시간)에 초기화돼요.": "Resets every Monday at 00:00 KST.", "닫기 (Esc)": "Close (Esc)", "게임 화면": "Game screen", "공유 문구": "Share text", "냥. 플 점수 카드": "Nyan Flash score card", "치즈": "Cheddar", "주황 줄무늬": "Orange tabby", "턱시도": "Tuxedo", "정장 차림": "Dressed sharp", "삼색이": "Calico", "행운의 무늬": "Lucky coat", "러시안블루": "Russian Blue", "초록 눈": "Green eyes", "쿨타임!": "Cooldown!", "헛플!": "Whiff!", "날아오는 뱀이 없었어요": "No snake was coming", "빠름": "EARLY", "너무 일찍 썼어요 (닿기 ": "Too early (", "ms 전)": "ms before impact)", "닿기 ": "", "ms 전": "ms before impact", "회피 +": "Dodge +", " 콤보!": " Combo!", "점수 x": "Score x", "뱀이 더 빨라졌다!": "Snakes got faster!", "생선 1개 회복!": "+1 fish!", "빗나가는 뱀이 섞이기 시작해요": "Decoy snakes start showing up", "이제 여러 마리가 동시에 와요": "Now they come in groups", "빨간 독사 등장. 더 빠릅니다": "Red vipers appear. They're faster", "보스 격파!": "Boss down!", " 물리쳤다냥 · +": " defeated · +", "쿨냥 모드": "Cool Cat Mode", "번개냥": "Thunder Cat", "전설의 냥": "Legend Cat", "변신! ": "Transform! ", " 콤보 달성": " combo", "변신 해제...": "Transform ended...", "연속 회피 끊김!": "Streak broken!", "뱀한테 졌다냥...": "Snake got me...", "앗 물렸다!": "Ouch, bitten!", "이 뱀이...!": "This snake...!", "냐아앙!": "Nyaaa!", "킹코브라": "King Cobra", "킹코브라를": "King Cobra", "독수리 대장": "Eagle Chief", "독수리 대장을": "Eagle Chief", "불독 두목": "Bulldog Boss", "불독 두목을": "Bulldog Boss", "아나콘다": "Anaconda", "아나콘다를": "Anaconda", "연속 ": "Dodge ", "번 확실하게(PERFECT·GOOD) 피하면 승리!": " times in a row (PERFECT/GOOD) to win!", "확실한 회피! ": "Clean dodge! ", "애매해요! 처음부터 다시": "Not clean! Streak reset", "피했지만 인정 안 됨!": "Dodged, but not clean!", "연속 0 / ": "Streak 0 / ", "냠! 캔 획득": "Yum! Can", "황금 캔!": "Gold can!", "황금 캔! 생선 +1": "Gold can! +1 fish", "안내선 없음. 오늘 남은 도전 ": "No guides. Tries left today: ", "번": "", "뱀이 온다! 끌었다 떼면 플래시!": "Snakes incoming! Drag and release to Flash!", "뱀이 온다! F 또는 D로 피하세요": "Snakes incoming! Press F or D to dodge", "신기록! 그래도 뱀의 승리": "New best! But the snakes win", "아직 제때 쓴 플래시가 없어요. 뱀이 가까이 올 때까지 참았다가 옆으로 눌러 보세요.": "No well-timed Flash yet. Wait until the snake is close, then Flash sideways.", "헛플이 많아요. 빗나가는 뱀은 그냥 보내고, 진짜 나한테 오는 뱀에만 쓰는 연습을 해 보세요.": "Lots of whiffs. Let the decoys pass and only Flash at snakes really coming for you.", "반응은 빠른데 너무 일찍 써요. 조금만 더 참았다가 닿기 직전에 쓰면 PERFECT가 나옵니다.": "Quick reactions, but too early. Hold a little longer and Flash right before impact for PERFECT.", "타이밍 아주 좋습니다. 맞기 직전에 쓰는 진짜 플래시 감각이에요.": "Great timing. That's a real last-second Flash.", "나쁘지 않아요. 조금 더 참아서 평균 타이밍을 130ms 안쪽으로 줄여 보세요.": "Not bad. Hold a bit longer and get your average under 130ms.", "이번 주 배치 완료! ": "Placed this week! ", "승급! ": "Promoted! ", "이번 주 최고 점수 갱신 · ": "New weekly best · ", "이번 주 티어 ": "This week's tier ", " · 최고 ": " · Best ", "점까지 ": " pts · ", "점 남았어요": " pts to go", " 티어 엠블럼": " tier emblem", "최고 기록 ": "Best ", "점 · 스테이지 ": " pts · Stage ", "첫 판이에요": "First game!", " · 뱀 경로 표시 ": " · Snake paths shown for ", "판 남음": " more games", "캔 놓침": "Missed can", " 콤보 · x": " combo · x", "연속 회피 ": "Streak ", "끌었다 떼면 플래시": "Drag & release to Flash", "F · D 플래시": "F · D Flash", "앱처럼 바로 실행돼요": "Opens like an app", "Safari 아래쪽 공유 버튼(네모에 위쪽 화살표) → \"홈 화면에 추가\"를 눌러 주세요.": "In Safari, tap the Share button (square with an up arrow), then \"Add to Home Screen\".", "브라우저 메뉴(⋮)에서 \"홈 화면에 추가\" 또는 \"앱 설치\"를 눌러 주세요.": "Open the browser menu (⋮) and choose \"Add to Home screen\" or \"Install app\".", "오늘 남은 도전 ": "Tries left today ", " · 안내선 없음 · 점수 1.5배": " · No guides · 1.5x score", "하드 모드는 PC 전용이에요": "Hard mode is PC only", "처음이라면 노말부터!": "New here? Start with Normal!", "하드 시작 (Enter)": "Start Hard (Enter)", "하드 모드는 PC에서만 할 수 있어요.": "Hard mode is only available on PC.", "광고 준비 중... 잠시 후 도전이 1번 추가돼요": "Loading ad... you'll get 1 more try shortly", "복사됨": "Copied", "직접 복사해 주세요": "Please copy it manually", "홈으로 가면 지금 판은 끝나요. 계속할까요?": "Going home will end this game. Keep playing?", "아이언": "Iron", "브론즈": "Bronze", "실버": "Silver", "골드": "Gold", "플래티넘": "Platinum", "에메랄드": "Emerald", "다이아몬드": "Diamond", "마스터": "Master", "그랜드마스터": "Grandmaster", "챌린저": "Challenger", "이번 주 하드 티어": "This week's Hard tier", "점 · 매주 월요일 0시 초기화": " pts · resets Mon 00:00 KST", "이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화": "Play a game to get placed · resets Mon 00:00 KST", "닉네임 등록하고 내 순위 보기": "Register a nickname to see your rank", "순위 확인 중...": "Checking rank...", "하드 ": "Hard #", "이번 주 ": "This week #", "위 ": " ", "명": " players", " · 기록 갱신!": " · New best!", "이번 판은 랭킹에 반영되지 않았어요.": "This game wasn't counted for the ranking.", "랭킹 서버에 연결하지 못했어요.": "Couldn't reach the ranking server.", "내 닉네임: ": "My nickname: ", "변경": "Change", "닉네임 (한글·영문·숫자 2~12자)": "Nickname (2-12 letters or numbers)", "등록": "Save", "닉네임은 한글, 영문, 숫자, _ 로 2~12자예요.": "Nicknames are 2-12 letters, numbers or _.", "등록 중...": "Saving...", "등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.": "Saved! Every game now counts for the ranking.", "등록하지 못했어요. 잠시 뒤에 다시 해 주세요.": "Couldn't save. Please try again in a moment.", "랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.": "Couldn't reach the ranking server. Open the game at nyanflash.com.", "불러오는 중...": "Loading...", "랭킹을 불러오지 못했어요.": "Couldn't load the ranking.", "이번 주 첫 기록의 주인공이 되어 보세요!": "Be the first on the board this week!", "내 순위: ": "My rank: #", "위 / ": " / ", "명 · ": " players · ", "점": " pts", "이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.": "No score yet this week. Play a game to get ranked.", "순위를 불러오지 못했어요. (": "Couldn't load the ranking. (", "연결 실패": "connection failed", "아기 고양이": "Kitten", "골목 길냥이": "Alley Cat", "뱀 사냥꾼": "Snake Hunter", "플래시 장인": "Flash Master", "전설의 냥이": "Legendary Cat", "🐱 냥. 플 결과": "🐱 Nyan Flash result", " (하드)": " (Hard)", "이번 주 티어: ": "Weekly tier: ", " · 칭호: ": " · Title: ", "스테이지 ": "Stage ", " · 신기록!": " · New best!", "보스 격파 ": "Bosses ", " · 캔 ": " · Cans ", "개 냠 · 최대 콤보 ": " · Max combo ", " · 헛플 ": " · Whiffs ", "평균 타이밍: 닿기 ": "Avg timing: ", "ms 전 (최고 ": "ms before impact (best ", "🐍 뱀한테 졌지만 다음엔 안 진다냥. 너도 피해 봐!": "🐍 The snakes got me this time. Think you can dodge better?", "아래 문구를 선택해 두었어요. Ctrl+C로 복사하세요": "Text selected below. Press Ctrl+C to copy", "복사됐어요. 카톡이나 디코에 붙여넣기 하세요": "Copied! Paste it into Discord or anywhere", " · 신기록": " · New best", "평균 타이밍": "Avg timing", "F · D 플래시 반응 연습": "F · D Flash reaction practice", "카드를 만들었어요": "Card ready", "여기선 이미지 복사가 막혀 있어요. 이미지를 우클릭해서 저장해 주세요": "Image copy is blocked here. Right-click the image to save it", "이미지가 복사됐어요. 채팅창에 붙여넣기 하세요": "Image copied! Paste it into a chat", "기록이 비정상이라 랭킹에 반영되지 않았어요.": "This score looked abnormal, so it wasn't counted.", "쓸 수 없는 닉네임이에요.": "That nickname isn't allowed.", "이미 누가 쓰고 있는 닉네임이에요.": "That nickname is taken.", "먼저 닉네임을 등록해 주세요.": "Please register a nickname first.", "너무 빨라요.": "Too fast.", "오늘 하드 도전 횟수를 모두 썼어요.": "You've used all your Hard tries today.", "잘못된 요청이에요.": "Invalid request.", "잘못된 기록이에요.": "Invalid score.", "서버 오류가 났어요. 잠시 뒤에 다시 해 주세요.": "Server error. Please try again shortly.", "랭킹 서버를 준비하고 있어요. 조금만 기다려 주세요.": "The ranking server is starting up. Please wait a moment.", "허용되지 않은 요청이에요.": "Request not allowed."};
-Object.assign(EN, { '내 순위': 'My rank' });
+Object.assign(EN, { '내 순위': 'My rank',
+  '까망이': 'Shadow', '밤의 그림자': 'Night shade', '금동이': 'Goldie', '황금 줄무늬': 'Golden stripes',
+  '플래시 쿨타임 -10%': 'Flash cooldown -10%', '플래시 거리 +15%': 'Flash range +15%', '캔 점수 2배 · 황금 캔↑': 'Cans x2 · more gold cans',
+  '판마다 보호막 1회': 'One shield per game', '아슬 회피 점수 3배': 'Near-miss points x3', '캔 자석 (먹는 범위 +40%)': 'Can magnet (+40% reach)',
+  '보호막!': 'Shield!', '한 번 막았다냥': 'Blocked one hit', '아슬!': 'Close!', '벽 넘기 플래시!': 'Wall Flash!',
+  '바위 벽 너머로 플래시해서 피하세요': 'Flash over the rock wall to survive', '벽 넘기 성공!': 'Wall Flash!',
+  '캔 ': 'Eat ', '개 먹기': ' cans', '번': '', '아슬 회피 ': 'Near-miss ', '벽 넘기 플래시 ': 'Wall Flash ', '보스 ': 'Beat ', '마리 격파': ' bosses',
+  '한 판에 스테이지 ': 'Reach stage ', ' 도달': ' in one game', '한 판에 ': 'Hit ', ' 콤보': ' combo in one game', '판 플레이': ' games played',
+  '미션 완료!': 'Mission complete!', '새 고양이 해금!': 'New cat unlocked!', '오늘의 미션': "Today's missions", '누적 ': 'total ',
+  '미션 ': 'Missions ', '개 완료 시 ': ' done → unlock ', ' 해금': '', '개를 완료하면 열려요': ' completed missions to unlock',
+  '도전 돌파! ': 'Beat it! ', '도전 목표 ': 'Target ', '도전 점수 돌파!': 'Challenge beaten!', '님을 넘었다냥': ' is behind you now',
+  '친구': 'Friend', '익명의 냥': 'Anonymous cat', '님의 ': "'s ", '점에 도전!': ' pts. Can you beat it?', ' 모드 · 이 점수를 넘으면 승리': ' mode · beat this score to win',
+  '도전 성공! ': 'Challenge won! You beat ', '님을 ': ' by ', '점 차이로 이겼어요': ' pts', '도전 실패... ': 'Challenge lost... ', '점 모자라요': ' pts short',
+  '내 점수에 도전 👉 ': 'Beat my score 👉 ', '도전 링크를 복사했어요. 친구에게 보내 보세요!': 'Challenge link copied. Send it to a friend!',
+  '도전 링크 복사': 'Copy challenge link',
+  '고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.': 'Each cat has its own ability. When a rock wall rises, Flash over it! Near misses give bonus points. Daily missions unlock new cats.'
+});
 const L = s => (LANG === 'en' && EN[s] != null) ? EN[s] : s;
 (function translatePage(){
   document.documentElement.lang = LANG;
@@ -367,7 +413,13 @@ const SKINS = [
   { name:L('턱시도'), note:L('정장 차림'), base:'#2c2b34', belly:'#f7f3ea', muzzle:'#f7f3ea', paw:'#f7f3ea', eye:'#f0c43f', pattern:'blaze' },
   { name:L('삼색이'), note:L('행운의 무늬'), base:'#fbf5ea', belly:'#fbf5ea', muzzle:'#fffaf2', paw:'#fbf5ea', eye:'#e9a93a', pattern:'calico', earL:'#f0a04b', earR:'#2f2b2e' },
   { name:L('러시안블루'), note:L('초록 눈'), base:'#8e9db3', belly:'#b9c5d4', muzzle:'#adbacb', paw:'#a7b4c6', eye:'#62d48e', pattern:'none' },
+  { name:L('까망이'), note:L('밤의 그림자'), base:'#26232b', belly:'#36323c', muzzle:'#3a3640', paw:'#36323c', eye:'#ffd84a', pattern:'none', need:3 },
+  { name:L('금동이'), note:L('황금 줄무늬'), base:'#ecc65c', belly:'#fff4cf', muzzle:'#fff6da', paw:'#fff4cf', eye:'#4fb3ff', pattern:'stripes', stripe:'#c9952b', need:9 },
 ];
+const ABILITY = ['cd', 'range', 'can', 'shield', 'graze', 'magnet'];
+const ABILITY_TEXT = [L('플래시 쿨타임 -10%'), L('플래시 거리 +15%'), L('캔 점수 2배 · 황금 캔↑'), L('판마다 보호막 1회'), L('아슬 회피 점수 3배'), L('캔 자석 (먹는 범위 +40%)')];
+const ab = () => ABILITY[S.skin] || 'cd';
+function skinLocked(i){ return SKINS[i] && SKINS[i].need ? missionTotal() < SKINS[i].need : false; }
 const SNAKE_COLS = [
   { body:'#7ccf52', spot:'#4b9431', head:'#8ddc62' },
   { body:'#a879f0', spot:'#6c47b8', head:'#b78cf5' },
@@ -377,7 +429,7 @@ const SNAKE_COLS = [
 let W = 0, H = 0, U = 1, DPR = 1;
 const mouse = { x: 0, y: 0, seen: false };
 const cat = { x: 0, y: 0 };
-let snakes = [], parts = [], floats = [], ghosts = [], foods = [], banner = null;
+let snakes = [], parts = [], floats = [], ghosts = [], foods = [], walls = [], banner = null;
 
 const S = { mode:'title', skin:0, stage:1, score:0, lives:3, dodges:0, stageDodges:0, combo:0,
   perfect:0, good:0, early:0, whiff:0, margins:[], maxCombo:0, showLane:true, cd:0, t:0, spawnIn:1, invuln:0, hurt:0, shake:0, dieT:0 };
@@ -388,7 +440,8 @@ if (IS_MOBILE) document.body.classList.add('mobile');
 let MODE = 'normal';
 try { if (!IS_MOBILE && localStorage.getItem('nyangflash-mode') === 'hard') MODE = 'hard'; } catch(e){}
 const sfx = (m) => (m || MODE) === 'hard' ? '-hard' : '';
-function cooldown(){ return S.hard ? COOLDOWN_H : COOLDOWN_N; }
+function cooldown(){ return (S.hard ? COOLDOWN_H : COOLDOWN_N) * (ab() === 'cd' ? 0.9 : 1); }
+function flashRange(){ return FLASH_RANGE * (ab() === 'range' ? 1.15 : 1); }
 function HM(){ return S.hard ? 1.5 : 1; }
 function loadBest(m){ try { return JSON.parse(localStorage.getItem('nyangflash-best' + sfx(m))) || null; } catch(e){ return null; } }
 function saveBest(b){ try { localStorage.setItem('nyangflash-best' + sfx(), JSON.stringify(b)); } catch(e){} }
@@ -401,7 +454,7 @@ function saveHardDay(v){ try { localStorage.setItem('nyangflash-hardday', JSON.s
 function hardLeft(){ const v = loadHardDay(); return Math.max(0, HARD_FREE + v.extra - v.used); }
 function loadPlays(){ try { return +localStorage.getItem('nyangflash-plays') || 0; } catch(e){ return 0; } }
 function savePlays(n){ try { localStorage.setItem('nyangflash-plays', String(n)); } catch(e){} }
-function loadSkin(){ try { const v = +localStorage.getItem('nyangflash-skin'); return v >= 0 && v < SKINS.length ? v : 0; } catch(e){ return 0; } }
+function loadSkin(){ try { const v = +localStorage.getItem('nyangflash-skin'); return v >= 0 && v < 6 ? v : 0; } catch(e){ return 0; } }
 function saveSkin(v){ try { localStorage.setItem('nyangflash-skin', String(v)); } catch(e){} }
 
 /* ---- sound ---- */
@@ -555,6 +608,12 @@ function spawnWave(){
 }
 
 function launch(s){
+  if (s.fixDir){
+    s.dx = s.fixDir.dx; s.dy = s.fixDir.dy; s.state = 'live'; s.launchedAt = S.t;
+    s.threat = threatOf(s) >= 0; if (s.threat && s.group) s.group.threat = true;
+    if (s.group && !s.group.hissed){ s.group.hissed = true; hiss(0.35, 0.06); }
+    return;
+  }
   let tx = cat.x, ty = cat.y;
   let dx = tx - s.sx, dy = ty - s.sy, d = Math.hypot(dx, dy) || 1;
   if (s.fake){
@@ -597,7 +656,7 @@ function flash(){
   }
   const fx = cat.x, fy = cat.y;
   let dx = mouse.x - cat.x, dy = mouse.y - cat.y; const d = Math.hypot(dx, dy);
-  if (d > 1){ const r = Math.min(d, FLASH_RANGE*U); cat.x += dx/d*r; cat.y += dy/d*r; clampCat(); }
+  if (d > 1){ const r = Math.min(d, flashRange()*U); cat.x += dx/d*r; cat.y += dy/d*r; clampCat(); landOutsideWalls(); clampCat(); }
   S.cd = cooldown();
   // afterimages + sparkles
   const ate = eatCans(fx, fy);
@@ -616,7 +675,7 @@ function flash(){
   bestT = Math.max(0, bestT - lag);
   const margin = Math.round(bestT * 1000);
   let g, color;
-  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
+  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; missionAdd('perfect', 1); if (!reduceMotion) S.slowT = 0.22; S.flashFx = 0.3; parts.push({ slash:true, x:fx, y:fy, dx:best.dx, dy:best.dy, life:0.4, t:0 }); S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
   else if (bestT <= 0.3){ g = 'GOOD'; color = '#8fdc5b'; S.good++; S.margins.push(margin); }
   else { g = L('빠름'); color = '#f5ebd3'; S.early++; }
   threatening.forEach(s => { s.grade = g; if (s.group) s.group.grade = g; });
@@ -626,7 +685,7 @@ function flash(){
 function onDodge(s){
   S.dodges++; S.stageDodges++;
   const good = s.grade === 'PERFECT' || s.grade === 'GOOD';
-  if (good){ S.combo++; S.maxCombo = Math.max(S.maxCombo, S.combo); } else S.combo = 0;
+  if (good){ S.combo++; S.maxCombo = Math.max(S.maxCombo, S.combo); missionMax('combo', S.combo); } else S.combo = 0;
   const mult = comboMult();
   const bonus = s.grade === 'PERFECT' ? 150 : s.grade === 'GOOD' ? 60 : 0;
   const pts = Math.round((100 + bonus) * S.stage * mult * HM());
@@ -641,7 +700,7 @@ function onDodge(s){
 
 function stageUp(bossObj, bonus){
   {
-    S.stage++; S.stageDodges = 0;
+    S.stage++; S.stageDodges = 0; missionMax('stage', S.stage);
     let sub = L('뱀이 더 빨라졌다!');
     if (S.stage % 3 === 1 && S.lives < 3){ S.lives++; sub = L('생선 1개 회복!'); }
     else if (S.stage === 3) sub = L('빗나가는 뱀이 섞이기 시작해요');
@@ -677,6 +736,14 @@ function comboMult(){ return Math.min(3, 1 + S.combo * 0.1); }
 
 function buzz(ms){ try { if (IS_MOBILE && navigator.vibrate) navigator.vibrate(ms); } catch(e){} }
 function onHit(s){
+  if (S.shield > 0){
+    S.shield = 0; s.hit = true; if (s.group) s.group.hit = true;
+    S.invuln = 1.0;
+    floats.push({ x:cat.x, y:cat.y - 60*U, text:L('보호막!'), sub:L('한 번 막았다냥'), color:'#8fd4ff', life:1.1, size:30, t:0 });
+    burst(cat.x, cat.y, '#8fd4ff', 24, 1.5); ringFx(cat.x, cat.y);
+    beep(1200, 600, 0.25, 'triangle', 0.06); duck(0.4, 0.3);
+    return;
+  }
   buzz([40, 30, 60]);
   s.hit = true; if (s.group) s.group.hit = true;
   if (S.boss && S.boss.phase !== 'leave' && S.boss.streak > 0){
@@ -844,7 +911,8 @@ function resolveGroup(g){
 
 function defeatBoss(){
   const b = S.boss;
-  S.bossKills++;
+  S.bossKills++; missionAdd('boss', 1);
+  S.stopT = reduceMotion ? 0.08 : 0.3; S.flashFx = 0.45; if (!reduceMotion) S.shake = 16*U;
   burst(b.x, b.y, '#ffc94a', 30, 2); burst(b.x, b.y, '#8fdc5b', 20, 1.6);
   meow(1.1, 0.5, 0.1); [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, 0.12, 'square', 0.04, 0.3 + i*0.09)); duck(0.3, 1.0);
   const bonus = Math.round(1000 * S.stage * HM()); S.score += bonus;
@@ -1008,7 +1076,7 @@ function spawnCan(){
   const off = (50 + Math.random()*45) * U * (Math.random() < 0.5 ? -1 : 1);
   const tx = cat.x - dy/d*off, ty = cat.y + dx/d*off;
   dx = tx - pt.x; dy = ty - pt.y; const d2 = Math.hypot(dx, dy) || 1;
-  foods.push({ x:pt.x, y:pt.y, dx:dx/d2, dy:dy/d2, speed: Math.min(470, P().speed*0.42), r:CAN_R, gold: Math.random() < 0.12, spin: Math.random()*TAU });
+  foods.push({ x:pt.x, y:pt.y, dx:dx/d2, dy:dy/d2, speed: Math.min(470, P().speed*0.42), r:CAN_R, gold: Math.random() < (ab() === 'can' ? 0.25 : 0.12), spin: Math.random()*TAU });
 }
 function eatCans(fx, fy){
   let n = 0;
@@ -1016,12 +1084,12 @@ function eatCans(fx, fy){
   for (const k of foods){
     if (k.eaten) continue;
     const kx = k.x + k.dx*k.speed*U*lag, ky = k.y + k.dy*k.speed*U*lag;
-    const reach = (CAT_R + k.r + 18)*U;
+    const reach = (CAT_R + k.r + 18)*U*(ab() === 'magnet' ? 1.4 : 1);
     const near = Math.hypot(cat.x - kx, cat.y - ky) < reach;
     const swipe = fx != null && segDist(kx, ky, fx, fy, cat.x, cat.y) < reach*0.8;
     if (near || swipe){
-      k.eaten = true; n++; S.eaten++;
-      const pts = Math.round((k.gold ? 1000 : 400) * S.stage * comboMult() * HM());
+      k.eaten = true; n++; S.eaten++; missionAdd('cans', 1);
+      const pts = Math.round((k.gold ? 1000 : 400) * S.stage * comboMult() * HM() * (ab() === 'can' ? 2 : 1));
       S.score += pts;
       let text = L('냠! 캔 획득');
       if (k.gold){ text = L('황금 캔!'); if (S.lives < 3){ S.lives++; text = L('황금 캔! 생선 +1'); } }
@@ -1033,7 +1101,7 @@ function eatCans(fx, fy){
   foods = foods.filter(k => !k.eaten);
   return n;
 }
-function canNear(x, y){ return foods.some(k => segDist(k.x, k.y, cat.x, cat.y, x, y) < (CAT_R + k.r + 18)*U*0.8 || Math.hypot(x - k.x, y - k.y) < (CAT_R + k.r + 18)*U); }
+function canNear(x, y){ const m = ab() === 'magnet' ? 1.4 : 1; return foods.some(k => segDist(k.x, k.y, cat.x, cat.y, x, y) < (CAT_R + k.r + 18)*U*0.8*m || Math.hypot(x - k.x, y - k.y) < (CAT_R + k.r + 18)*U*m); }
 function drawCan(c, k){
   const R = k.r*U;
   c.save(); c.translate(k.x, k.y);
@@ -1053,6 +1121,211 @@ function drawCan(c, k){
   c.strokeStyle = 'rgba(26,21,23,.45)'; c.lineWidth = 1.5;
   [-0.72, 0.72].forEach(yy => { c.beginPath(); c.moveTo(-R*0.7, yy*R); c.lineTo(R*0.7, yy*R); c.stroke(); });
   c.restore();
+}
+
+/* ---- graze (near miss) ---- */
+function graze(s){
+  s.grazed = true; S.grazes++; missionAdd('graze', 1);
+  const pts = Math.round(50 * S.stage * HM() * (ab() === 'graze' ? 3 : 1));
+  S.score += pts;
+  floats.push({ x:cat.x + 30*U, y:cat.y - 20*U, text:L('아슬!') + ' +' + pts.toLocaleString('ko-KR'), sub:'', color:'#bfe8ff', life:0.7, size:18, t:0 });
+  for (let i = 0; i < 8; i++){
+    const a = Math.atan2(s.dy, s.dx) + Math.PI + (Math.random() - 0.5)*1.2, v = (120 + Math.random()*140)*U;
+    parts.push({ x:cat.x, y:cat.y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, life:0.3, t:0, color:'#e6f6ff', r:1.6*U });
+  }
+  hiss(0.12, 0.04); beep(1400, 2200, 0.06, 'triangle', 0.025);
+}
+
+/* ---- rock wall event: flash over the wall ---- */
+function startWall(){
+  const m = margin(), th = 22*U, gap = 55*U, room = th/2 + (CAT_R + 6)*U, travel = 200*U;
+  const opts = [];
+  // safe side = beyond the wall; snakes come from the opposite edge
+  if (cat.y >= travel && cat.y + gap + room <= H - m) opts.push({ axis:'h', pos: cat.y + gap, dir: 1 });
+  if (H - cat.y >= travel && cat.y - gap - room >= m) opts.push({ axis:'h', pos: cat.y - gap, dir:-1 });
+  if (cat.x >= travel && cat.x + gap + room <= W - m) opts.push({ axis:'v', pos: cat.x + gap, dir: 1 });
+  if (W - cat.x >= travel && cat.x - gap - room >= m) opts.push({ axis:'v', pos: cat.x - gap, dir:-1 });
+  if (!opts.length) return false;
+  const o = opts[Math.floor(Math.random()*opts.length)];
+  const w = { ...o, th, rise:0.6, t:0, state:'rise', seed: Math.random()*1000 };
+  walls.push(w);
+  S.wallEvt = true;
+  const g = { alive:0, hit:false, grade:null, threat:false, wall:w };
+  const p = P(), spacing = 36*U, span = o.axis === 'h' ? W : H;
+  const n = Math.ceil(span / spacing) + 1;
+  for (let i = 0; i < n; i++){
+    const along = -spacing*0.5 + i*spacing;
+    const sx = o.axis === 'h' ? along : (o.dir > 0 ? -40*U : W + 40*U);
+    const sy = o.axis === 'h' ? (o.dir > 0 ? -40*U : H + 40*U) : along;
+    const fd = o.axis === 'h' ? { dx:0, dy:o.dir } : { dx:o.dir, dy:0 };
+    g.alive++;
+    snakes.push({ state:'warn', warn: w.rise + p.warn + 0.15, sx, sy, x:sx, y:sy, dx:fd.dx, dy:fd.dy, fixDir:fd,
+      speed: p.speed*0.72, fake:false, side:1, col: SNAKE_COLS[i % 2], phase: Math.random()*TAU, lane:false,
+      r: SNAKE_R, len: BODY_LEN*0.8, kind:'snake', group:g, threat:false, hit:false, grade:null, launchedAt:0, visibleAt:null });
+  }
+  if (!S.hard) pushBanner(L('벽 넘기 플래시!'), L('바위 벽 너머로 플래시해서 피하세요'), 1.3);
+  beep(140, 90, 0.35, 'sawtooth', 0.05); if (!reduceMotion) S.shake = Math.max(S.shake, 5*U);
+  return true;
+}
+function wallBlocks(s){
+  const w = s.group.wall;
+  if (!w || w.state === 'crumble') return false;
+  const head = w.axis === 'h' ? s.y : s.x;
+  const face = w.pos - w.dir*w.th/2;
+  if ((w.dir > 0 && head >= face) || (w.dir < 0 && head <= face)){
+    s.dead = true;
+    burst(s.x, s.y, '#9aa39b', 4, 0.6);
+    s.group.alive--; if (s.group.alive <= 0) resolveWall(s.group);
+    return true;
+  }
+  return false;
+}
+function resolveWall(g){
+  const w = g.wall; w.state = 'crumble'; w.t = 0;
+  S.wallEvt = false;
+  if (S.mode !== 'play' || g.hit || !g.threat) return;
+  S.wallFlashes++; missionAdd('wall', 1);
+  const pts = Math.round(300 * S.stage * HM());
+  S.score += pts;
+  floats.push({ x:cat.x, y:cat.y - 90*U, text:L('벽 넘기 성공!'), sub:'+' + pts.toLocaleString('ko-KR'), color:'#ffc94a', life:1.1, size:28, t:0 });
+  onDodge({ grade: g.grade });
+}
+function landOutsideWalls(){
+  for (const w of walls){
+    if (w.state === 'crumble') continue;
+    const clear = w.th/2 + CAT_R*0.8*U;
+    if (w.axis === 'h' && Math.abs(cat.y - w.pos) < clear) cat.y = w.pos + w.dir*clear;
+    if (w.axis === 'v' && Math.abs(cat.x - w.pos) < clear) cat.x = w.pos + w.dir*clear;
+  }
+}
+function updateWalls(dt){
+  for (const w of walls){ w.t += dt; if (w.state === 'rise' && w.t >= w.rise) w.state = 'up'; }
+  walls = walls.filter(w => !(w.state === 'crumble' && w.t > 0.5));
+}
+function drawWall(c, w){
+  const k = w.state === 'rise' ? Math.min(1, w.t / w.rise) : w.state === 'crumble' ? Math.max(0, 1 - w.t/0.5) : 1;
+  const step = 24*U, span = w.axis === 'h' ? W : H;
+  let seed = w.seed;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (let a = -step; a < span + step; a += step){
+    const jitter = (rnd() - 0.5)*5*U, rr = (11 + rnd()*4)*U*k;
+    const x = w.axis === 'h' ? a + jitter : w.pos + jitter*0.6;
+    const y = w.axis === 'h' ? w.pos + jitter*0.6 : a + jitter;
+    if (rr < 1) continue;
+    c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(x + 3*U, y + 4*U, rr*1.05, rr*0.8, 0, 0, TAU); c.fill();
+    c.fillStyle = '#7d877f'; c.strokeStyle = '#2c332e'; c.lineWidth = 2;
+    c.beginPath(); c.ellipse(x, y, rr, rr*0.82, 0, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#9aa59c'; c.beginPath(); c.ellipse(x - rr*0.3, y - rr*0.3, rr*0.45, rr*0.3, 0, 0, TAU); c.fill();
+  }
+}
+
+/* ---- daily missions ---- */
+const MISSION_POOL = [
+  { id:'cans', t:[3, 5, 8], text: n => L('캔 ') + n + L('개 먹기') },
+  { id:'perfect', t:[5, 10, 15], text: n => 'PERFECT ' + n + L('번') },
+  { id:'graze', t:[3, 6, 10], text: n => L('아슬 회피 ') + n + L('번') },
+  { id:'wall', t:[1, 2, 3], text: n => L('벽 넘기 플래시 ') + n + L('번') },
+  { id:'boss', t:[1, 2, 3], text: n => L('보스 ') + n + L('마리 격파') },
+  { id:'stage', t:[3, 4, 5], max:true, text: n => L('한 판에 스테이지 ') + n + L(' 도달') },
+  { id:'combo', t:[8, 12, 20], max:true, text: n => L('한 판에 ') + n + L(' 콤보') },
+  { id:'games', t:[3, 5], text: n => n + L('판 플레이') },
+];
+function missionsToday(){
+  const day = dayKey();
+  let h = 2166136261; for (const ch of day) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const rnd = () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0) / 4294967296);
+  const pool = MISSION_POOL.slice(), out = [];
+  while (out.length < 3){ const i = Math.floor(rnd()*pool.length); const m = pool.splice(i, 1)[0]; out.push({ id:m.id, max:!!m.max, need: m.t[Math.floor(rnd()*m.t.length)], text: m.text }); }
+  return out;
+}
+let MISS = null;
+function loadMiss(){
+  const day = dayKey();
+  if (MISS && MISS.day === day) return MISS;
+  let v = null;
+  try { v = JSON.parse(localStorage.getItem('nyangflash-missions')); } catch(e){}
+  if (!v || v.day !== day) v = { day, prog:{}, done:{} };
+  MISS = v; return v;
+}
+function saveMiss(){ try { localStorage.setItem('nyangflash-missions', JSON.stringify(MISS)); } catch(e){} }
+function missionTotal(){ try { return +localStorage.getItem('nyangflash-mission-total') || 0; } catch(e){ return 0; } }
+function missionProgress(id, val, isMax){
+  const st = loadMiss();
+  const list = missionsToday();
+  const m = list.find(x => x.id === id);
+  if (!m || st.done[id]) return;
+  st.prog[id] = isMax ? Math.max(st.prog[id] || 0, val) : (st.prog[id] || 0) + val;
+  if (st.prog[id] >= m.need){
+    st.done[id] = true;
+    const before = missionTotal(), total = before + 1;
+    try { localStorage.setItem('nyangflash-mission-total', String(total)); } catch(e){}
+    if (S.mode === 'play' || S.mode === 'dying'){
+      floats.push({ x:W/2, y:H*0.62, text:L('미션 완료!'), sub:m.text(m.need), color:'#8fdc5b', life:1.6, size:30, t:0 });
+      [659, 880, 1175].forEach((q, i) => beep(q, q, 0.09, 'triangle', 0.04, i*0.07));
+    }
+    SKINS.forEach((sk, i) => { if (sk.need && before < sk.need && total >= sk.need) pushBanner(L('새 고양이 해금!'), sk.name + ' · ' + ABILITY_TEXT[i], 2); });
+  }
+  saveMiss();
+}
+function missionAdd(id, n){ missionProgress(id, n, false); }
+function missionMax(id, v){ missionProgress(id, v, true); }
+function renderMissions(){
+  const box = $('missionBox'); if (!box) return;
+  const st = loadMiss(), list = missionsToday();
+  box.textContent = '';
+  const head = document.createElement('div'); head.className = 'mh';
+  const ttl = document.createElement('b'); ttl.textContent = L('오늘의 미션');
+  const cnt = document.createElement('span'); cnt.textContent = list.filter(m => st.done[m.id]).length + ' / 3 · ' + L('누적 ') + missionTotal();
+  head.append(ttl, cnt); box.append(head);
+  list.forEach(m => {
+    const row = document.createElement('div'); row.className = 'mi' + (st.done[m.id] ? ' done' : '');
+    const ck = document.createElement('span'); ck.className = 'ck';
+    const tx = document.createElement('span'); tx.className = 'mt'; tx.textContent = m.text(m.need);
+    const pr = Math.min(m.need, st.prog[m.id] || 0);
+    const pp = document.createElement('span'); pp.className = 'mp'; pp.textContent = pr + '/' + m.need;
+    const bar = document.createElement('span'); bar.className = 'mbar'; const fill = document.createElement('i'); fill.style.width = (pr / m.need * 100) + '%'; bar.append(fill);
+    row.append(ck, tx, pp, bar); box.append(row);
+  });
+  const next = SKINS.map((sk, i) => ({ sk, i })).find(o => o.sk.need && missionTotal() < o.sk.need);
+  if (next){ const hint = document.createElement('span'); hint.className = 'mode-note'; hint.textContent = L('미션 ') + next.sk.need + L('개 완료 시 ') + next.sk.name + L(' 해금'); box.append(hint); }
+}
+
+/* ---- friend challenge link ---- */
+function b64u(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(str){ return decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/')))); }
+const VS = (() => {
+  try {
+    const raw = new URLSearchParams(location.search).get('vs');
+    if (!raw || raw.length > 300) return null;
+    const o = JSON.parse(unb64u(raw));
+    const n = String(o.n || '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 12) || L('친구');
+    const sc = Math.floor(+o.s);
+    if (!(sc > 0 && sc < 1e8)) return null;
+    const k = Math.max(0, Math.min(SKINS.length - 1, Math.floor(+o.k) || 0));
+    return { n, s: sc, k, m: o.m === 'h' ? 'hard' : 'normal' };
+  } catch(e){ return null; }
+})();
+function challengeURL(r){
+  const base = /(^|\.)nyanflash\.com$/.test(location.hostname) ? location.origin : 'https://nyanflash.com';
+  return base + '/?vs=' + b64u(JSON.stringify({ n: NET.nick || L('익명의 냥'), s: r.score, k: r.skin, m: r.hard ? 'h' : 'n' }));
+}
+function renderVs(){
+  const box = $('vsBox'); if (!box) return;
+  if (!VS){ box.hidden = true; return; }
+  box.textContent = '';
+  const im = document.createElement('img'); im.src = catIconURL(VS.k); im.alt = '';
+  const t = document.createElement('div');
+  const b = document.createElement('b'); b.textContent = VS.n + L('님의 ') + VS.s.toLocaleString('ko-KR') + L('점에 도전!');
+  const sp = document.createElement('span'); sp.textContent = (VS.m === 'hard' ? L('하드') : L('노말')) + L(' 모드 · 이 점수를 넘으면 승리');
+  t.append(b, document.createElement('br'), sp);
+  box.append(im, t); box.hidden = false;
+}
+const catIconCache = {};
+function catIconURL(i){
+  if (catIconCache[i]) return catIconCache[i];
+  const cv2 = document.createElement('canvas'); cv2.width = cv2.height = 64;
+  drawCat(cv2.getContext('2d'), 30, 34, 19, SKINS[i] || SKINS[0], { look:{ x:0, y:0.3 } });
+  return (catIconCache[i] = cv2.toDataURL('image/png'));
 }
 
 /* ---- fx ---- */
@@ -1081,8 +1354,9 @@ function start(){
   const plays = loadPlays();
   savePlays(plays + 1);
   Object.assign(S, { mode:'play', stage:1, score:0, lives:3, dodges:0, stageDodges:0, combo:0, perfect:0, good:0, early:0, whiff:0,
-    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
-  snakes = []; parts = []; floats = []; ghosts = []; foods = []; bannerQ = [];
+    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, grazes:0, wallFlashes:0, slowT:0, stopT:0, flashFx:0, shield: ab() === 'shield' ? 1 : 0, wallEvt:false, vsBeat:false, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
+  snakes = []; parts = []; floats = []; ghosts = []; foods = []; walls = []; bannerQ = [];
+  missionAdd('games', 1);
   cat.x = W/2; cat.y = H/2;
   banner = S.hard ? { text:'HARD · STAGE 1', sub:L('안내선 없음. 오늘 남은 도전 ') + hardLeft() + L('번'), t:0, life:2.2 } : { text:'STAGE 1', sub: IS_MOBILE ? L('뱀이 온다! 끌었다 떼면 플래시!') : L('뱀이 온다! F 또는 D로 피하세요'), t:0, life:2 };
   playTrack(stageTrack());
@@ -1093,7 +1367,7 @@ function start(){
 }
 function pause(){ if (S.mode !== 'play') return; $('pauseLead').textContent = L('큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.'); S.mode = 'paused'; pauseMusic(); showOnly('pauseOv'); $('resumeBtn').focus(); }
 function resume(){ if (S.mode !== 'paused') return; S.mode = 'play'; showOnly(null); last = performance.now(); audio(); resumeMusic(); }
-function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); $('startBtn').focus(); }
+function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; walls = []; snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); $('startBtn').focus(); }
 
 function endGame(){
   S.mode = 'over';
@@ -1131,6 +1405,13 @@ function endGame(){
   const wt = tierOf(wk.best);
   $('tierImg').src = emblemURL(wt.idx); $('tierImg').alt = wt.label + L(' 티어 엠블럼');
   $('tierName').textContent = wt.label; $('tierName').style.color = wt.color;
+  if (VS){
+    const diff = S.score - VS.s, line = document.createElement('div');
+    line.style.marginTop = '6px';
+    line.textContent = diff >= 0 ? L('도전 성공! ') + VS.n + L('님을 ') + diff.toLocaleString('ko-KR') + L('점 차이로 이겼어요') : L('도전 실패... ') + (-diff).toLocaleString('ko-KR') + L('점 모자라요');
+    line.style.color = diff >= 0 ? 'var(--venom)' : 'var(--hurt)';
+    promo.append(line);
+  }
   netFinishRun($('rankNow'));
   lastResult = { hard: S.hard, tier: tierOf(wk.best).label, eaten:S.eaten, bossKills:S.bossKills, stage:S.stage, score:S.score, maxCombo:S.maxCombo, perfect:S.perfect, whiff:S.whiff, avg, fast, skin:S.skin, isBest: isBest && S.score > 0 };
   $('shareMsg').textContent = ''; $('copyText').hidden = true; $('cardBox').hidden = true;
@@ -1141,6 +1422,8 @@ function endGame(){
 
 function renderBest(){
   renderTier();
+  renderMissions();
+  if (typeof refreshCats === 'function' && catsEl.children.length) refreshCats();
   const b = loadBest();
   const left = Math.max(0, 3 - loadPlays());
   const best = b ? L('최고 기록 ') + b.score.toLocaleString('ko-KR') + L('점 · 스테이지 ') + b.stage : L('첫 판이에요');
@@ -1150,7 +1433,6 @@ function renderBest(){
 /* ---- update ---- */
 function update(dt){
   S.t += dt;
-  if (S.mode === 'play') S.playMs += dt*1000;
   S.cd = Math.max(0, S.cd - dt);
   S.invuln = Math.max(0, S.invuln - dt);
   S.hurt = Math.max(0, S.hurt - dt);
@@ -1159,7 +1441,10 @@ function update(dt){
     if (S.boss) updateBoss(dt);
     else {
       S.spawnIn -= dt;
-      if (S.spawnIn <= 0){ spawnWave(); S.spawnIn = P().interval * (0.85 + Math.random()*0.3); }
+      if (S.spawnIn <= 0 && !S.wallEvt){
+        if (S.stage >= 2 && !snakes.length && Math.random() < (S.hard ? 0.28 : 0.22) && startWall()) S.spawnIn = P().interval * 1.4;
+        else { spawnWave(); S.spawnIn = P().interval * (0.85 + Math.random()*0.3); }
+      }
     }
   }
   for (const s of snakes){
@@ -1168,8 +1453,14 @@ function update(dt){
     const L = s.len*U*0.85, hitR = (CAT_R*0.85 + s.r)*U;
     for (let k = 0; k < steps; k++){
       s.x += s.dx*dist/steps; s.y += s.dy*dist/steps;
-      if (!s.hit && S.invuln <= 0 && S.mode === 'play' && segDist(cat.x, cat.y, s.x - s.dx*L, s.y - s.dy*L, s.x, s.y) < hitR){ onHit(s); break; }
+      if (s.group && s.group.wall && wallBlocks(s)) break;
+      if (!s.hit && S.invuln <= 0 && S.mode === 'play'){
+        const dd = segDist(cat.x, cat.y, s.x - s.dx*L, s.y - s.dy*L, s.x, s.y);
+        if (dd < hitR){ onHit(s); break; }
+        if (!s.grazed && dd < hitR*1.9 && (s.kind === 'snake' || s.kind === 'boss')) graze(s);
+      }
     }
+    if (s.dead) continue;
     if (s.visibleAt == null && s.x >= 0 && s.x <= W && s.y >= 0 && s.y <= H) s.visibleAt = S.t;
     const pad = (s.len + 60)*U;
     const out = s.x < -pad || s.x > W+pad || s.y < -pad || s.y > H+pad;
@@ -1181,12 +1472,13 @@ function update(dt){
           const b = S.boss, sp = bossSpots()[b.spot], ex = sp.x - W/2, ey = sp.y - H/2, el = Math.hypot(ex, ey) || 1;
           b.hidden = false; b.x = sp.x + ex/el*170*U; b.y = sp.y + ey/el*170*U;
         }
-        s.group.alive--; if (s.group.alive <= 0) resolveGroup(s.group);
+        s.group.alive--; if (s.group.alive <= 0) (s.group.wall ? resolveWall(s.group) : resolveGroup(s.group));
       }
       else if (s.threat && !s.hit && S.mode === 'play') onDodge(s);
     }
   }
   snakes = snakes.filter(s => !s.dead);
+  updateWalls(dt);
   if (S.mode === 'play'){
     S.canIn -= dt;
     if (S.canIn <= 0){ spawnCan(); S.canIn = (5 + Math.random()*4) * (S.hard ? 1.4 : 1); }
@@ -1498,7 +1790,7 @@ function render(){
 
   // warnings + lanes (none in hard)
   for (const s of snakes){
-    if (s.state !== 'warn' || S.hard) continue;
+    if (s.state !== 'warn' || S.hard || (s.group && s.group.wall)) continue;
     const mx = Math.min(W - 18, Math.max(18, s.sx)), my = Math.min(H - 18, Math.max(18, s.sy));
     if (s.lane){
       c.strokeStyle = 'rgba(255,107,125,.18)'; c.lineWidth = (CAT_R + SNAKE_R)*U*2;
@@ -1519,10 +1811,10 @@ function render(){
     const ready = S.cd <= 0;
     c.strokeStyle = ready ? (dayG ? 'rgba(120,80,0,.45)' : 'rgba(255,201,74,.22)') : (dayG ? 'rgba(30,40,20,.15)' : 'rgba(245,235,211,.08)');
     c.setLineDash([4, 6]); c.lineWidth = 1.5;
-    c.beginPath(); c.arc(cat.x, cat.y, FLASH_RANGE*U, 0, TAU); c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.arc(cat.x, cat.y, flashRange()*U, 0, TAU); c.stroke(); c.setLineDash([]);
     let dx = mouse.x - cat.x, dy = mouse.y - cat.y; const d = Math.hypot(dx, dy);
     if (d > 4){
-      const r = Math.min(d, FLASH_RANGE*U), m = margin();
+      const r = Math.min(d, flashRange()*U), m = margin();
       const lx = Math.min(W - m, Math.max(m, cat.x + dx/d*r)), ly = Math.min(H - m, Math.max(m, cat.y + dy/d*r));
       const yum = ready && canNear(lx, ly);
       c.strokeStyle = yum ? (dayG ? 'rgba(220,40,100,.95)' : 'rgba(255,159,180,.95)') : ready ? (dayG ? 'rgba(130,85,0,.85)' : 'rgba(255,201,74,.55)') : (dayG ? 'rgba(30,40,20,.3)' : 'rgba(245,235,211,.18)'); c.lineWidth = yum ? 3 : 2;
@@ -1530,6 +1822,7 @@ function render(){
     }
   }
 
+  for (const w of walls) drawWall(c, w);
   if (S.boss) drawBoss(c, S.boss);
   for (const k of foods) drawCan(c, k);
 
@@ -1560,6 +1853,12 @@ function render(){
         c.fill();
       }
     }
+    if (S.shield > 0 && S.mode !== 'title'){
+      const pu = 0.5 + 0.5*Math.sin(S.t*4);
+      c.strokeStyle = `rgba(143,212,255,${0.45 + pu*0.3})`; c.lineWidth = 2.5;
+      c.fillStyle = `rgba(143,212,255,${0.08 + pu*0.05})`;
+      c.beginPath(); c.arc(cat.x, cat.y + R*0.2, R*1.7, 0, TAU); c.fill(); c.stroke();
+    }
     drawCat(c, cat.x, cat.y, R, SKINS[S.skin], {
       t: S.t || performance.now()/1000, dizzy: S.hurt > 0 || S.mode === 'dying', blink, look: nearestLook(), form: S.mode === 'title' ? 0 : S.form
     });
@@ -1569,7 +1868,15 @@ function render(){
 
   for (const p of parts){
     const k = 1 - p.t/p.life;
-    if (p.ring){
+    if (p.slash){
+      const Ls = 150*U, px = -p.dy, py = p.dx, w = 6*U*k;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      c.strokeStyle = `rgba(255,255,255,${0.85*k})`; c.lineWidth = Math.max(1, w); c.lineCap = 'round';
+      c.beginPath(); c.moveTo(p.x - p.dx*Ls, p.y - p.dy*Ls); c.lineTo(p.x + p.dx*Ls*0.6, p.y + p.dy*Ls*0.6); c.stroke();
+      c.strokeStyle = `rgba(255,201,74,${0.6*k})`; c.lineWidth = Math.max(1, w*0.5);
+      [-1, 1].forEach(sd => { c.beginPath(); c.moveTo(p.x - p.dx*Ls*0.7 + px*sd*9*U, p.y - p.dy*Ls*0.7 + py*sd*9*U); c.lineTo(p.x + p.dx*Ls*0.3 + px*sd*9*U, p.y + p.dy*Ls*0.3 + py*sd*9*U); c.stroke(); });
+      c.restore();
+    } else if (p.ring){
       c.strokeStyle = `rgba(255,201,74,${k*0.8})`; c.lineWidth = 3;
       c.beginPath(); c.arc(p.x, p.y, CAT_R*U*(1 + p.t*7), 0, TAU); c.stroke();
     } else {
@@ -1598,6 +1905,12 @@ function render(){
   if (S.hard && playing){
     c.strokeStyle = 'rgba(255,107,125,' + (0.35 + 0.15*Math.sin(S.t*3)) + ')'; c.lineWidth = 6;
     c.strokeRect(3, 3, W - 6, H - 6);
+  }
+  if (S.flashFx > 0){
+    const a = Math.min(1, S.flashFx / 0.3);
+    const g = c.createRadialGradient(W/2, H/2, Math.min(W, H)*0.35, W/2, H/2, Math.max(W, H)*0.7);
+    g.addColorStop(0, 'rgba(255,250,220,0)'); g.addColorStop(1, `rgba(255,250,220,${0.55*a})`);
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
   }
   if (playing) drawHUD(c);
 
@@ -1632,6 +1945,12 @@ function drawHUD(c){
   c.textAlign = 'right';
   c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText('SCORE', W - pad, pad + 12);
   c.font = F(30); c.fillStyle = '#f5ebd3'; c.fillText(S.score.toLocaleString('ko-KR'), W - pad, pad + 44);
+  if (VS && S.mode !== 'title'){
+    const beat = S.score >= VS.s;
+    c.font = F(15); c.fillStyle = beat ? '#8fdc5b' : '#ffc94a';
+    c.fillText((beat ? L('도전 돌파! ') : L('도전 목표 ')) + VS.s.toLocaleString('ko-KR'), W - pad, pad + 92);
+    if (beat && !S.vsBeat && S.mode === 'play'){ S.vsBeat = true; pushBanner(L('도전 점수 돌파!'), VS.n + L('님을 넘었다냥'), 1.4); [784, 1047, 1568].forEach((q, i) => beep(q, q, 0.08, 'square', 0.035, i*0.06)); }
+  }
   if (S.combo >= 2){ c.font = F(18); c.fillStyle = '#8fdc5b'; c.fillText(S.combo + L(' 콤보 · x') + comboMult().toFixed(1), W - pad, pad + 68); }
 
   if (S.boss && S.boss.phase !== 'leave'){
@@ -1676,10 +1995,15 @@ function drawHUD(c){
 let last = performance.now();
 const JOY = { id:null, ax:1, ay:0, mag:0.85, active:false, moved:false };
 function frame(now){
-  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  const rdt = Math.min(0.05, (now - last)/1000); last = now;
+  if (S.mode === 'play') S.playMs += rdt*1000;
+  S.flashFx = Math.max(0, S.flashFx - rdt);
+  let dt = rdt;
+  if (S.stopT > 0){ S.stopT -= rdt; dt = 0; }
+  else if (S.slowT > 0){ S.slowT -= rdt; dt = rdt*0.3; }
   if (IS_MOBILE){
     if (S.mode === 'play' || S.mode === 'dying'){
-      const r = FLASH_RANGE*U*Math.max(0.15, JOY.mag);
+      const r = flashRange()*U*Math.max(0.15, JOY.mag);
       mouse.x = cat.x + JOY.ax*r; mouse.y = cat.y + JOY.ay*r; mouse.seen = true;
     }
     if (!(S.mode === 'play' || S.mode === 'dying') && !$('joyF').hidden) $('joyF').hidden = true;
@@ -1723,9 +2047,9 @@ function frame(now){
     if (!JOY.moved){
       // a plain tap: flash toward the tapped spot (canvas and field share the same origin)
       const dx = ox - cat.x, dy = oy - cat.y, d = Math.hypot(dx, dy);
-      if (d > 4){ JOY.ax = dx/d; JOY.ay = dy/d; JOY.mag = Math.min(1, d/(FLASH_RANGE*U)); }
+      if (d > 4){ JOY.ax = dx/d; JOY.ay = dy/d; JOY.mag = Math.min(1, d/(flashRange()*U)); }
     }
-    const r = FLASH_RANGE*U*Math.max(0.15, JOY.mag);
+    const r = flashRange()*U*Math.max(0.15, JOY.mag);
     mouse.x = cat.x + JOY.ax*r; mouse.y = cat.y + JOY.ay*r; mouse.seen = true;
     flash();
   };
@@ -2004,7 +2328,7 @@ function netFinishRun(el){
   }).catch(() => { el.textContent = ''; el.append(small(L('랭킹 서버에 연결하지 못했어요.'))); });
   if (!NET.runId){ fallback(); return; }
   const runId = NET.runId; NET.runId = null;
-  api('/api/run/finish', { runId, score:S.score, stage:S.stage, bossKills:S.bossKills, durationMs:Math.round(S.playMs) })
+  api('/api/run/finish', { runId, score:S.score, stage:S.stage, bossKills:S.bossKills, durationMs:Math.round(S.playMs), skin:S.skin })
     .then(j => {
       if (j.ok) show(j.rank, j.total || j.rank, j.improved);
       else { el.textContent = ''; el.append(small(j.reason || j.error || L('이번 판은 랭킹에 반영되지 않았어요.'))); }
@@ -2080,9 +2404,10 @@ function rankRow(rank, r, isMe){
   const li = document.createElement('li');
   if (isMe) li.className = 'me';
   const no = document.createElement('span'); no.className = 'no'; no.textContent = rank;
+  const ci = document.createElement('img'); ci.className = 'ci'; ci.alt = ''; ci.src = catIconURL(Math.max(0, Math.min(SKINS.length - 1, r.skin | 0)));
   const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.nickname;
   const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString('ko-KR');
-  li.append(no, nm, tierBadge(tierOf(r.score)), sc);
+  li.append(no, ci, nm, tierBadge(tierOf(r.score)), sc);
   return li;
 }
 function loadRank(){
@@ -2128,9 +2453,17 @@ function shareText(r){
   ];
   if (r.avg != null) lines.push(L('평균 타이밍: 닿기 ') + r.avg + L('ms 전 (최고 ') + r.fast + 'ms)');
   lines.push(L('🐍 뱀한테 졌지만 다음엔 안 진다냥. 너도 피해 봐!'));
+  lines.push(L('내 점수에 도전 👉 ') + challengeURL(r));
   return lines.join('\n');
 }
 function flashMsg(t){ $('shareMsg').textContent = t; }
+$('vsBtn').onclick = () => {
+  if (!lastResult) return;
+  const url = challengeURL(lastResult), ta = $('copyText');
+  ta.value = url;
+  const fallback = () => { ta.hidden = false; ta.focus(); ta.select(); flashMsg(L('아래 문구를 선택해 두었어요. Ctrl+C로 복사하세요')); };
+  try { navigator.clipboard.writeText(url).then(() => { ta.hidden = true; flashMsg(L('도전 링크를 복사했어요. 친구에게 보내 보세요!')); }, fallback); } catch(e){ fallback(); }
+};
 $('copyBtn').onclick = () => {
   if (!lastResult) return;
   const txt = shareText(lastResult), ta = $('copyText');
@@ -2198,8 +2531,19 @@ $('copyImgBtn').onclick = () => {
 /* ---- cat picker ---- */
 const catsEl = $('cats');
 function pickSkin(i){
+  if (skinLocked(i)){ $('modeNote').textContent = L('미션 ') + SKINS[i].need + L('개를 완료하면 열려요'); return; }
   S.skin = i; saveSkin(i);
-  [...catsEl.children].forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+  refreshCats();
+}
+function refreshCats(){
+  [...catsEl.children].forEach((b, j) => {
+    b.setAttribute('aria-pressed', String(j === S.skin));
+    const locked = skinLocked(j);
+    b.classList.toggle('locked', locked);
+    let lk = b.querySelector('.lock');
+    if (locked && !lk){ lk = document.createElement('span'); lk.className = 'lock'; b.append(lk); }
+    if (lk) lk.textContent = locked ? '🔒 ' + L('미션 ') + SKINS[j].need : '';
+  });
 }
 SKINS.forEach((sk, i) => {
   const b = document.createElement('button');
@@ -2210,12 +2554,15 @@ SKINS.forEach((sk, i) => {
   b.append(pc);
   const nm = document.createElement('b'); nm.textContent = sk.name;
   const nt = document.createElement('small'); nt.textContent = sk.note;
-  b.append(nm, nt);
+  const abl = document.createElement('span'); abl.className = 'ab'; abl.textContent = ABILITY_TEXT[i];
+  b.append(nm, nt, abl);
   b.onclick = () => pickSkin(i);
   catsEl.append(b);
 });
-pickSkin(loadSkin());
+(() => { const k = loadSkin(); S.skin = skinLocked(k) ? 0 : k; refreshCats(); })();
 renderMode();
+renderVs();
+if (VS && VS.m === 'hard' && !IS_MOBILE) setMode('hard');
 resize();
 requestAnimationFrame(frame);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());

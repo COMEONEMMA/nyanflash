@@ -20,6 +20,9 @@ async function init(db) {
     db.prepare('CREATE INDEX IF NOT EXISTS scores_hard_rank ON scores_hard (week, score DESC)'),
   ]);
   try { await db.prepare("ALTER TABLE runs ADD COLUMN mode TEXT NOT NULL DEFAULT 'normal'").run(); } catch (e) { /* already there */ }
+  for (const t of ['scores', 'scores_hard']) {
+    try { await db.prepare(`ALTER TABLE ${t} ADD COLUMN skin INTEGER NOT NULL DEFAULT 0`).run(); } catch (e) { /* already there */ }
+  }
   ready = true;
 }
 async function sha256(s) {
@@ -64,7 +67,7 @@ async function handle(req, env, url) {
     const mode = url.searchParams.get('mode') === 'hard' ? 'hard' : 'normal';
     const T = TABLE(mode);
     const top = await db.prepare(
-      `SELECT p.nickname, s.score, s.stage, s.boss_kills AS bossKills FROM ${T} s JOIN players p ON p.id = s.player_id WHERE s.week = ? ORDER BY s.score DESC, s.updated_at ASC LIMIT 50`
+      `SELECT p.nickname, s.score, s.stage, s.boss_kills AS bossKills, s.skin FROM ${T} s JOIN players p ON p.id = s.player_id WHERE s.week = ? ORDER BY s.score DESC, s.updated_at ASC LIMIT 50`
     ).bind(week).all();
     const total = await db.prepare(`SELECT COUNT(*) AS n FROM ${T} WHERE week = ?`).bind(week).first();
     let me = null;
@@ -113,6 +116,7 @@ async function handle(req, env, url) {
 
   if (path === '/api/run/finish') {
     const { runId, score, stage, bossKills, durationMs } = body;
+    const skin = isInt(body.skin, 0, 9) ? body.skin : 0;
     if (typeof runId !== 'string' || runId.length > 64 || !isInt(score, 0, 1e9) || !isInt(stage, 1, 500) || !isInt(bossKills, 0, 500) || !isInt(durationMs, 0, 6 * 3600e3)) {
       return json({ error: '잘못된 기록이에요.' }, 400);
     }
@@ -123,7 +127,7 @@ async function handle(req, env, url) {
     const plausible = durationMs <= elapsed + 3000
       && stage <= 1 + sec / 10
       && bossKills <= stage - 1
-      && score <= Math.max(4500, sec * 1200 * stage * (run.mode === 'hard' ? 1.6 : 1));
+      && score <= Math.max(4500, sec * 1600 * stage * (run.mode === 'hard' ? 1.6 : 1));
     if (!plausible) return json({ ok: false, reason: '기록이 비정상이라 랭킹에 반영되지 않았어요.' });
     const week = weekKey(now);
     const mode = run.mode === 'hard' ? 'hard' : 'normal';
@@ -132,8 +136,8 @@ async function handle(req, env, url) {
     const improved = !before || score > before.score;
     if (improved) {
       await db.prepare(
-        `INSERT INTO ${T} (week, player_id, score, stage, boss_kills, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(week, player_id) DO UPDATE SET score = excluded.score, stage = excluded.stage, boss_kills = excluded.boss_kills, updated_at = excluded.updated_at`
-      ).bind(week, p.id, score, stage, bossKills, now).run();
+        `INSERT INTO ${T} (week, player_id, score, stage, boss_kills, skin, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(week, player_id) DO UPDATE SET score = excluded.score, stage = excluded.stage, boss_kills = excluded.boss_kills, skin = excluded.skin, updated_at = excluded.updated_at`
+      ).bind(week, p.id, score, stage, bossKills, skin, now).run();
     }
     const best = improved ? score : before.score;
     const total = await db.prepare(`SELECT COUNT(*) AS n FROM ${T} WHERE week = ?`).bind(week).first();
