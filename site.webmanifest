@@ -1,12 +1,20 @@
 {
+  "id": "/",
   "name": "냥. 플 (Nyan Flash)",
   "short_name": "냥. 플",
-  "start_url": "/",
-  "display": "standalone",
+  "description": "날아오는 뱀을 플래시로 피하는 고양이 반응 연습 게임",
+  "start_url": "/?source=app",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
   "background_color": "#111c17",
   "theme_color": "#111c17",
+  "lang": "ko",
+  "categories": ["games"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

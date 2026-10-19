@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <style id="antiClickjack">html{display:none!important}</style>
 <script>if (window.self === window.top) { document.getElementById('antiClickjack').remove(); } else { window.top.location = window.self.location; }</script>
@@ -12,6 +12,10 @@
 <meta name="author" content="냥. 플 (Nyan Flash)">
 <meta name="copyright" content="© 2026 냥. 플 (Nyan Flash). All rights reserved.">
 <meta name="theme-color" content="#111c17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="냥. 플">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="canonical" href="https://nyanflash.com/">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -147,6 +151,23 @@ body.mobile .brand span{display:none}
 body.mobile #modeHard{opacity:.4}
 body.mobile .vol input{width:64px}
 @media (max-height:480px){ body.mobile .app{gap:6px;padding-block:6px} body.mobile .brand b{font-size:30px} body.mobile .chip,body.mobile .vol{padding:2px 10px;font-size:12px} }
+.install{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+body.mobile .overlay{place-items:start center}
+body.mobile #titleOv .panel{gap:12px;padding:18px}
+body.mobile #titleOv .panel > *{order:9}
+body.mobile #titleOv .panel > h1{order:0;font-size:64px}
+body.mobile #titleOv .panel > #startRow{order:1}
+body.mobile #titleOv .panel > #installBox{order:2}
+body.mobile #titleOv .panel > #modeLabel,body.mobile #titleOv .panel > #modeRow{order:3}
+body.mobile #titleOv .panel > #catLabel,body.mobile #titleOv .panel > #cats{order:4}
+body.mobile #titleOv .panel > #tierLine{order:5}
+body.mobile #titleOv .panel > .lead.m-only{order:6}
+body.mobile #titleOv .panel > #rulesBtn{order:7;align-self:flex-start}
+body.mobile #titleOv .panel > #rules{order:8}
+body.mobile #titleOv .panel > #rules:not(.open){display:none}
+body.mobile #titleOv .panel > .foot{order:10}
+body.mobile .cats canvas{width:56px;height:56px}
+body.standalone .install{display:none!important}
 .toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--cream)}
 .toggle input{width:18px;height:18px;accent-color:var(--amber)}
 .verdict{margin:0;font-size:16px;color:var(--cream);line-height:1.5}
@@ -174,15 +195,16 @@ body.mobile .vol input{width:64px}
         <h1>냥. 플</h1>
         <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.</p>
         <p class="lead m-only">화면 아무 데나 손가락을 대고 피할 방향으로 쓱 끌었다가 <b>떼는 순간 플래시!</b> 끌지 않고 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.</p>
-        <div class="label">난이도</div>
-        <div class="modes">
+        <div class="label" id="modeLabel">난이도</div>
+        <div class="modes" id="modeRow">
           <button class="mode-btn" id="modeNormal" type="button" aria-pressed="true">노말</button>
           <button class="mode-btn hard" id="modeHard" type="button" aria-pressed="false">하드</button>
           <span class="mode-note" id="modeNote"></span>
         </div>
-        <div class="label">고양이 고르기</div>
+        <div class="label" id="catLabel">고양이 고르기</div>
         <div class="cats" id="cats"></div>
-        <ul class="rules">
+        <button class="mini m-only" id="rulesBtn" type="button">게임 방법 보기</button>
+        <ul class="rules" id="rules">
           <li><span>몸에 닿기 직전에 쓸수록 높은 판정. <b style="color:var(--amber)">PERFECT</b> · GOOD · 빠름. 닿기 몇 ms 전에 썼는지 보여줘요.</span></li>
           <li><span>빗나가는 뱀도 섞여 있어요. 괜히 쓰면 헛플이고 쿨타임 1초.</span></li>
           <li><span>8마리 피하면 보스 등장! 킹코브라, 독수리, 불독, 아나콘다가 각자 패턴으로 공격해요. PERFECT·GOOD으로 연속 3~6번 피해야 이기고 다음 스테이지로 가요.</span></li>
@@ -192,12 +214,16 @@ body.mobile .vol input{width:64px}
           <li><span><b style="color:var(--hurt)">하드</b>: 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!</span></li>
           <li><span>닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!</span></li>
         </ul>
-        <div class="row">
+        <div class="row" id="startRow">
           <button class="go" id="startBtn" type="button">시작 (Enter)</button>
           <button class="ghost" id="rankBtn" type="button">주간 랭킹</button>
           <span class="best" id="bestLine"></span>
         </div>
         <div class="tierline" id="tierLine"></div>
+        <div class="install" id="installBox" hidden>
+          <button class="ghost" id="installBtn" type="button">홈 화면에 앱으로 추가</button>
+          <span class="mode-note" id="installNote"></span>
+        </div>
         <footer class="foot">
           <span>문의 · 제보: <a href="mailto:xmas42@naver.com">xmas42@naver.com</a><button class="mini" id="copyMail" type="button">복사</button></span>
           <span>© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.</span>
@@ -1703,6 +1729,31 @@ $('startBtn').onclick = start;
 $('againBtn').onclick = start;
 $('resumeBtn').onclick = resume;
 $('quitBtn').onclick = toTitle;
+$('rulesBtn').onclick = () => { const r = $('rules'); r.classList.toggle('open'); $('rulesBtn').textContent = r.classList.contains('open') ? '게임 방법 닫기' : '게임 방법 보기'; };
+(function appInstall(){
+  const standalone = (() => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch(e){ return false; } })();
+  if (standalone){ document.body.classList.add('standalone'); return; }
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let deferred = null;
+  const box = $('installBox'), btn = $('installBtn'), note = $('installNote');
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; box.hidden = false; note.textContent = '앱처럼 바로 실행돼요'; });
+  window.addEventListener('appinstalled', () => { box.hidden = true; });
+  if (IS_MOBILE && isIOS){ box.hidden = false; note.textContent = ''; }
+  btn.onclick = async () => {
+    if (deferred){
+      deferred.prompt();
+      try { const r = await deferred.userChoice; if (r && r.outcome === 'accepted') box.hidden = true; } catch(e){}
+      deferred = null;
+    } else if (isIOS){
+      note.textContent = 'Safari 아래쪽 공유 버튼(네모에 위쪽 화살표) → "홈 화면에 추가"를 눌러 주세요.';
+    } else {
+      note.textContent = '브라우저 메뉴(⋮)에서 "홈 화면에 추가" 또는 "앱 설치"를 눌러 주세요.';
+    }
+  };
+  if ('serviceWorker' in navigator && /(^|\.)nyanflash\.com$/.test(location.hostname)){
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+})();
 function renderMode(){
   $('modeNormal').setAttribute('aria-pressed', String(MODE === 'normal'));
   $('modeHard').setAttribute('aria-pressed', String(MODE === 'hard'));
