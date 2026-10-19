@@ -130,6 +130,24 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .mode-note b{color:var(--hurt)}
 .adbox{display:grid;place-items:center;gap:6px;min-height:150px;border:2px dashed var(--line);border-radius:14px;background:var(--night);color:var(--muted);font-size:14px;text-align:center;padding:16px}
 .adbox b{font-family:var(--f-display);font-size:48px;line-height:1;color:var(--cream)}
+.touchui{position:absolute;inset:auto 0 0 0;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-end;
+  padding:0 max(18px,env(safe-area-inset-right,0px)) max(18px,env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
+.joy{pointer-events:auto;touch-action:none;width:132px;height:132px;border-radius:50%;background:rgba(10,20,14,.38);border:2px solid rgba(245,235,211,.35);position:relative}
+.joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,201,74,.85);border:3px solid #1d1505;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.fbtn{pointer-events:auto;touch-action:none;width:96px;height:96px;border-radius:50%;border:3px solid #1d1505;position:relative;
+  background:conic-gradient(rgba(10,16,13,.7) var(--cd,0%), transparent 0) , #ffc94a;
+  font-family:var(--f-display);font-weight:700;font-size:30px;color:#1d1505;display:grid;place-items:center;box-shadow:0 5px 0 #b3851d}
+.fbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #b3851d}
+.fbtn small{position:absolute;bottom:14px;font-family:var(--f-body);font-size:11px;font-weight:700}
+.m-only{display:none}
+body.mobile .m-only{display:revert}
+body.mobile .pc-only{display:none!important}
+body.mobile .brand span{display:none}
+body.mobile #modeHard{opacity:.4}
+body.mobile .vol input{width:64px}
+@media (max-height:480px){ body.mobile .app{gap:6px;padding-block:6px} body.mobile .brand b{font-size:30px} body.mobile .chip,body.mobile .vol{padding:2px 10px;font-size:12px} }
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--cream)}
+.toggle input{width:18px;height:18px;accent-color:var(--amber)}
 .verdict{margin:0;font-size:16px;color:var(--cream);line-height:1.5}
 </style>
 
@@ -148,11 +166,17 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 
   <main class="field" id="field">
     <canvas id="game" aria-label="게임 화면"></canvas>
+    <div class="touchui" id="touchUi" hidden>
+      <div class="joy" id="joy" aria-label="플래시 방향 조이스틱"><div class="joy-knob" id="joyKnob"></div></div>
+      <button class="fbtn" id="fBtn" type="button" aria-label="플래시">F<small id="fCd"></small></button>
+    </div>
 
     <section class="overlay" id="titleOv">
       <div class="panel">
         <h1>냥. 플</h1>
-        <p class="lead">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.</p>
+        <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.</p>
+        <p class="lead m-only">왼쪽 조이스틱으로 방향을 잡고, 오른쪽 <kbd>F</kbd> 버튼으로 플래시! 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.</p>
+        <label class="toggle m-only" for="releaseFlash"><input type="checkbox" id="releaseFlash"> 조이스틱을 놓는 순간 바로 플래시 (빠른 조작)</label>
         <div class="label">난이도</div>
         <div class="modes">
           <button class="mode-btn" id="modeNormal" type="button" aria-pressed="true">노말</button>
@@ -305,8 +329,10 @@ const S = { mode:'title', skin:0, stage:1, score:0, lives:3, dodges:0, stageDodg
   perfect:0, good:0, early:0, whiff:0, margins:[], maxCombo:0, showLane:true, cd:0, t:0, spawnIn:1, invuln:0, hurt:0, shake:0, dieT:0 };
 
 /* ---- storage ---- */
+const IS_MOBILE = (() => { try { return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches; } catch(e){ return false; } })();
+if (IS_MOBILE) document.body.classList.add('mobile');
 let MODE = 'normal';
-try { if (localStorage.getItem('nyangflash-mode') === 'hard') MODE = 'hard'; } catch(e){}
+try { if (!IS_MOBILE && localStorage.getItem('nyangflash-mode') === 'hard') MODE = 'hard'; } catch(e){}
 const sfx = (m) => (m || MODE) === 'hard' ? '-hard' : '';
 function cooldown(){ return S.hard ? COOLDOWN_H : COOLDOWN_N; }
 function HM(){ return S.hard ? 1.5 : 1; }
@@ -536,7 +562,7 @@ function flash(){
   bestT = Math.max(0, bestT - lag);
   const margin = Math.round(bestT * 1000);
   let g, color;
-  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; S.perfect++; S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
+  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
   else if (bestT <= 0.3){ g = 'GOOD'; color = '#8fdc5b'; S.good++; S.margins.push(margin); }
   else { g = '빠름'; color = '#f5ebd3'; S.early++; }
   threatening.forEach(s => { s.grade = g; if (s.group) s.group.grade = g; });
@@ -595,7 +621,9 @@ function checkForm(){
 }
 function comboMult(){ return Math.min(3, 1 + S.combo * 0.1); }
 
+function buzz(ms){ try { if (IS_MOBILE && navigator.vibrate) navigator.vibrate(ms); } catch(e){} }
 function onHit(s){
+  buzz([40, 30, 60]);
   s.hit = true; if (s.group) s.group.hit = true;
   if (S.boss && S.boss.phase !== 'leave' && S.boss.streak > 0){
     S.boss.streak = 0;
@@ -990,6 +1018,7 @@ function showOnly(id){ ['titleOv','pauseOv','overOv','rankOv','adOv'].forEach(o 
 
 function start(){
   audio();
+  if (IS_MOBILE) MODE = 'normal';
   if (MODE === 'hard'){
     if (hardLeft() <= 0){ S.mode = 'adwall'; showOnly('adOv'); resetAd(); $('adWatch').focus(); return; }
     const hd = loadHardDay(); hd.used++; saveHardDay(hd);
@@ -1001,7 +1030,7 @@ function start(){
     margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
   snakes = []; parts = []; floats = []; ghosts = []; foods = []; bannerQ = [];
   cat.x = W/2; cat.y = H/2;
-  banner = S.hard ? { text:'HARD · STAGE 1', sub:'안내선 없음. 오늘 남은 도전 ' + hardLeft() + '번', t:0, life:2.2 } : { text:'STAGE 1', sub:'뱀이 온다! F 또는 D로 피하세요', t:0, life:2 };
+  banner = S.hard ? { text:'HARD · STAGE 1', sub:'안내선 없음. 오늘 남은 도전 ' + hardLeft() + '번', t:0, life:2.2 } : { text:'STAGE 1', sub: IS_MOBILE ? '뱀이 온다! 조이스틱 방향으로 F!' : '뱀이 온다! F 또는 D로 피하세요', t:0, life:2 };
   playTrack(stageTrack());
   meow(1, 0.35, 0.08);
   netStartRun();
@@ -1567,6 +1596,7 @@ function drawHUD(c){
   }
 
   // flash key
+  if (IS_MOBILE) return;
   const sz = 54, x = W/2 - sz/2, y = H - sz - 26;
   c.fillStyle = 'rgba(17,28,23,.85)'; roundRect(c, x, y, sz, sz, 12); c.fill();
   c.strokeStyle = S.cd <= 0 ? '#ffc94a' : 'rgba(245,235,211,.25)'; c.lineWidth = 2.5; roundRect(c, x, y, sz, sz, 12); c.stroke();
@@ -1588,10 +1618,25 @@ function drawHUD(c){
   c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText('F · D 플래시', W/2, H - 8);
 }
 
+
 /* ---- loop ---- */
 let last = performance.now();
+const JOY = { id:null, ax:1, ay:0, mag:0.85, active:false, moved:false };
 function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now;
+  if (IS_MOBILE){
+    if (S.mode === 'play' || S.mode === 'dying'){
+      const r = FLASH_RANGE*U*Math.max(0.15, JOY.mag);
+      mouse.x = cat.x + JOY.ax*r; mouse.y = cat.y + JOY.ay*r; mouse.seen = true;
+    }
+    const ui = $('touchUi'), show = S.mode === 'play' || S.mode === 'dying';
+    if (ui.hidden === show) ui.hidden = !show;
+    if (show){
+      const cdv = S.cd > 0 ? (S.cd / cooldown()) * 100 : 0;
+      $('fBtn').style.setProperty('--cd', cdv.toFixed(1) + '%');
+      $('fCd').textContent = S.cd > 0 ? S.cd.toFixed(1) : '';
+    }
+  }
   if (S.mode === 'play' || S.mode === 'dying') update(dt);
   else if (S.mode === 'title' || S.mode === 'over'){ S.t += dt; for (const p of parts) p.t += dt; parts = parts.filter(p => p.t < p.life); }
   render();
@@ -1599,6 +1644,35 @@ function frame(now){
 }
 
 /* ---- input ---- */
+(function touchControls(){
+  if (!IS_MOBILE) return;
+  const joy = $('joy'), knob = $('joyKnob'), fb = $('fBtn');
+  let releaseFlash = false;
+  try { releaseFlash = localStorage.getItem('nyangflash-release') === '1'; } catch(e){}
+  $('releaseFlash').checked = releaseFlash;
+  $('releaseFlash').addEventListener('change', e => { releaseFlash = e.target.checked; try { localStorage.setItem('nyangflash-release', releaseFlash ? '1' : '0'); } catch(err){} });
+  const R = 52;
+  const setKnob = (x, y) => { knob.style.transform = 'translate(' + x + 'px,' + y + 'px)'; };
+  const move = e => {
+    const r = joy.getBoundingClientRect();
+    let x = e.clientX - (r.left + r.width/2), y = e.clientY - (r.top + r.height/2);
+    const d = Math.hypot(x, y);
+    if (d > R){ x = x/d*R; y = y/d*R; }
+    setKnob(x, y);
+    if (d > 8){ const dd = Math.hypot(x, y); JOY.ax = x/dd; JOY.ay = y/dd; JOY.mag = Math.min(1, d/R); JOY.moved = true; }
+  };
+  joy.addEventListener('pointerdown', e => { e.preventDefault(); audio(); JOY.id = e.pointerId; JOY.active = true; JOY.moved = false; try { joy.setPointerCapture(e.pointerId); } catch(err){} move(e); });
+  joy.addEventListener('pointermove', e => { if (e.pointerId === JOY.id) move(e); });
+  const end = e => {
+    if (e.pointerId !== JOY.id) return;
+    JOY.id = null; JOY.active = false; setKnob(0, 0);
+    if (releaseFlash && JOY.moved && S.mode === 'play') flash();
+  };
+  joy.addEventListener('pointerup', end); joy.addEventListener('pointercancel', end);
+  fb.addEventListener('pointerdown', e => { e.preventDefault(); audio(); if (S.mode === 'play') flash(); });
+  fb.addEventListener('contextmenu', e => e.preventDefault());
+  joy.addEventListener('contextmenu', e => e.preventDefault());
+})();
 function setMouse(e){ const r = cv.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; mouse.seen = true; }
 cv.addEventListener('pointermove', setMouse);
 cv.addEventListener('pointerdown', e => { setMouse(e); if (e.pointerType !== 'mouse' && S.mode === 'play') flash(); });
@@ -1634,11 +1708,11 @@ function renderMode(){
   if (MODE === 'hard'){
     const b = document.createElement('b'); b.textContent = '오늘 남은 도전 ' + hardLeft() + '/' + HARD_FREE;
     n.append(b, ' · 안내선 없음 · 점수 1.5배');
-  } else n.textContent = '처음이라면 노말부터!';
+  } else n.textContent = IS_MOBILE ? '하드 모드는 PC 전용이에요' : '처음이라면 노말부터!';
   $('startBtn').textContent = MODE === 'hard' ? '하드 시작 (Enter)' : '시작 (Enter)';
   renderBest();
 }
-function setMode(m){ MODE = m; try { localStorage.setItem('nyangflash-mode', m); } catch(e){} renderMode(); }
+function setMode(m){ if (IS_MOBILE && m === 'hard'){ $('modeNote').textContent = '하드 모드는 PC에서만 할 수 있어요.'; return; } MODE = m; try { localStorage.setItem('nyangflash-mode', m); } catch(e){} renderMode(); }
 $('modeNormal').onclick = () => setMode('normal');
 $('modeHard').onclick = () => setMode('hard');
 $('rankTabNormal').onclick = () => setRankTab('normal');
