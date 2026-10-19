@@ -75,6 +75,30 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .lead kbd,.rules kbd{font-family:var(--f-body);font-weight:700;font-size:13px;line-height:1.35;display:inline-block;vertical-align:1px;background:var(--night);border:1.5px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;color:var(--amber)}
 .label{font-size:13px;letter-spacing:.06em;color:var(--muted)}
 .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#titleOv{align-items:safe center}
+.title-wrap{display:grid;grid-template-columns:250px minmax(0,560px) 250px;grid-template-areas:"n p h";gap:18px;align-items:start;justify-content:center;width:100%}
+.title-wrap > .panel{grid-area:p}
+#boardN{grid-area:n}
+#boardH{grid-area:h}
+.board{background:var(--moss);border:2px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 18px 50px rgba(0,0,0,.35);min-width:0}
+.board .bh{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.board .bh b{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1;color:var(--amber)}
+.board.hard .bh b{color:var(--hurt)}
+.board .bh span{font-size:12px;color:var(--muted)}
+.board ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.board li{display:grid;grid-template-columns:22px 24px minmax(0,1fr) auto;gap:6px;align-items:center;background:var(--night);border-radius:8px;padding:4px 8px;font-size:14px}
+.board li.me{outline:2px solid var(--amber)}
+.board li.gap{display:block;background:transparent;text-align:center;color:var(--muted);padding:0}
+.board .no{font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1;color:var(--muted);text-align:center}
+.board li:nth-child(-n+3) .no{color:var(--amber)}
+.board.hard li:nth-child(-n+3) .no{color:var(--hurt)}
+.board .ci{width:24px;height:24px}
+.board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board .sc{font-variant-numeric:tabular-nums;color:var(--cream);font-size:13px}
+.board .empty{font-size:13px;color:var(--muted);padding:6px 2px}
+.board .more{align-self:flex-start}
+@media (max-width:1180px){.title-wrap{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"p p" "n h";max-width:560px}}
+@media (max-width:520px){.title-wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"p" "n" "h"}}
 @media (max-width:460px){.cats{grid-template-columns:repeat(3,1fr)}}
 .cat{font:inherit;color:var(--cream);background:var(--night);border:2px solid var(--line);border-radius:14px;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
 .cat canvas{width:72px;height:72px}
@@ -226,6 +250,9 @@ body.standalone .install{display:none!important}
     <div class="joyf" id="joyF" hidden><div class="joy-knob" id="joyKnob"></div></div>
 
     <section class="overlay" id="titleOv">
+      <div class="title-wrap">
+      <aside class="board" id="boardN" aria-label="노말 랭킹"></aside>
+      <aside class="board hard" id="boardH" aria-label="하드 랭킹"></aside>
       <div class="panel">
         <h1>냥. 플</h1>
         <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.</p>
@@ -266,6 +293,7 @@ body.standalone .install{display:none!important}
           <span>문의 · 제보: <a href="mailto:xmas42@naver.com">xmas42@naver.com</a><button class="mini" id="copyMail" type="button">복사</button></span>
           <span>© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.</span>
         </footer>
+      </div>
       </div>
     </section>
 
@@ -376,6 +404,7 @@ Object.assign(EN, { '내 순위': 'My rank',
   '도전 성공! ': 'Challenge won! You beat ', '님을 ': ' by ', '점 차이로 이겼어요': ' pts', '도전 실패... ': 'Challenge lost... ', '점 모자라요': ' pts short',
   '내 점수에 도전 👉 ': 'Beat my score 👉 ', '도전 링크를 복사했어요. 친구에게 보내 보세요!': 'Challenge link copied. Send it to a friend!',
   '도전 링크 복사': 'Copy challenge link',
+  '하드 랭킹': 'Hard ranking', '노말 랭킹': 'Normal ranking', '이번 주 ': 'This week · ', '이번 주': 'This week', '전체 보기': 'See all', '아직 기록이 없어요. 첫 주인공이 되어 보세요!': 'No records yet. Be the first!',
   '고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.': 'Each cat has its own ability. When a rock wall rises, Flash over it! Near misses give bonus points. Daily missions unlock new cats.'
 });
 const L = s => (LANG === 'en' && EN[s] != null) ? EN[s] : s;
@@ -1367,7 +1396,7 @@ function start(){
 }
 function pause(){ if (S.mode !== 'play') return; $('pauseLead').textContent = L('큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.'); S.mode = 'paused'; pauseMusic(); showOnly('pauseOv'); $('resumeBtn').focus(); }
 function resume(){ if (S.mode !== 'paused') return; S.mode = 'play'; showOnly(null); last = performance.now(); audio(); resumeMusic(); }
-function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; walls = []; snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); $('startBtn').focus(); }
+function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; walls = []; snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); loadBoards(); $('startBtn').focus(); }
 
 function endGame(){
   S.mode = 'over';
@@ -2148,8 +2177,8 @@ $('adWatch').onclick = () => {
   tick(); adTimer = setInterval(tick, 1000);
 };
 $('adClose').onclick = () => { clearInterval(adTimer); adTimer = null; setMode('normal'); S.mode = 'title'; showOnly('titleOv'); };
-$('rankBtn').onclick = openRank;
-$('rankBtn2').onclick = openRank;
+$('rankBtn').onclick = () => openRank();
+$('rankBtn2').onclick = () => openRank();
 $('rankClose').onclick = closeRank;
 $('copyMail').onclick = () => {
   const done = () => { $('copyMail').textContent = L('복사됨'); setTimeout(() => $('copyMail').textContent = L('복사'), 1500); };
@@ -2330,7 +2359,7 @@ function netFinishRun(el){
   const runId = NET.runId; NET.runId = null;
   api('/api/run/finish', { runId, score:S.score, stage:S.stage, bossKills:S.bossKills, durationMs:Math.round(S.playMs), skin:S.skin })
     .then(j => {
-      if (j.ok) show(j.rank, j.total || j.rank, j.improved);
+      if (j.ok){ show(j.rank, j.total || j.rank, j.improved); boardAt = 0; }
       else { el.textContent = ''; el.append(small(j.reason || j.error || L('이번 판은 랭킹에 반영되지 않았어요.'))); }
     }).catch(fallback);
 }
@@ -2342,17 +2371,17 @@ function setRankTab(m){
   $('rankTabHard').setAttribute('aria-pressed', String(m === 'hard'));
   loadRank();
 }
-function openRank(){
+function openRank(want){
   rankFrom = S.mode; S.mode = 'ranking';
   NET.editing = false;
   showOnly('rankOv'); renderNick();
-  setRankTab(rankFrom === 'over' ? (S.hard ? 'hard' : 'normal') : MODE);
+  setRankTab(want === 'hard' || want === 'normal' ? want : rankFrom === 'over' ? (S.hard ? 'hard' : 'normal') : MODE);
   $('rankClose').focus();
 }
 function closeRank(){
   S.mode = rankFrom === 'over' ? 'over' : 'title';
   showOnly(S.mode === 'over' ? 'overOv' : 'titleOv');
-  if (S.mode === 'title') renderBest();
+  if (S.mode === 'title'){ renderBest(); loadBoards(); }
 }
 function renderNick(){
   const box = $('nickBox'); box.textContent = '';
@@ -2382,7 +2411,7 @@ function registerNick(nick){
       NET.nick = j.nickname; NET.editing = false;
       try { localStorage.setItem('nyangflash-nick', NET.nick); } catch(e){}
       msg.textContent = L('등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.');
-      renderNick(); loadRank();
+      renderNick(); loadRank(); boardAt = 0;
     } else msg.textContent = j.error || L('등록하지 못했어요. 잠시 뒤에 다시 해 주세요.');
   }).catch(() => { msg.textContent = L('랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.'); });
 }
@@ -2433,6 +2462,53 @@ function loadRank(){
     }
     const mine = list.querySelector('li.me'); if (mine && mine.scrollIntoView) mine.scrollIntoView({ block:'nearest' });
   }).catch((e) => { if (seq !== rankSeq) return; console.error('leaderboard', e); me.textContent = L('순위를 불러오지 못했어요. (') + (e && e.message ? e.message : L('연결 실패')) + ')'; });
+}
+
+/* ---- title boards: normal + hard top 10, always visible on the home screen ---- */
+let boardAt = 0, boardSeq = 0;
+function renderBoard(el, mode, j){
+  el.textContent = '';
+  const head = document.createElement('div'); head.className = 'bh';
+  const t = document.createElement('b'); t.textContent = mode === 'hard' ? L('하드 랭킹') : L('노말 랭킹');
+  const sub = document.createElement('span'); sub.textContent = j && j.total ? L('이번 주 ') + j.total + L('명') : L('이번 주');
+  head.append(t, sub); el.append(head);
+  if (!j || !j.top){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = j === null ? L('불러오는 중...') : L('랭킹을 불러오지 못했어요.'); el.append(e); return; }
+  if (!j.top.length){ const e = document.createElement('div'); e.className = 'empty'; e.textContent = L('아직 기록이 없어요. 첫 주인공이 되어 보세요!'); el.append(e); }
+  else {
+    const ol = document.createElement('ol');
+    let shownMe = false;
+    j.top.slice(0, 10).forEach((r, i) => {
+      const isMe = !!(j.me && j.me.rank && r.nickname === j.me.nickname);
+      if (isMe) shownMe = true;
+      ol.append(boardRow(i + 1, r, isMe));
+    });
+    if (j.me && j.me.rank && !shownMe){
+      const gap = document.createElement('li'); gap.className = 'gap'; gap.textContent = '⋯'; ol.append(gap);
+      ol.append(boardRow(j.me.rank, j.me, true));
+    }
+    el.append(ol);
+  }
+  const more = document.createElement('button'); more.className = 'mini more'; more.type = 'button'; more.textContent = L('전체 보기');
+  more.onclick = () => openRank(mode);
+  el.append(more);
+}
+function boardRow(rank, r, isMe){
+  const li = document.createElement('li'); if (isMe) li.className = 'me';
+  const no = document.createElement('span'); no.className = 'no'; no.textContent = rank;
+  const ci = document.createElement('img'); ci.className = 'ci'; ci.alt = ''; ci.src = catIconURL(Math.max(0, Math.min(SKINS.length - 1, r.skin | 0)));
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.nickname;
+  const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString('ko-KR');
+  li.append(no, ci, nm, sc); return li;
+}
+function loadBoards(force){
+  if (!force && Date.now() - boardAt < 20000) return;
+  boardAt = Date.now();
+  const seq = ++boardSeq;
+  [['normal', $('boardN')], ['hard', $('boardH')]].forEach(([mode, el]) => {
+    if (!el.firstChild) renderBoard(el, mode, null);
+    api('/api/leaderboard?mode=' + mode).then(j => { if (seq === boardSeq) renderBoard(el, mode, j); })
+      .catch(() => { if (seq === boardSeq) renderBoard(el, mode, {}); boardAt = 0; });
+  });
 }
 
 /* ---- share ---- */
@@ -2562,6 +2638,7 @@ SKINS.forEach((sk, i) => {
 (() => { const k = loadSkin(); S.skin = skinLocked(k) ? 0 : k; refreshCats(); })();
 renderMode();
 renderVs();
+loadBoards(true);
 if (VS && VS.m === 'hard' && !IS_MOBILE) setMode('hard');
 resize();
 requestAnimationFrame(frame);
