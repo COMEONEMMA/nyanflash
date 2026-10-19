@@ -115,6 +115,14 @@ body{height:100%;background:var(--night);color:var(--cream);font-family:var(--f-
 .foot{display:flex;flex-direction:column;gap:4px;border-top:1.5px dashed var(--line);padding-top:12px;font-size:12.5px;color:var(--muted);line-height:1.6}
 .foot a{color:var(--cream)}
 .mini{font:inherit;font-size:12px;color:var(--cream);background:var(--night);border:1px solid var(--line);border-radius:6px;padding:1px 8px;cursor:pointer;margin-left:4px}
+.myrank{display:flex;align-items:center;gap:14px;background:var(--night);border:2px solid var(--amber);border-radius:16px;padding:10px 16px}
+.myrank img{width:64px;height:64px;flex:none}
+.myrank .mr-text{display:flex;flex-direction:column;min-width:0}
+.myrank .mr-label{font-size:13px;color:var(--muted)}
+.myrank .mr-rank{font-family:var(--f-display);font-weight:700;font-size:44px;line-height:1;color:var(--amber)}
+.myrank .mr-rank small{font-family:var(--f-body);font-weight:400;font-size:15px;color:var(--muted);margin-left:6px}
+.myrank .mr-sub{font-size:14px;color:var(--cream)}
+.rank-list li.gap{background:transparent;justify-content:center;display:block;text-align:center;color:var(--muted);padding:0}
 .rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:min(46vh,420px);overflow:auto}
 .rank-list li{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;align-items:center;gap:10px;background:var(--night);border-radius:10px;padding:6px 12px}
 .rank-list li.me{outline:2px solid var(--amber)}
@@ -307,10 +315,11 @@ body.standalone .install{display:none!important}
           <button class="mode-btn hard" id="rankTabHard" type="button" aria-pressed="false">하드</button>
         </div>
         <p class="netmsg" id="rankSub">매주 월요일 0시(한국 시간)에 초기화돼요.</p>
+        <div class="myrank" id="myRankCard" hidden></div>
+        <p class="netmsg" id="myRank"></p>
+        <ol class="rank-list" id="rankList"></ol>
         <div id="nickBox"></div>
         <p class="netmsg" id="nickMsg" role="status"></p>
-        <ol class="rank-list" id="rankList"></ol>
-        <p class="netmsg" id="myRank"></p>
         <div class="row">
           <button class="ghost" id="rankClose" type="button">닫기 (Esc)</button>
         </div>
@@ -322,6 +331,7 @@ body.standalone .install{display:none!important}
 <script>
 const LANG = (() => { try { const v = localStorage.getItem('nyangflash-lang'); if (v === 'ko' || v === 'en') return v; } catch(e){} return /^ko/i.test(navigator.language || '') ? 'ko' : 'en'; })();
 const EN = {"냥. 플": "Nyan Flash", "롤 큐 기다리는 동안 하는 플래시 반응 연습": "Flash reaction practice while your LoL queue pops", "음악": "Music", "효과음": "SFX", "홈": "Home", "일시정지 (Esc)": "Pause (Esc)", "뱀이 날아오면": "When a snake flies in, press", "또는": "or", "! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.": " to blink toward your mouse cursor and dodge it.", "화면 아무 데나 손가락을 대고 피할 방향으로 쓱 끌었다가": "Touch anywhere, drag toward where you want to go, and", "떼는 순간 플래시!": "release to Flash!", "끌지 않고 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.": "A quick tap flashes toward the spot you tapped. Landscape works best. Mobile plays Normal mode only.", "난이도": "Difficulty", "노말": "Normal", "하드": "Hard", "고양이 고르기": "Pick your cat", "게임 방법 보기": "How to play", "게임 방법 닫기": "Hide how to play", "몸에 닿기 직전에 쓸수록 높은 판정.": "The closer to impact you Flash, the better the grade.", "· GOOD · 빠름. 닿기 몇 ms 전에 썼는지 보여줘요.": "· GOOD · EARLY. It shows how many ms before impact you flashed.", "빗나가는 뱀도 섞여 있어요. 괜히 쓰면 헛플이고 쿨타임 1초.": "Some snakes are going to miss you. Flash for nothing and it's a whiff, with a 1 second cooldown.", "8마리 피하면 보스 등장! 킹코브라, 독수리, 불독, 아나콘다가 각자 패턴으로 공격해요. PERFECT·GOOD으로 연속 3~6번 피해야 이기고 다음 스테이지로 가요.": "Dodge 8 snakes and a boss appears! King Cobra, Eagle Chief, Bulldog Boss and Anaconda each attack their own way. Beat them with 3 to 6 PERFECT or GOOD dodges in a row.", "잘 피할수록 콤보가 쌓여 점수 배율이 최대 x3까지 올라가요. 5·10·20 콤보마다 고양이가 변신해요!": "Clean dodges build a combo, up to x3 score. Your cat transforms at 5, 10 and 20 combo!", "가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔을 덮치거나 스치고 지나가면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.": "Cat food cans drift by. Flash onto or through one for bonus points. A shiny gold can restores a fish.", "처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.": "Snake paths are shown for your first 3 games only. Lose all 3 fish and the snakes win.", ": 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!": ": much faster snakes, no warnings, no guides. 3 tries a day, 1.5x score, its own ranking!", "닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!": "Register a nickname and your best score of the week sets your rank and tier. Resets every Monday!", "시작 (Enter)": "Start (Enter)", "주간 랭킹": "Weekly ranking", "홈 화면에 앱으로 추가": "Add to home screen", "문의 · 제보:": "Contact:", "복사": "Copy", "© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.": "© 2026 Nyan Flash (냥. 플). Copying, modifying, redistributing or commercially using the game's code, art or music without permission is prohibited.", "잠깐 멈춤": "Paused", "큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.": "Queue popped? Go play. The game pauses when you leave the window.", "계속 (Enter)": "Resume (Enter)", "홈으로": "Home", "뱀의 승리...": "The snakes win...", "이번 주 티어": "This week's tier", "스테이지": "Stage", "점수": "Score", "최대 콤보": "Max combo", "평균 타이밍 (닿기 전)": "Avg timing (before impact)", "보스 격파": "Bosses beaten", "PERFECT / 헛플": "PERFECT / Whiffs", "다시 (Enter)": "Again (Enter)", "랭킹": "Ranking", "결과 공유하기": "Share your result", "결과 문구 복사": "Copy result text", "이미지 카드 만들기": "Make image card", "이미지 복사": "Copy image", "이미지를 우클릭하거나 길게 눌러서 저장할 수도 있어요": "You can also right-click or long-press the image to save it", "오늘 하드 도전 끝!": "Out of Hard tries today!", "하드 모드는 하루 3번까지 무료예요. 광고를 보면 1번 더 도전할 수 있어요. 한국 시간 자정에 다시 3번이 충전돼요.": "Hard mode is free 3 times a day. Watch an ad for one more try. Tries refill at midnight KST.", "광고 자리": "Ad space", "광고 보고 1번 더": "Watch ad for 1 more", "노말 하기": "Play Normal", "이번 주 랭킹": "This week's ranking", "매주 월요일 0시(한국 시간)에 초기화돼요.": "Resets every Monday at 00:00 KST.", "닫기 (Esc)": "Close (Esc)", "게임 화면": "Game screen", "공유 문구": "Share text", "냥. 플 점수 카드": "Nyan Flash score card", "치즈": "Cheddar", "주황 줄무늬": "Orange tabby", "턱시도": "Tuxedo", "정장 차림": "Dressed sharp", "삼색이": "Calico", "행운의 무늬": "Lucky coat", "러시안블루": "Russian Blue", "초록 눈": "Green eyes", "쿨타임!": "Cooldown!", "헛플!": "Whiff!", "날아오는 뱀이 없었어요": "No snake was coming", "빠름": "EARLY", "너무 일찍 썼어요 (닿기 ": "Too early (", "ms 전)": "ms before impact)", "닿기 ": "", "ms 전": "ms before impact", "회피 +": "Dodge +", " 콤보!": " Combo!", "점수 x": "Score x", "뱀이 더 빨라졌다!": "Snakes got faster!", "생선 1개 회복!": "+1 fish!", "빗나가는 뱀이 섞이기 시작해요": "Decoy snakes start showing up", "이제 여러 마리가 동시에 와요": "Now they come in groups", "빨간 독사 등장. 더 빠릅니다": "Red vipers appear. They're faster", "보스 격파!": "Boss down!", " 물리쳤다냥 · +": " defeated · +", "쿨냥 모드": "Cool Cat Mode", "번개냥": "Thunder Cat", "전설의 냥": "Legend Cat", "변신! ": "Transform! ", " 콤보 달성": " combo", "변신 해제...": "Transform ended...", "연속 회피 끊김!": "Streak broken!", "뱀한테 졌다냥...": "Snake got me...", "앗 물렸다!": "Ouch, bitten!", "이 뱀이...!": "This snake...!", "냐아앙!": "Nyaaa!", "킹코브라": "King Cobra", "킹코브라를": "King Cobra", "독수리 대장": "Eagle Chief", "독수리 대장을": "Eagle Chief", "불독 두목": "Bulldog Boss", "불독 두목을": "Bulldog Boss", "아나콘다": "Anaconda", "아나콘다를": "Anaconda", "연속 ": "Dodge ", "번 확실하게(PERFECT·GOOD) 피하면 승리!": " times in a row (PERFECT/GOOD) to win!", "확실한 회피! ": "Clean dodge! ", "애매해요! 처음부터 다시": "Not clean! Streak reset", "피했지만 인정 안 됨!": "Dodged, but not clean!", "연속 0 / ": "Streak 0 / ", "냠! 캔 획득": "Yum! Can", "황금 캔!": "Gold can!", "황금 캔! 생선 +1": "Gold can! +1 fish", "안내선 없음. 오늘 남은 도전 ": "No guides. Tries left today: ", "번": "", "뱀이 온다! 끌었다 떼면 플래시!": "Snakes incoming! Drag and release to Flash!", "뱀이 온다! F 또는 D로 피하세요": "Snakes incoming! Press F or D to dodge", "신기록! 그래도 뱀의 승리": "New best! But the snakes win", "아직 제때 쓴 플래시가 없어요. 뱀이 가까이 올 때까지 참았다가 옆으로 눌러 보세요.": "No well-timed Flash yet. Wait until the snake is close, then Flash sideways.", "헛플이 많아요. 빗나가는 뱀은 그냥 보내고, 진짜 나한테 오는 뱀에만 쓰는 연습을 해 보세요.": "Lots of whiffs. Let the decoys pass and only Flash at snakes really coming for you.", "반응은 빠른데 너무 일찍 써요. 조금만 더 참았다가 닿기 직전에 쓰면 PERFECT가 나옵니다.": "Quick reactions, but too early. Hold a little longer and Flash right before impact for PERFECT.", "타이밍 아주 좋습니다. 맞기 직전에 쓰는 진짜 플래시 감각이에요.": "Great timing. That's a real last-second Flash.", "나쁘지 않아요. 조금 더 참아서 평균 타이밍을 130ms 안쪽으로 줄여 보세요.": "Not bad. Hold a bit longer and get your average under 130ms.", "이번 주 배치 완료! ": "Placed this week! ", "승급! ": "Promoted! ", "이번 주 최고 점수 갱신 · ": "New weekly best · ", "이번 주 티어 ": "This week's tier ", " · 최고 ": " · Best ", "점까지 ": " pts · ", "점 남았어요": " pts to go", " 티어 엠블럼": " tier emblem", "최고 기록 ": "Best ", "점 · 스테이지 ": " pts · Stage ", "첫 판이에요": "First game!", " · 뱀 경로 표시 ": " · Snake paths shown for ", "판 남음": " more games", "캔 놓침": "Missed can", " 콤보 · x": " combo · x", "연속 회피 ": "Streak ", "끌었다 떼면 플래시": "Drag & release to Flash", "F · D 플래시": "F · D Flash", "앱처럼 바로 실행돼요": "Opens like an app", "Safari 아래쪽 공유 버튼(네모에 위쪽 화살표) → \"홈 화면에 추가\"를 눌러 주세요.": "In Safari, tap the Share button (square with an up arrow), then \"Add to Home Screen\".", "브라우저 메뉴(⋮)에서 \"홈 화면에 추가\" 또는 \"앱 설치\"를 눌러 주세요.": "Open the browser menu (⋮) and choose \"Add to Home screen\" or \"Install app\".", "오늘 남은 도전 ": "Tries left today ", " · 안내선 없음 · 점수 1.5배": " · No guides · 1.5x score", "하드 모드는 PC 전용이에요": "Hard mode is PC only", "처음이라면 노말부터!": "New here? Start with Normal!", "하드 시작 (Enter)": "Start Hard (Enter)", "하드 모드는 PC에서만 할 수 있어요.": "Hard mode is only available on PC.", "광고 준비 중... 잠시 후 도전이 1번 추가돼요": "Loading ad... you'll get 1 more try shortly", "복사됨": "Copied", "직접 복사해 주세요": "Please copy it manually", "홈으로 가면 지금 판은 끝나요. 계속할까요?": "Going home will end this game. Keep playing?", "아이언": "Iron", "브론즈": "Bronze", "실버": "Silver", "골드": "Gold", "플래티넘": "Platinum", "에메랄드": "Emerald", "다이아몬드": "Diamond", "마스터": "Master", "그랜드마스터": "Grandmaster", "챌린저": "Challenger", "이번 주 하드 티어": "This week's Hard tier", "점 · 매주 월요일 0시 초기화": " pts · resets Mon 00:00 KST", "이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화": "Play a game to get placed · resets Mon 00:00 KST", "닉네임 등록하고 내 순위 보기": "Register a nickname to see your rank", "순위 확인 중...": "Checking rank...", "하드 ": "Hard #", "이번 주 ": "This week #", "위 ": " ", "명": " players", " · 기록 갱신!": " · New best!", "이번 판은 랭킹에 반영되지 않았어요.": "This game wasn't counted for the ranking.", "랭킹 서버에 연결하지 못했어요.": "Couldn't reach the ranking server.", "내 닉네임: ": "My nickname: ", "변경": "Change", "닉네임 (한글·영문·숫자 2~12자)": "Nickname (2-12 letters or numbers)", "등록": "Save", "닉네임은 한글, 영문, 숫자, _ 로 2~12자예요.": "Nicknames are 2-12 letters, numbers or _.", "등록 중...": "Saving...", "등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.": "Saved! Every game now counts for the ranking.", "등록하지 못했어요. 잠시 뒤에 다시 해 주세요.": "Couldn't save. Please try again in a moment.", "랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.": "Couldn't reach the ranking server. Open the game at nyanflash.com.", "불러오는 중...": "Loading...", "랭킹을 불러오지 못했어요.": "Couldn't load the ranking.", "이번 주 첫 기록의 주인공이 되어 보세요!": "Be the first on the board this week!", "내 순위: ": "My rank: #", "위 / ": " / ", "명 · ": " players · ", "점": " pts", "이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.": "No score yet this week. Play a game to get ranked.", "순위를 불러오지 못했어요. (": "Couldn't load the ranking. (", "연결 실패": "connection failed", "아기 고양이": "Kitten", "골목 길냥이": "Alley Cat", "뱀 사냥꾼": "Snake Hunter", "플래시 장인": "Flash Master", "전설의 냥이": "Legendary Cat", "🐱 냥. 플 결과": "🐱 Nyan Flash result", " (하드)": " (Hard)", "이번 주 티어: ": "Weekly tier: ", " · 칭호: ": " · Title: ", "스테이지 ": "Stage ", " · 신기록!": " · New best!", "보스 격파 ": "Bosses ", " · 캔 ": " · Cans ", "개 냠 · 최대 콤보 ": " · Max combo ", " · 헛플 ": " · Whiffs ", "평균 타이밍: 닿기 ": "Avg timing: ", "ms 전 (최고 ": "ms before impact (best ", "🐍 뱀한테 졌지만 다음엔 안 진다냥. 너도 피해 봐!": "🐍 The snakes got me this time. Think you can dodge better?", "아래 문구를 선택해 두었어요. Ctrl+C로 복사하세요": "Text selected below. Press Ctrl+C to copy", "복사됐어요. 카톡이나 디코에 붙여넣기 하세요": "Copied! Paste it into Discord or anywhere", " · 신기록": " · New best", "평균 타이밍": "Avg timing", "F · D 플래시 반응 연습": "F · D Flash reaction practice", "카드를 만들었어요": "Card ready", "여기선 이미지 복사가 막혀 있어요. 이미지를 우클릭해서 저장해 주세요": "Image copy is blocked here. Right-click the image to save it", "이미지가 복사됐어요. 채팅창에 붙여넣기 하세요": "Image copied! Paste it into a chat", "기록이 비정상이라 랭킹에 반영되지 않았어요.": "This score looked abnormal, so it wasn't counted.", "쓸 수 없는 닉네임이에요.": "That nickname isn't allowed.", "이미 누가 쓰고 있는 닉네임이에요.": "That nickname is taken.", "먼저 닉네임을 등록해 주세요.": "Please register a nickname first.", "너무 빨라요.": "Too fast.", "오늘 하드 도전 횟수를 모두 썼어요.": "You've used all your Hard tries today.", "잘못된 요청이에요.": "Invalid request.", "잘못된 기록이에요.": "Invalid score.", "서버 오류가 났어요. 잠시 뒤에 다시 해 주세요.": "Server error. Please try again shortly.", "랭킹 서버를 준비하고 있어요. 조금만 기다려 주세요.": "The ranking server is starting up. Please wait a moment.", "허용되지 않은 요청이에요.": "Request not allowed."};
+Object.assign(EN, { '내 순위': 'My rank' });
 const L = s => (LANG === 'en' && EN[s] != null) ? EN[s] : s;
 (function translatePage(){
   document.documentElement.lang = LANG;
@@ -2010,6 +2020,7 @@ function setRankTab(m){
 }
 function openRank(){
   rankFrom = S.mode; S.mode = 'ranking';
+  NET.editing = false;
   showOnly('rankOv'); renderNick();
   setRankTab(rankFrom === 'over' ? (S.hard ? 'hard' : 'normal') : MODE);
   $('rankClose').focus();
@@ -2034,7 +2045,7 @@ function renderNick(){
     const go = () => registerNick(inp.value.trim());
     b.onclick = go; inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     row.append(inp, b);
-    setTimeout(() => inp.focus(), 0);
+    if (NET.editing) setTimeout(() => inp.focus(), 0);
   }
   box.append(row);
 }
@@ -2051,25 +2062,52 @@ function registerNick(nick){
     } else msg.textContent = j.error || L('등록하지 못했어요. 잠시 뒤에 다시 해 주세요.');
   }).catch(() => { msg.textContent = L('랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.'); });
 }
+let rankSeq = 0;
+function rankText(rank){ return LANG === 'en' ? '#' + rank : rank + '위'; }
+function renderMyRank(me, total){
+  const card = $('myRankCard'); card.textContent = '';
+  if (!me || !me.rank){ card.hidden = true; return; }
+  const t = tierOf(me.score);
+  const im = document.createElement('img'); im.src = emblemURL(t.idx); im.alt = t.label;
+  const box = document.createElement('div'); box.className = 'mr-text';
+  const lab = document.createElement('span'); lab.className = 'mr-label'; lab.textContent = L('내 순위') + ' · ' + me.nickname;
+  const big = document.createElement('span'); big.className = 'mr-rank'; big.textContent = rankText(me.rank);
+  const sm = document.createElement('small'); sm.textContent = '/ ' + total + L('명'); big.append(sm);
+  const sub = document.createElement('span'); sub.className = 'mr-sub'; sub.textContent = me.score.toLocaleString('ko-KR') + L('점') + ' · ' + t.label;
+  box.append(lab, big, sub); card.append(im, box); card.hidden = false;
+}
+function rankRow(rank, r, isMe){
+  const li = document.createElement('li');
+  if (isMe) li.className = 'me';
+  const no = document.createElement('span'); no.className = 'no'; no.textContent = rank;
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.nickname;
+  const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString('ko-KR');
+  li.append(no, nm, tierBadge(tierOf(r.score)), sc);
+  return li;
+}
 function loadRank(){
+  const seq = ++rankSeq;
   const list = $('rankList'), me = $('myRank');
-  list.textContent = ''; me.textContent = L('불러오는 중...');
+  list.textContent = ''; $('myRankCard').hidden = true; me.textContent = L('불러오는 중...');
   api('/api/leaderboard?mode=' + rankMode).then(j => {
+    if (seq !== rankSeq) return; // a newer tab click already started another load
+    list.textContent = ''; me.textContent = '';
     if (!j.top){ me.textContent = j.error || L('랭킹을 불러오지 못했어요.'); return; }
-    me.textContent = '';
-    if (!j.top.length){ me.textContent = L('이번 주 첫 기록의 주인공이 되어 보세요!'); }
+    renderMyRank(j.me, j.total);
+    if (!j.top.length) me.textContent = L('이번 주 첫 기록의 주인공이 되어 보세요!');
+    else if (!(j.me && j.me.rank)) me.textContent = NET.nick ? L('이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.') : L('닉네임 등록하고 내 순위 보기');
+    let shownMe = false;
     j.top.forEach((r, i) => {
-      const li = document.createElement('li');
-      if (j.me && r.nickname === j.me.nickname) li.className = 'me';
-      const no = document.createElement('span'); no.className = 'no'; no.textContent = i + 1;
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r.nickname;
-      const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString('ko-KR');
-      li.append(no, nm, tierBadge(tierOf(r.score)), sc);
-      list.append(li);
+      const isMe = !!(j.me && r.nickname === j.me.nickname);
+      if (isMe) shownMe = true;
+      list.append(rankRow(i + 1, r, isMe));
     });
-    if (j.me && j.me.rank) me.textContent = L('내 순위: ') + j.me.rank + L('위 / ') + j.total + L('명 · ') + j.me.score.toLocaleString('ko-KR') + L('점');
-    else if (NET.nick) me.textContent = L('이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.');
-  }).catch((e) => { console.error('leaderboard', e); me.textContent = L('순위를 불러오지 못했어요. (') + (e && e.message ? e.message : L('연결 실패')) + ')'; });
+    if (j.me && j.me.rank && !shownMe){
+      const gap = document.createElement('li'); gap.className = 'gap'; gap.textContent = '⋯'; list.append(gap);
+      list.append(rankRow(j.me.rank, j.me, true));
+    }
+    const mine = list.querySelector('li.me'); if (mine && mine.scrollIntoView) mine.scrollIntoView({ block:'nearest' });
+  }).catch((e) => { if (seq !== rankSeq) return; console.error('leaderboard', e); me.textContent = L('순위를 불러오지 못했어요. (') + (e && e.message ? e.message : L('연결 실패')) + ')'; });
 }
 
 /* ---- share ---- */
