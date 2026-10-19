@@ -181,6 +181,7 @@ body.standalone .install{display:none!important}
     <div class="tools">
       <label class="vol" for="musicVol"><span>음악</span><input type="range" id="musicVol" min="0" max="100" step="5" value="40"></label>
       <label class="vol" for="sfxVol"><span>효과음</span><input type="range" id="sfxVol" min="0" max="100" step="5" value="85"></label>
+      <button class="chip" id="langBtn" type="button" aria-label="Language">English</button>
       <button class="chip" id="homeBtn" type="button">홈</button>
       <button class="chip" id="pauseBtn" type="button">일시정지 (Esc)</button>
     </div>
@@ -319,6 +320,26 @@ body.standalone .install{display:none!important}
 </div>
 
 <script>
+const LANG = (() => { try { const v = localStorage.getItem('nyangflash-lang'); if (v === 'ko' || v === 'en') return v; } catch(e){} return /^ko/i.test(navigator.language || '') ? 'ko' : 'en'; })();
+const EN = {"냥. 플": "Nyan Flash", "롤 큐 기다리는 동안 하는 플래시 반응 연습": "Flash reaction practice while your LoL queue pops", "음악": "Music", "효과음": "SFX", "홈": "Home", "일시정지 (Esc)": "Pause (Esc)", "뱀이 날아오면": "When a snake flies in, press", "또는": "or", "! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.": " to blink toward your mouse cursor and dodge it.", "화면 아무 데나 손가락을 대고 피할 방향으로 쓱 끌었다가": "Touch anywhere, drag toward where you want to go, and", "떼는 순간 플래시!": "release to Flash!", "끌지 않고 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.": "A quick tap flashes toward the spot you tapped. Landscape works best. Mobile plays Normal mode only.", "난이도": "Difficulty", "노말": "Normal", "하드": "Hard", "고양이 고르기": "Pick your cat", "게임 방법 보기": "How to play", "게임 방법 닫기": "Hide how to play", "몸에 닿기 직전에 쓸수록 높은 판정.": "The closer to impact you Flash, the better the grade.", "· GOOD · 빠름. 닿기 몇 ms 전에 썼는지 보여줘요.": "· GOOD · EARLY. It shows how many ms before impact you flashed.", "빗나가는 뱀도 섞여 있어요. 괜히 쓰면 헛플이고 쿨타임 1초.": "Some snakes are going to miss you. Flash for nothing and it's a whiff, with a 1 second cooldown.", "8마리 피하면 보스 등장! 킹코브라, 독수리, 불독, 아나콘다가 각자 패턴으로 공격해요. PERFECT·GOOD으로 연속 3~6번 피해야 이기고 다음 스테이지로 가요.": "Dodge 8 snakes and a boss appears! King Cobra, Eagle Chief, Bulldog Boss and Anaconda each attack their own way. Beat them with 3 to 6 PERFECT or GOOD dodges in a row.", "잘 피할수록 콤보가 쌓여 점수 배율이 최대 x3까지 올라가요. 5·10·20 콤보마다 고양이가 변신해요!": "Clean dodges build a combo, up to x3 score. Your cat transforms at 5, 10 and 20 combo!", "가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔을 덮치거나 스치고 지나가면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.": "Cat food cans drift by. Flash onto or through one for bonus points. A shiny gold can restores a fish.", "처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.": "Snake paths are shown for your first 3 games only. Lose all 3 fish and the snakes win.", ": 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!": ": much faster snakes, no warnings, no guides. 3 tries a day, 1.5x score, its own ranking!", "닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!": "Register a nickname and your best score of the week sets your rank and tier. Resets every Monday!", "시작 (Enter)": "Start (Enter)", "주간 랭킹": "Weekly ranking", "홈 화면에 앱으로 추가": "Add to home screen", "문의 · 제보:": "Contact:", "복사": "Copy", "© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.": "© 2026 Nyan Flash (냥. 플). Copying, modifying, redistributing or commercially using the game's code, art or music without permission is prohibited.", "잠깐 멈춤": "Paused", "큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.": "Queue popped? Go play. The game pauses when you leave the window.", "계속 (Enter)": "Resume (Enter)", "홈으로": "Home", "뱀의 승리...": "The snakes win...", "이번 주 티어": "This week's tier", "스테이지": "Stage", "점수": "Score", "최대 콤보": "Max combo", "평균 타이밍 (닿기 전)": "Avg timing (before impact)", "보스 격파": "Bosses beaten", "PERFECT / 헛플": "PERFECT / Whiffs", "다시 (Enter)": "Again (Enter)", "랭킹": "Ranking", "결과 공유하기": "Share your result", "결과 문구 복사": "Copy result text", "이미지 카드 만들기": "Make image card", "이미지 복사": "Copy image", "이미지를 우클릭하거나 길게 눌러서 저장할 수도 있어요": "You can also right-click or long-press the image to save it", "오늘 하드 도전 끝!": "Out of Hard tries today!", "하드 모드는 하루 3번까지 무료예요. 광고를 보면 1번 더 도전할 수 있어요. 한국 시간 자정에 다시 3번이 충전돼요.": "Hard mode is free 3 times a day. Watch an ad for one more try. Tries refill at midnight KST.", "광고 자리": "Ad space", "광고 보고 1번 더": "Watch ad for 1 more", "노말 하기": "Play Normal", "이번 주 랭킹": "This week's ranking", "매주 월요일 0시(한국 시간)에 초기화돼요.": "Resets every Monday at 00:00 KST.", "닫기 (Esc)": "Close (Esc)", "게임 화면": "Game screen", "공유 문구": "Share text", "냥. 플 점수 카드": "Nyan Flash score card", "치즈": "Cheddar", "주황 줄무늬": "Orange tabby", "턱시도": "Tuxedo", "정장 차림": "Dressed sharp", "삼색이": "Calico", "행운의 무늬": "Lucky coat", "러시안블루": "Russian Blue", "초록 눈": "Green eyes", "쿨타임!": "Cooldown!", "헛플!": "Whiff!", "날아오는 뱀이 없었어요": "No snake was coming", "빠름": "EARLY", "너무 일찍 썼어요 (닿기 ": "Too early (", "ms 전)": "ms before impact)", "닿기 ": "", "ms 전": "ms before impact", "회피 +": "Dodge +", " 콤보!": " Combo!", "점수 x": "Score x", "뱀이 더 빨라졌다!": "Snakes got faster!", "생선 1개 회복!": "+1 fish!", "빗나가는 뱀이 섞이기 시작해요": "Decoy snakes start showing up", "이제 여러 마리가 동시에 와요": "Now they come in groups", "빨간 독사 등장. 더 빠릅니다": "Red vipers appear. They're faster", "보스 격파!": "Boss down!", " 물리쳤다냥 · +": " defeated · +", "쿨냥 모드": "Cool Cat Mode", "번개냥": "Thunder Cat", "전설의 냥": "Legend Cat", "변신! ": "Transform! ", " 콤보 달성": " combo", "변신 해제...": "Transform ended...", "연속 회피 끊김!": "Streak broken!", "뱀한테 졌다냥...": "Snake got me...", "앗 물렸다!": "Ouch, bitten!", "이 뱀이...!": "This snake...!", "냐아앙!": "Nyaaa!", "킹코브라": "King Cobra", "킹코브라를": "King Cobra", "독수리 대장": "Eagle Chief", "독수리 대장을": "Eagle Chief", "불독 두목": "Bulldog Boss", "불독 두목을": "Bulldog Boss", "아나콘다": "Anaconda", "아나콘다를": "Anaconda", "연속 ": "Dodge ", "번 확실하게(PERFECT·GOOD) 피하면 승리!": " times in a row (PERFECT/GOOD) to win!", "확실한 회피! ": "Clean dodge! ", "애매해요! 처음부터 다시": "Not clean! Streak reset", "피했지만 인정 안 됨!": "Dodged, but not clean!", "연속 0 / ": "Streak 0 / ", "냠! 캔 획득": "Yum! Can", "황금 캔!": "Gold can!", "황금 캔! 생선 +1": "Gold can! +1 fish", "안내선 없음. 오늘 남은 도전 ": "No guides. Tries left today: ", "번": "", "뱀이 온다! 끌었다 떼면 플래시!": "Snakes incoming! Drag and release to Flash!", "뱀이 온다! F 또는 D로 피하세요": "Snakes incoming! Press F or D to dodge", "신기록! 그래도 뱀의 승리": "New best! But the snakes win", "아직 제때 쓴 플래시가 없어요. 뱀이 가까이 올 때까지 참았다가 옆으로 눌러 보세요.": "No well-timed Flash yet. Wait until the snake is close, then Flash sideways.", "헛플이 많아요. 빗나가는 뱀은 그냥 보내고, 진짜 나한테 오는 뱀에만 쓰는 연습을 해 보세요.": "Lots of whiffs. Let the decoys pass and only Flash at snakes really coming for you.", "반응은 빠른데 너무 일찍 써요. 조금만 더 참았다가 닿기 직전에 쓰면 PERFECT가 나옵니다.": "Quick reactions, but too early. Hold a little longer and Flash right before impact for PERFECT.", "타이밍 아주 좋습니다. 맞기 직전에 쓰는 진짜 플래시 감각이에요.": "Great timing. That's a real last-second Flash.", "나쁘지 않아요. 조금 더 참아서 평균 타이밍을 130ms 안쪽으로 줄여 보세요.": "Not bad. Hold a bit longer and get your average under 130ms.", "이번 주 배치 완료! ": "Placed this week! ", "승급! ": "Promoted! ", "이번 주 최고 점수 갱신 · ": "New weekly best · ", "이번 주 티어 ": "This week's tier ", " · 최고 ": " · Best ", "점까지 ": " pts · ", "점 남았어요": " pts to go", " 티어 엠블럼": " tier emblem", "최고 기록 ": "Best ", "점 · 스테이지 ": " pts · Stage ", "첫 판이에요": "First game!", " · 뱀 경로 표시 ": " · Snake paths shown for ", "판 남음": " more games", "캔 놓침": "Missed can", " 콤보 · x": " combo · x", "연속 회피 ": "Streak ", "끌었다 떼면 플래시": "Drag & release to Flash", "F · D 플래시": "F · D Flash", "앱처럼 바로 실행돼요": "Opens like an app", "Safari 아래쪽 공유 버튼(네모에 위쪽 화살표) → \"홈 화면에 추가\"를 눌러 주세요.": "In Safari, tap the Share button (square with an up arrow), then \"Add to Home Screen\".", "브라우저 메뉴(⋮)에서 \"홈 화면에 추가\" 또는 \"앱 설치\"를 눌러 주세요.": "Open the browser menu (⋮) and choose \"Add to Home screen\" or \"Install app\".", "오늘 남은 도전 ": "Tries left today ", " · 안내선 없음 · 점수 1.5배": " · No guides · 1.5x score", "하드 모드는 PC 전용이에요": "Hard mode is PC only", "처음이라면 노말부터!": "New here? Start with Normal!", "하드 시작 (Enter)": "Start Hard (Enter)", "하드 모드는 PC에서만 할 수 있어요.": "Hard mode is only available on PC.", "광고 준비 중... 잠시 후 도전이 1번 추가돼요": "Loading ad... you'll get 1 more try shortly", "복사됨": "Copied", "직접 복사해 주세요": "Please copy it manually", "홈으로 가면 지금 판은 끝나요. 계속할까요?": "Going home will end this game. Keep playing?", "아이언": "Iron", "브론즈": "Bronze", "실버": "Silver", "골드": "Gold", "플래티넘": "Platinum", "에메랄드": "Emerald", "다이아몬드": "Diamond", "마스터": "Master", "그랜드마스터": "Grandmaster", "챌린저": "Challenger", "이번 주 하드 티어": "This week's Hard tier", "점 · 매주 월요일 0시 초기화": " pts · resets Mon 00:00 KST", "이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화": "Play a game to get placed · resets Mon 00:00 KST", "닉네임 등록하고 내 순위 보기": "Register a nickname to see your rank", "순위 확인 중...": "Checking rank...", "하드 ": "Hard #", "이번 주 ": "This week #", "위 ": " ", "명": " players", " · 기록 갱신!": " · New best!", "이번 판은 랭킹에 반영되지 않았어요.": "This game wasn't counted for the ranking.", "랭킹 서버에 연결하지 못했어요.": "Couldn't reach the ranking server.", "내 닉네임: ": "My nickname: ", "변경": "Change", "닉네임 (한글·영문·숫자 2~12자)": "Nickname (2-12 letters or numbers)", "등록": "Save", "닉네임은 한글, 영문, 숫자, _ 로 2~12자예요.": "Nicknames are 2-12 letters, numbers or _.", "등록 중...": "Saving...", "등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.": "Saved! Every game now counts for the ranking.", "등록하지 못했어요. 잠시 뒤에 다시 해 주세요.": "Couldn't save. Please try again in a moment.", "랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.": "Couldn't reach the ranking server. Open the game at nyanflash.com.", "불러오는 중...": "Loading...", "랭킹을 불러오지 못했어요.": "Couldn't load the ranking.", "이번 주 첫 기록의 주인공이 되어 보세요!": "Be the first on the board this week!", "내 순위: ": "My rank: #", "위 / ": " / ", "명 · ": " players · ", "점": " pts", "이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.": "No score yet this week. Play a game to get ranked.", "순위를 불러오지 못했어요. (": "Couldn't load the ranking. (", "연결 실패": "connection failed", "아기 고양이": "Kitten", "골목 길냥이": "Alley Cat", "뱀 사냥꾼": "Snake Hunter", "플래시 장인": "Flash Master", "전설의 냥이": "Legendary Cat", "🐱 냥. 플 결과": "🐱 Nyan Flash result", " (하드)": " (Hard)", "이번 주 티어: ": "Weekly tier: ", " · 칭호: ": " · Title: ", "스테이지 ": "Stage ", " · 신기록!": " · New best!", "보스 격파 ": "Bosses ", " · 캔 ": " · Cans ", "개 냠 · 최대 콤보 ": " · Max combo ", " · 헛플 ": " · Whiffs ", "평균 타이밍: 닿기 ": "Avg timing: ", "ms 전 (최고 ": "ms before impact (best ", "🐍 뱀한테 졌지만 다음엔 안 진다냥. 너도 피해 봐!": "🐍 The snakes got me this time. Think you can dodge better?", "아래 문구를 선택해 두었어요. Ctrl+C로 복사하세요": "Text selected below. Press Ctrl+C to copy", "복사됐어요. 카톡이나 디코에 붙여넣기 하세요": "Copied! Paste it into Discord or anywhere", " · 신기록": " · New best", "평균 타이밍": "Avg timing", "F · D 플래시 반응 연습": "F · D Flash reaction practice", "카드를 만들었어요": "Card ready", "여기선 이미지 복사가 막혀 있어요. 이미지를 우클릭해서 저장해 주세요": "Image copy is blocked here. Right-click the image to save it", "이미지가 복사됐어요. 채팅창에 붙여넣기 하세요": "Image copied! Paste it into a chat", "기록이 비정상이라 랭킹에 반영되지 않았어요.": "This score looked abnormal, so it wasn't counted.", "쓸 수 없는 닉네임이에요.": "That nickname isn't allowed.", "이미 누가 쓰고 있는 닉네임이에요.": "That nickname is taken.", "먼저 닉네임을 등록해 주세요.": "Please register a nickname first.", "너무 빨라요.": "Too fast.", "오늘 하드 도전 횟수를 모두 썼어요.": "You've used all your Hard tries today.", "잘못된 요청이에요.": "Invalid request.", "잘못된 기록이에요.": "Invalid score.", "서버 오류가 났어요. 잠시 뒤에 다시 해 주세요.": "Server error. Please try again shortly.", "랭킹 서버를 준비하고 있어요. 조금만 기다려 주세요.": "The ranking server is starting up. Please wait a moment.", "허용되지 않은 요청이에요.": "Request not allowed."};
+const L = s => (LANG === 'en' && EN[s] != null) ? EN[s] : s;
+(function translatePage(){
+  document.documentElement.lang = LANG;
+  if (LANG !== 'en') return;
+  document.title = 'Nyan Flash';
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
+  nodes.forEach(n => {
+    const t = n.nodeValue, k = t.trim();
+    if (!k || EN[k] == null) return;
+    const lead = t.match(/^\s*/)[0], trail = t.match(/\s*$/)[0];
+    n.nodeValue = lead + EN[k] + trail;
+  });
+  document.querySelectorAll('[aria-label],[alt],[placeholder],[title]').forEach(el => {
+    ['aria-label', 'alt', 'placeholder', 'title'].forEach(a => { const v = el.getAttribute(a); if (v && EN[v] != null) el.setAttribute(a, EN[v]); });
+  });
+})();
+
 (() => {
 const TAU = Math.PI * 2;
 const cv = document.getElementById('game');
@@ -332,10 +353,10 @@ const PER_STAGE = 8, FONT_FAMILY = '"Dongle","Apple SD Gothic Neo","Malgun Gothi
 const F = px => '700 ' + Math.round(px*1.45) + 'px ' + FONT_FAMILY;
 
 const SKINS = [
-  { name:'치즈', note:'주황 줄무늬', base:'#f3a556', belly:'#fff0d8', muzzle:'#fff3e3', paw:'#fff0d8', eye:'#9fd15a', pattern:'stripes', stripe:'#d8782b' },
-  { name:'턱시도', note:'정장 차림', base:'#2c2b34', belly:'#f7f3ea', muzzle:'#f7f3ea', paw:'#f7f3ea', eye:'#f0c43f', pattern:'blaze' },
-  { name:'삼색이', note:'행운의 무늬', base:'#fbf5ea', belly:'#fbf5ea', muzzle:'#fffaf2', paw:'#fbf5ea', eye:'#e9a93a', pattern:'calico', earL:'#f0a04b', earR:'#2f2b2e' },
-  { name:'러시안블루', note:'초록 눈', base:'#8e9db3', belly:'#b9c5d4', muzzle:'#adbacb', paw:'#a7b4c6', eye:'#62d48e', pattern:'none' },
+  { name:L('치즈'), note:L('주황 줄무늬'), base:'#f3a556', belly:'#fff0d8', muzzle:'#fff3e3', paw:'#fff0d8', eye:'#9fd15a', pattern:'stripes', stripe:'#d8782b' },
+  { name:L('턱시도'), note:L('정장 차림'), base:'#2c2b34', belly:'#f7f3ea', muzzle:'#f7f3ea', paw:'#f7f3ea', eye:'#f0c43f', pattern:'blaze' },
+  { name:L('삼색이'), note:L('행운의 무늬'), base:'#fbf5ea', belly:'#fbf5ea', muzzle:'#fffaf2', paw:'#fbf5ea', eye:'#e9a93a', pattern:'calico', earL:'#f0a04b', earR:'#2f2b2e' },
+  { name:L('러시안블루'), note:L('초록 눈'), base:'#8e9db3', belly:'#b9c5d4', muzzle:'#adbacb', paw:'#a7b4c6', eye:'#62d48e', pattern:'none' },
 ];
 const SNAKE_COLS = [
   { body:'#7ccf52', spot:'#4b9431', head:'#8ddc62' },
@@ -556,7 +577,7 @@ function segDist(px, py, ax, ay, bx, by){
 /* ---- actions ---- */
 function flash(){
   if (S.mode !== 'play') return;
-  if (S.cd > 0){ addFloat('쿨타임!', '', '#9fb19c', 0.6, 22); return; }
+  if (S.cd > 0){ addFloat(L('쿨타임!'), '', '#9fb19c', 0.6, 22); return; }
   let best = null, bestT = 1e9;
   const threatening = [];
   for (const s of snakes){
@@ -578,7 +599,7 @@ function flash(){
   if (!best){
     if (ate) return;
     S.whiff++; S.combo = 0;
-    addFloat('헛플!', '날아오는 뱀이 없었어요', '#9fb19c', 0.9, 30);
+    addFloat(L('헛플!'), L('날아오는 뱀이 없었어요'), '#9fb19c', 0.9, 30);
     return;
   }
   const lag = Math.min(0.05, Math.max(0, (performance.now() - last) / 1000));
@@ -587,9 +608,9 @@ function flash(){
   let g, color;
   if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
   else if (bestT <= 0.3){ g = 'GOOD'; color = '#8fdc5b'; S.good++; S.margins.push(margin); }
-  else { g = '빠름'; color = '#f5ebd3'; S.early++; }
+  else { g = L('빠름'); color = '#f5ebd3'; S.early++; }
   threatening.forEach(s => { s.grade = g; if (s.group) s.group.grade = g; });
-  addFloat(g, g === '빠름' ? '너무 일찍 썼어요 (닿기 ' + margin + 'ms 전)' : '닿기 ' + margin + 'ms 전', color, 0.9, g === 'PERFECT' ? 38 : 32);
+  addFloat(g, g === L('빠름') ? L('너무 일찍 썼어요 (닿기 ') + margin + L('ms 전)') : L('닿기 ') + margin + L('ms 전'), color, 0.9, g === 'PERFECT' ? 38 : 32);
 }
 
 function onDodge(s){
@@ -600,9 +621,9 @@ function onDodge(s){
   const bonus = s.grade === 'PERFECT' ? 150 : s.grade === 'GOOD' ? 60 : 0;
   const pts = Math.round((100 + bonus) * S.stage * mult * HM());
   S.score += pts;
-  floats.push({ x:cat.x, y:cat.y + 46*U, text:'회피 +' + pts.toLocaleString('ko-KR') + (mult > 1 ? '  x' + mult.toFixed(1) : ''), sub:'', color: mult > 1 ? '#8fdc5b' : '#f5ebd3', life:0.8, size:20, t:0 });
+  floats.push({ x:cat.x, y:cat.y + 46*U, text:L('회피 +') + pts.toLocaleString('ko-KR') + (mult > 1 ? '  x' + mult.toFixed(1) : ''), sub:'', color: mult > 1 ? '#8fdc5b' : '#f5ebd3', life:0.8, size:20, t:0 });
   if (good && [5, 10, 20, 30, 50].includes(S.combo)){
-    pushBanner(S.combo + ' 콤보!', '점수 x' + mult.toFixed(1), 1.3);
+    pushBanner(S.combo + L(' 콤보!'), L('점수 x') + mult.toFixed(1), 1.3);
     [660, 880, 1320].forEach((f, i) => beep(f, f, 0.08, 'square', 0.03, i*0.06));
   }
   if (!S.boss && S.stageDodges >= PER_STAGE) startBoss();
@@ -611,12 +632,12 @@ function onDodge(s){
 function stageUp(bossObj, bonus){
   {
     S.stage++; S.stageDodges = 0;
-    let sub = '뱀이 더 빨라졌다!';
-    if (S.stage % 3 === 1 && S.lives < 3){ S.lives++; sub = '생선 1개 회복!'; }
-    else if (S.stage === 3) sub = '빗나가는 뱀이 섞이기 시작해요';
-    else if (S.stage === 4) sub = '이제 여러 마리가 동시에 와요';
-    else if (S.stage === 5) sub = '빨간 독사 등장. 더 빠릅니다';
-    pushBanner('보스 격파!', bossObj + ' 물리쳤다냥 · +' + bonus.toLocaleString('ko-KR'), 1.6);
+    let sub = L('뱀이 더 빨라졌다!');
+    if (S.stage % 3 === 1 && S.lives < 3){ S.lives++; sub = L('생선 1개 회복!'); }
+    else if (S.stage === 3) sub = L('빗나가는 뱀이 섞이기 시작해요');
+    else if (S.stage === 4) sub = L('이제 여러 마리가 동시에 와요');
+    else if (S.stage === 5) sub = L('빨간 독사 등장. 더 빠릅니다');
+    pushBanner(L('보스 격파!'), bossObj + L(' 물리쳤다냥 · +') + bonus.toLocaleString('ko-KR'), 1.6);
     pushBanner('STAGE ' + S.stage, sub, 1.8);
     playTrack(stageTrack());
     [523, 659, 784, 1047].forEach((f, i) => beep(f, f, 0.1, 'square', 0.035, i*0.08));
@@ -625,20 +646,20 @@ function stageUp(bossObj, bonus){
 
 const FORMS = [
   null,
-  { at:5, name:'쿨냥 모드', aura:'255,140,60', ghost:'#ffb36b' },
-  { at:10, name:'번개냥', aura:'255,214,74', ghost:'#ffe36b' },
-  { at:20, name:'전설의 냥', aura:'200,140,255', ghost:'#d9b8ff' },
+  { at:5, name:L('쿨냥 모드'), aura:'255,140,60', ghost:'#ffb36b' },
+  { at:10, name:L('번개냥'), aura:'255,214,74', ghost:'#ffe36b' },
+  { at:20, name:L('전설의 냥'), aura:'200,140,255', ghost:'#d9b8ff' },
 ];
 function formOf(c){ return c >= 20 ? 3 : c >= 10 ? 2 : c >= 5 ? 1 : 0; }
 function checkForm(){
   const f = formOf(S.combo);
   if (f > S.form){
     S.form = f;
-    floats.push({ x:cat.x, y:cat.y - 120*U, text:'변신! ' + FORMS[f].name, sub:S.combo + ' 콤보 달성', color:'rgb(' + FORMS[f].aura + ')', life:1.4, size:32, t:0 });
+    floats.push({ x:cat.x, y:cat.y - 120*U, text:L('변신! ') + FORMS[f].name, sub:S.combo + L(' 콤보 달성'), color:'rgb(' + FORMS[f].aura + ')', life:1.4, size:32, t:0 });
     burst(cat.x, cat.y, 'rgb(' + FORMS[f].aura + ')', 26, 1.6); ringFx(cat.x, cat.y);
     meow(1.15, 0.42, 0.1); [784, 1047, 1568].forEach((q, i) => beep(q, q, 0.09, 'square', 0.035, 0.25 + i*0.06)); duck(0.35, 0.6);
   } else if (f < S.form){
-    if (S.form > 0) floats.push({ x:cat.x, y:cat.y - 120*U, text:'변신 해제...', sub:'', color:'#9fb19c', life:1, size:22, t:0 });
+    if (S.form > 0) floats.push({ x:cat.x, y:cat.y - 120*U, text:L('변신 해제...'), sub:'', color:'#9fb19c', life:1, size:22, t:0 });
     S.form = f;
   }
 }
@@ -650,11 +671,11 @@ function onHit(s){
   s.hit = true; if (s.group) s.group.hit = true;
   if (S.boss && S.boss.phase !== 'leave' && S.boss.streak > 0){
     S.boss.streak = 0;
-    floats.push({ x:cat.x, y:cat.y + 70*U, text:'연속 회피 끊김!', sub:'', color:'#ff9aa8', life:1.1, size:22, t:0 });
+    floats.push({ x:cat.x, y:cat.y + 70*U, text:L('연속 회피 끊김!'), sub:'', color:'#ff9aa8', life:1.1, size:22, t:0 });
   }
   S.lives--; S.combo = 0; S.invuln = 1.2; S.hurt = 0.7;
   if (!reduceMotion) S.shake = 12*U;
-  const lines = ['뱀한테 졌다냥...', '앗 물렸다!', '이 뱀이...!', '냐아앙!'];
+  const lines = [L('뱀한테 졌다냥...'), L('앗 물렸다!'), L('이 뱀이...!'), L('냐아앙!')];
   addFloat(lines[Math.floor(Math.random()*lines.length)], '', '#ff6b7d', 1.1, 28);
   burst(cat.x, cat.y, '#ff6b7d', 18, 1.2);
   beep(320, 70, 0.3, 'sawtooth', 0.06); meow(0.8, 0.45, 0.1); duck(0.3, 0.5);
@@ -663,10 +684,10 @@ function onHit(s){
 
 /* ---- bosses ---- */
 const BOSSES = [
-  { id:'cobra', name:'킹코브라', obj:'킹코브라를', patterns:['lunge','fan','rapid','charge'] },
-  { id:'eagle', name:'독수리 대장', obj:'독수리 대장을', patterns:['dive','twin','fan','charge'] },
-  { id:'dog', name:'불독 두목', obj:'불독 두목을', patterns:['wall','lunge','rapid','charge'] },
-  { id:'anaconda', name:'아나콘다', obj:'아나콘다를', patterns:['wall','lunge','twin','charge'] },
+  { id:'cobra', name:L('킹코브라'), obj:L('킹코브라를'), patterns:['lunge','fan','rapid','charge'] },
+  { id:'eagle', name:L('독수리 대장'), obj:L('독수리 대장을'), patterns:['dive','twin','fan','charge'] },
+  { id:'dog', name:L('불독 두목'), obj:L('불독 두목을'), patterns:['wall','lunge','rapid','charge'] },
+  { id:'anaconda', name:L('아나콘다'), obj:L('아나콘다를'), patterns:['wall','lunge','twin','charge'] },
 ];
 const PROJ = {
   cobra: { kind:'snake', r:13, len:130, col:{ body:'#5f9e3c', spot:'#e8d27a', head:'#74b84b' } },
@@ -691,7 +712,7 @@ function startBoss(){
   S.boss = { def, loop, spot, x: p0.x + ex/el*170*U, y: p0.y + ey/el*170*U, streak:0, need: bossNeed(),
     phase:'enter', t:1.4, wind:0, windMax:1, queue:[], active:0, attacks:0, hurtT:0, pattern:null };
   playTrack(bossTrack());
-  pushBanner('BOSS · ' + def.name, '연속 ' + S.boss.need + '번 확실하게(PERFECT·GOOD) 피하면 승리!', 2.2);
+  pushBanner('BOSS · ' + def.name, L('연속 ') + S.boss.need + L('번 확실하게(PERFECT·GOOD) 피하면 승리!'), 2.2);
   [196, 185, 175, 147].forEach((f, i) => beep(f, f*0.98, 0.18, 'sawtooth', 0.04, i*0.16));
 }
 
@@ -801,12 +822,12 @@ function resolveGroup(g){
     S.combo++; S.maxCombo = Math.max(S.maxCombo, S.combo);
     const mult = comboMult(), pts = Math.round(200 * S.stage * mult * HM());
     S.score += pts; S.dodges++;
-    floats.push({ x:cat.x, y:cat.y + 70*U, text:'확실한 회피! ' + b.streak + ' / ' + b.need, sub:'+' + pts.toLocaleString('ko-KR') + (mult > 1 ? ' x' + mult.toFixed(1) : ''), color:'#ffc94a', life:1, size:24, t:0 });
+    floats.push({ x:cat.x, y:cat.y + 70*U, text:L('확실한 회피! ') + b.streak + ' / ' + b.need, sub:'+' + pts.toLocaleString('ko-KR') + (mult > 1 ? ' x' + mult.toFixed(1) : ''), color:'#ffc94a', life:1, size:24, t:0 });
     beep(660, 990, 0.1, 'square', 0.035);
     if (b.streak >= b.need) defeatBoss();
   } else {
     b.streak = 0; S.combo = 0;
-    floats.push({ x:cat.x, y:cat.y + 70*U, text: g.grade === '빠름' ? '애매해요! 처음부터 다시' : '피했지만 인정 안 됨!', sub:'연속 0 / ' + b.need, color:'#ff9aa8', life:1.2, size:22, t:0 });
+    floats.push({ x:cat.x, y:cat.y + 70*U, text: g.grade === L('빠름') ? L('애매해요! 처음부터 다시') : L('피했지만 인정 안 됨!'), sub:L('연속 0 / ') + b.need, color:'#ff9aa8', life:1.2, size:22, t:0 });
     beep(260, 200, 0.15, 'triangle', 0.03);
   }
 }
@@ -992,8 +1013,8 @@ function eatCans(fx, fy){
       k.eaten = true; n++; S.eaten++;
       const pts = Math.round((k.gold ? 1000 : 400) * S.stage * comboMult() * HM());
       S.score += pts;
-      let text = '냠! 캔 획득';
-      if (k.gold){ text = '황금 캔!'; if (S.lives < 3){ S.lives++; text = '황금 캔! 생선 +1'; } }
+      let text = L('냠! 캔 획득');
+      if (k.gold){ text = L('황금 캔!'); if (S.lives < 3){ S.lives++; text = L('황금 캔! 생선 +1'); } }
       floats.push({ x:cat.x, y:cat.y - 95*U, text, sub:'+' + pts.toLocaleString('ko-KR'), color: k.gold ? '#ffc94a' : '#ff9fb4', life:1.1, size:28, t:0 });
       burst(k.x, k.y, k.gold ? '#ffc94a' : '#ff9fb4', 18, 1.2);
       meow(1.25, 0.3, 0.09); [1047, 1319].forEach((f, i) => beep(f, f, 0.06, 'triangle', 0.035, 0.2 + i*0.05)); duck(0.4, 0.35);
@@ -1053,14 +1074,14 @@ function start(){
     margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
   snakes = []; parts = []; floats = []; ghosts = []; foods = []; bannerQ = [];
   cat.x = W/2; cat.y = H/2;
-  banner = S.hard ? { text:'HARD · STAGE 1', sub:'안내선 없음. 오늘 남은 도전 ' + hardLeft() + '번', t:0, life:2.2 } : { text:'STAGE 1', sub: IS_MOBILE ? '뱀이 온다! 끌었다 떼면 플래시!' : '뱀이 온다! F 또는 D로 피하세요', t:0, life:2 };
+  banner = S.hard ? { text:'HARD · STAGE 1', sub:L('안내선 없음. 오늘 남은 도전 ') + hardLeft() + L('번'), t:0, life:2.2 } : { text:'STAGE 1', sub: IS_MOBILE ? L('뱀이 온다! 끌었다 떼면 플래시!') : L('뱀이 온다! F 또는 D로 피하세요'), t:0, life:2 };
   playTrack(stageTrack());
   meow(1, 0.35, 0.08);
   netStartRun();
   showOnly(null);
   cv.focus({ preventScroll:true });
 }
-function pause(){ if (S.mode !== 'play') return; $('pauseLead').textContent = '큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.'; S.mode = 'paused'; pauseMusic(); showOnly('pauseOv'); $('resumeBtn').focus(); }
+function pause(){ if (S.mode !== 'play') return; $('pauseLead').textContent = L('큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.'); S.mode = 'paused'; pauseMusic(); showOnly('pauseOv'); $('resumeBtn').focus(); }
 function resume(){ if (S.mode !== 'paused') return; S.mode = 'play'; showOnly(null); last = performance.now(); audio(); resumeMusic(); }
 function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); $('startBtn').focus(); }
 
@@ -1078,33 +1099,33 @@ function endGame(){
   const prev = loadBest();
   const isBest = !prev || S.score > prev.score;
   if (isBest) saveBest({ score:S.score, stage:S.stage });
-  $('overTitle').textContent = isBest && S.score > 0 ? '신기록! 그래도 뱀의 승리' : '뱀의 승리...';
+  $('overTitle').textContent = isBest && S.score > 0 ? L('신기록! 그래도 뱀의 승리') : L('뱀의 승리...');
   let v;
-  if (!r.length) v = '아직 제때 쓴 플래시가 없어요. 뱀이 가까이 올 때까지 참았다가 옆으로 눌러 보세요.';
-  else if (S.whiff > S.perfect + S.good) v = '헛플이 많아요. 빗나가는 뱀은 그냥 보내고, 진짜 나한테 오는 뱀에만 쓰는 연습을 해 보세요.';
-  else if (S.early > S.perfect + S.good) v = '반응은 빠른데 너무 일찍 써요. 조금만 더 참았다가 닿기 직전에 쓰면 PERFECT가 나옵니다.';
-  else if (avg < 130) v = '타이밍 아주 좋습니다. 맞기 직전에 쓰는 진짜 플래시 감각이에요.';
-  else v = '나쁘지 않아요. 조금 더 참아서 평균 타이밍을 130ms 안쪽으로 줄여 보세요.';
+  if (!r.length) v = L('아직 제때 쓴 플래시가 없어요. 뱀이 가까이 올 때까지 참았다가 옆으로 눌러 보세요.');
+  else if (S.whiff > S.perfect + S.good) v = L('헛플이 많아요. 빗나가는 뱀은 그냥 보내고, 진짜 나한테 오는 뱀에만 쓰는 연습을 해 보세요.');
+  else if (S.early > S.perfect + S.good) v = L('반응은 빠른데 너무 일찍 써요. 조금만 더 참았다가 닿기 직전에 쓰면 PERFECT가 나옵니다.');
+  else if (avg < 130) v = L('타이밍 아주 좋습니다. 맞기 직전에 쓰는 진짜 플래시 감각이에요.');
+  else v = L('나쁘지 않아요. 조금 더 참아서 평균 타이밍을 130ms 안쪽으로 줄여 보세요.');
   $('verdict').textContent = v;
   const wk = loadWeek(), oldT = wk.best > 0 ? tierOf(wk.best) : null, newT = tierOf(S.score);
   const promo = $('promo'); promo.textContent = '';
   if (S.score > wk.best){
     wk.best = S.score; saveWeek(wk);
-    if (!oldT){ promo.append('이번 주 배치 완료! '); promo.append(tierBadge(newT)); }
-    else if (newT.rank > oldT.rank){ promo.append('승급! ' + oldT.label + ' → '); promo.append(tierBadge(newT)); }
-    else { promo.append('이번 주 최고 점수 갱신 · '); promo.append(tierBadge(newT)); }
+    if (!oldT){ promo.append(L('이번 주 배치 완료! ')); promo.append(tierBadge(newT)); }
+    else if (newT.rank > oldT.rank){ promo.append(L('승급! ') + oldT.label + ' → '); promo.append(tierBadge(newT)); }
+    else { promo.append(L('이번 주 최고 점수 갱신 · ')); promo.append(tierBadge(newT)); }
   } else {
-    promo.append('이번 주 티어 '); promo.append(tierBadge(tierOf(wk.best)));
-    promo.append(' · 최고 ' + wk.best.toLocaleString('ko-KR') + '점까지 ' + (wk.best - S.score).toLocaleString('ko-KR') + '점 남았어요');
+    promo.append(L('이번 주 티어 ')); promo.append(tierBadge(tierOf(wk.best)));
+    promo.append(L(' · 최고 ') + wk.best.toLocaleString('ko-KR') + L('점까지 ') + (wk.best - S.score).toLocaleString('ko-KR') + L('점 남았어요'));
   }
   const wt = tierOf(wk.best);
-  $('tierImg').src = emblemURL(wt.idx); $('tierImg').alt = wt.label + ' 티어 엠블럼';
+  $('tierImg').src = emblemURL(wt.idx); $('tierImg').alt = wt.label + L(' 티어 엠블럼');
   $('tierName').textContent = wt.label; $('tierName').style.color = wt.color;
   netFinishRun($('rankNow'));
   lastResult = { hard: S.hard, tier: tierOf(wk.best).label, eaten:S.eaten, bossKills:S.bossKills, stage:S.stage, score:S.score, maxCombo:S.maxCombo, perfect:S.perfect, whiff:S.whiff, avg, fast, skin:S.skin, isBest: isBest && S.score > 0 };
   $('shareMsg').textContent = ''; $('copyText').hidden = true; $('cardBox').hidden = true;
   const b = loadBest();
-  $('bestLine2').textContent = b ? '최고 기록 ' + b.score.toLocaleString('ko-KR') + '점 · 스테이지 ' + b.stage : '';
+  $('bestLine2').textContent = b ? L('최고 기록 ') + b.score.toLocaleString('ko-KR') + L('점 · 스테이지 ') + b.stage : '';
   showOnly('overOv'); $('againBtn').focus();
 }
 
@@ -1112,8 +1133,8 @@ function renderBest(){
   renderTier();
   const b = loadBest();
   const left = Math.max(0, 3 - loadPlays());
-  const best = b ? '최고 기록 ' + b.score.toLocaleString('ko-KR') + '점 · 스테이지 ' + b.stage : '첫 판이에요';
-  $('bestLine').textContent = best + (left ? ' · 뱀 경로 표시 ' + left + '판 남음' : '');
+  const best = b ? L('최고 기록 ') + b.score.toLocaleString('ko-KR') + L('점 · 스테이지 ') + b.stage : L('첫 판이에요');
+  $('bestLine').textContent = best + (left ? L(' · 뱀 경로 표시 ') + left + L('판 남음') : '');
 }
 
 /* ---- update ---- */
@@ -1165,7 +1186,7 @@ function update(dt){
     const pad = 60*U;
     if ((k.x < -pad || k.x > W + pad || k.y < -pad || k.y > H + pad) && (k.x - W/2)*k.dx + (k.y - H/2)*k.dy > 0) k.gone = true;
   }
-  for (const k of foods) if (k.gone && !k.eaten && S.mode === 'play' && !k.told){ k.told = true; floats.push({ x: Math.min(W - 60, Math.max(60, k.x)), y: Math.min(H - 60, Math.max(60, k.y)), text:'캔 놓침', sub:'', color:'#9fb19c', life:0.8, size:16, t:0 }); }
+  for (const k of foods) if (k.gone && !k.eaten && S.mode === 'play' && !k.told){ k.told = true; floats.push({ x: Math.min(W - 60, Math.max(60, k.x)), y: Math.min(H - 60, Math.max(60, k.y)), text:L('캔 놓침'), sub:'', color:'#9fb19c', life:0.8, size:16, t:0 }); }
   foods = foods.filter(k => !k.gone);
   for (const p of parts){ p.t += dt; if (!p.ring){ p.x += p.vx*dt; p.y += p.vy*dt; p.vx *= 0.9; p.vy *= 0.9; } }
   parts = parts.filter(p => p.t < p.life);
@@ -1601,7 +1622,7 @@ function drawHUD(c){
   c.textAlign = 'right';
   c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText('SCORE', W - pad, pad + 12);
   c.font = F(30); c.fillStyle = '#f5ebd3'; c.fillText(S.score.toLocaleString('ko-KR'), W - pad, pad + 44);
-  if (S.combo >= 2){ c.font = F(18); c.fillStyle = '#8fdc5b'; c.fillText(S.combo + ' 콤보 · x' + comboMult().toFixed(1), W - pad, pad + 68); }
+  if (S.combo >= 2){ c.font = F(18); c.fillStyle = '#8fdc5b'; c.fillText(S.combo + L(' 콤보 · x') + comboMult().toFixed(1), W - pad, pad + 68); }
 
   if (S.boss && S.boss.phase !== 'leave'){
     const b = S.boss;
@@ -1615,7 +1636,7 @@ function drawHUD(c){
       c.strokeStyle = '#0b120e'; c.lineWidth = 2;
       c.beginPath(); c.arc(x0 + i*gap, pad + 36, 8, 0, TAU); c.fill(); c.stroke();
     }
-    c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText('연속 회피 ' + b.streak + ' / ' + b.need, W/2, pad + 62);
+    c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText(L('연속 회피 ') + b.streak + ' / ' + b.need, W/2, pad + 62);
   }
 
   // flash key
@@ -1637,7 +1658,7 @@ function drawHUD(c){
   }
   c.restore();
   c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText(IS_MOBILE ? '끌었다 떼면 플래시' : 'F · D 플래시', W/2, H - 8);
+  c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText(IS_MOBILE ? L('끌었다 떼면 플래시') : L('F · D 플래시'), W/2, H - 8);
 }
 
 
@@ -1729,14 +1750,16 @@ $('startBtn').onclick = start;
 $('againBtn').onclick = start;
 $('resumeBtn').onclick = resume;
 $('quitBtn').onclick = toTitle;
-$('rulesBtn').onclick = () => { const r = $('rules'); r.classList.toggle('open'); $('rulesBtn').textContent = r.classList.contains('open') ? '게임 방법 닫기' : '게임 방법 보기'; };
+$('langBtn').textContent = LANG === 'en' ? '한국어' : 'English';
+$('langBtn').onclick = () => { try { localStorage.setItem('nyangflash-lang', LANG === 'en' ? 'ko' : 'en'); } catch(e){} location.reload(); };
+$('rulesBtn').onclick = () => { const r = $('rules'); r.classList.toggle('open'); $('rulesBtn').textContent = r.classList.contains('open') ? L('게임 방법 닫기') : L('게임 방법 보기'); };
 (function appInstall(){
   const standalone = (() => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch(e){ return false; } })();
   if (standalone){ document.body.classList.add('standalone'); return; }
   const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   let deferred = null;
   const box = $('installBox'), btn = $('installBtn'), note = $('installNote');
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; box.hidden = false; note.textContent = '앱처럼 바로 실행돼요'; });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; box.hidden = false; note.textContent = L('앱처럼 바로 실행돼요'); });
   window.addEventListener('appinstalled', () => { box.hidden = true; });
   if (IS_MOBILE && isIOS){ box.hidden = false; note.textContent = ''; }
   btn.onclick = async () => {
@@ -1745,9 +1768,9 @@ $('rulesBtn').onclick = () => { const r = $('rules'); r.classList.toggle('open')
       try { const r = await deferred.userChoice; if (r && r.outcome === 'accepted') box.hidden = true; } catch(e){}
       deferred = null;
     } else if (isIOS){
-      note.textContent = 'Safari 아래쪽 공유 버튼(네모에 위쪽 화살표) → "홈 화면에 추가"를 눌러 주세요.';
+      note.textContent = L('Safari 아래쪽 공유 버튼(네모에 위쪽 화살표) → "홈 화면에 추가"를 눌러 주세요.');
     } else {
-      note.textContent = '브라우저 메뉴(⋮)에서 "홈 화면에 추가" 또는 "앱 설치"를 눌러 주세요.';
+      note.textContent = L('브라우저 메뉴(⋮)에서 "홈 화면에 추가" 또는 "앱 설치"를 눌러 주세요.');
     }
   };
   if ('serviceWorker' in navigator && /(^|\.)nyanflash\.com$/.test(location.hostname)){
@@ -1759,19 +1782,19 @@ function renderMode(){
   $('modeHard').setAttribute('aria-pressed', String(MODE === 'hard'));
   const n = $('modeNote'); n.textContent = '';
   if (MODE === 'hard'){
-    const b = document.createElement('b'); b.textContent = '오늘 남은 도전 ' + hardLeft() + '/' + HARD_FREE;
-    n.append(b, ' · 안내선 없음 · 점수 1.5배');
-  } else n.textContent = IS_MOBILE ? '하드 모드는 PC 전용이에요' : '처음이라면 노말부터!';
-  $('startBtn').textContent = MODE === 'hard' ? '하드 시작 (Enter)' : '시작 (Enter)';
+    const b = document.createElement('b'); b.textContent = L('오늘 남은 도전 ') + hardLeft() + '/' + HARD_FREE;
+    n.append(b, L(' · 안내선 없음 · 점수 1.5배'));
+  } else n.textContent = IS_MOBILE ? L('하드 모드는 PC 전용이에요') : L('처음이라면 노말부터!');
+  $('startBtn').textContent = MODE === 'hard' ? L('하드 시작 (Enter)') : L('시작 (Enter)');
   renderBest();
 }
-function setMode(m){ if (IS_MOBILE && m === 'hard'){ $('modeNote').textContent = '하드 모드는 PC에서만 할 수 있어요.'; return; } MODE = m; try { localStorage.setItem('nyangflash-mode', m); } catch(e){} renderMode(); }
+function setMode(m){ if (IS_MOBILE && m === 'hard'){ $('modeNote').textContent = L('하드 모드는 PC에서만 할 수 있어요.'); return; } MODE = m; try { localStorage.setItem('nyangflash-mode', m); } catch(e){} renderMode(); }
 $('modeNormal').onclick = () => setMode('normal');
 $('modeHard').onclick = () => setMode('hard');
 $('rankTabNormal').onclick = () => setRankTab('normal');
 $('rankTabHard').onclick = () => setRankTab('hard');
 let adTimer = null;
-function resetAd(){ clearInterval(adTimer); adTimer = null; $('adBox').textContent = ''; const sp = document.createElement('span'); sp.textContent = '광고 자리'; $('adBox').append(sp); $('adWatch').disabled = false; $('adWatch').textContent = '광고 보고 1번 더'; }
+function resetAd(){ clearInterval(adTimer); adTimer = null; $('adBox').textContent = ''; const sp = document.createElement('span'); sp.textContent = L('광고 자리'); $('adBox').append(sp); $('adWatch').disabled = false; $('adWatch').textContent = L('광고 보고 1번 더'); }
 $('adWatch').onclick = () => {
   if (adTimer) return;
   // Placeholder until an ad network (e.g. AdSense H5 rewarded ads) is approved: show a short countdown.
@@ -1780,7 +1803,7 @@ $('adWatch').onclick = () => {
   const tick = () => {
     box.textContent = '';
     const big = document.createElement('b'); big.textContent = left;
-    const t = document.createElement('span'); t.textContent = '광고 준비 중... 잠시 후 도전이 1번 추가돼요';
+    const t = document.createElement('span'); t.textContent = L('광고 준비 중... 잠시 후 도전이 1번 추가돼요');
     box.append(big, t);
     if (left-- <= 0){
       clearInterval(adTimer); adTimer = null;
@@ -1795,11 +1818,11 @@ $('rankBtn').onclick = openRank;
 $('rankBtn2').onclick = openRank;
 $('rankClose').onclick = closeRank;
 $('copyMail').onclick = () => {
-  const done = () => { $('copyMail').textContent = '복사됨'; setTimeout(() => $('copyMail').textContent = '복사', 1500); };
-  try { navigator.clipboard.writeText('xmas42@naver.com').then(done, () => { $('copyMail').textContent = '직접 복사해 주세요'; }); } catch(e){ $('copyMail').textContent = '직접 복사해 주세요'; }
+  const done = () => { $('copyMail').textContent = L('복사됨'); setTimeout(() => $('copyMail').textContent = L('복사'), 1500); };
+  try { navigator.clipboard.writeText('xmas42@naver.com').then(done, () => { $('copyMail').textContent = L('직접 복사해 주세요'); }); } catch(e){ $('copyMail').textContent = L('직접 복사해 주세요'); }
 };
 $('homeBtn').onclick = () => {
-  if (S.mode === 'play'){ pause(); $('pauseLead').textContent = '홈으로 가면 지금 판은 끝나요. 계속할까요?'; $('quitBtn').focus(); }
+  if (S.mode === 'play'){ pause(); $('pauseLead').textContent = L('홈으로 가면 지금 판은 끝나요. 계속할까요?'); $('quitBtn').focus(); }
   else if (S.mode !== 'title' && S.mode !== 'dying') toTitle();
 };
 $('menuBtn').onclick = toTitle;
@@ -1815,16 +1838,16 @@ $('sfxVol').addEventListener('change', () => { audio(); beep(520, 1500, 0.12, 't
 
 /* ---- weekly tier ---- */
 const TIERS = [
-  { name:'아이언', min:0, color:'#a39d96' },
-  { name:'브론즈', min:3000, color:'#cf8c5c' },
-  { name:'실버', min:8000, color:'#c9d2dc' },
-  { name:'골드', min:15000, color:'#ffc94a' },
-  { name:'플래티넘', min:25000, color:'#5fd0c0' },
-  { name:'에메랄드', min:40000, color:'#4fd88a' },
-  { name:'다이아몬드', min:60000, color:'#8fb8ff' },
-  { name:'마스터', min:90000, color:'#c58cff' },
-  { name:'그랜드마스터', min:130000, color:'#ff7d8e' },
-  { name:'챌린저', min:180000, color:'#ffe9a6' },
+  { name:L('아이언'), min:0, color:'#a39d96' },
+  { name:L('브론즈'), min:3000, color:'#cf8c5c' },
+  { name:L('실버'), min:8000, color:'#c9d2dc' },
+  { name:L('골드'), min:15000, color:'#ffc94a' },
+  { name:L('플래티넘'), min:25000, color:'#5fd0c0' },
+  { name:L('에메랄드'), min:40000, color:'#4fd88a' },
+  { name:L('다이아몬드'), min:60000, color:'#8fb8ff' },
+  { name:L('마스터'), min:90000, color:'#c58cff' },
+  { name:L('그랜드마스터'), min:130000, color:'#ff7d8e' },
+  { name:L('챌린저'), min:180000, color:'#ffe9a6' },
 ];
 function tierOf(score){
   let i = 0;
@@ -1909,14 +1932,14 @@ function tierBadge(t){
 function renderTier(){
   const w = loadWeek(), el = $('tierLine');
   el.textContent = '';
-  const lab = document.createElement('span'); lab.textContent = MODE === 'hard' ? '이번 주 하드 티어' : '이번 주 티어';
+  const lab = document.createElement('span'); lab.textContent = MODE === 'hard' ? L('이번 주 하드 티어') : L('이번 주 티어');
   el.append(lab);
   if (w.best > 0){
     el.append(tierBadge(tierOf(w.best)));
-    const sc = document.createElement('span'); sc.textContent = w.best.toLocaleString('ko-KR') + '점 · 매주 월요일 0시 초기화';
+    const sc = document.createElement('span'); sc.textContent = w.best.toLocaleString('ko-KR') + L('점 · 매주 월요일 0시 초기화');
     el.append(sc);
   } else {
-    const sc = document.createElement('span'); sc.textContent = '이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화';
+    const sc = document.createElement('span'); sc.textContent = L('이번 주 첫 판을 하면 배치돼요 · 매주 월요일 0시 초기화');
     el.append(sc);
   }
 }
@@ -1942,6 +1965,8 @@ async function api(path, body){
   const txt = await r.text();
   try { j = JSON.parse(txt); } catch(e){ throw new Error('HTTP ' + r.status + ' · ' + txt.slice(0, 60).replace(/\s+/g, ' ')); }
   j.status = r.status;
+  if (j.error) j.error = L(j.error);
+  if (j.reason) j.reason = L(j.reason);
   return j;
 }
 function netStartRun(){
@@ -1954,25 +1979,25 @@ function netFinishRun(el){
   const small = (t) => { const sm = document.createElement('small'); sm.textContent = t; return sm; };
   if (!NET.nick){
     const b = document.createElement('button'); b.className = 'mini'; b.type = 'button';
-    b.textContent = '닉네임 등록하고 내 순위 보기'; b.onclick = () => openRank();
+    b.textContent = L('닉네임 등록하고 내 순위 보기'); b.onclick = () => openRank();
     el.append(b);
     return;
   }
-  el.textContent = '순위 확인 중...';
+  el.textContent = L('순위 확인 중...');
   const show = (rank, total, improved) => {
-    el.textContent = (S.hard ? '하드 ' : '이번 주 ') + rank + '위 ';
-    el.append(small('/ ' + total + '명' + (improved ? ' · 기록 갱신!' : '')));
+    el.textContent = (S.hard ? L('하드 ') : L('이번 주 ')) + rank + L('위 ');
+    el.append(small('/ ' + total + L('명') + (improved ? L(' · 기록 갱신!') : '')));
   };
   const fallback = () => api('/api/leaderboard?mode=' + (S.hard ? 'hard' : 'normal')).then(j => {
     if (j.me && j.me.rank) show(j.me.rank, j.total, false);
-    else { el.textContent = ''; el.append(small('이번 판은 랭킹에 반영되지 않았어요.')); }
-  }).catch(() => { el.textContent = ''; el.append(small('랭킹 서버에 연결하지 못했어요.')); });
+    else { el.textContent = ''; el.append(small(L('이번 판은 랭킹에 반영되지 않았어요.'))); }
+  }).catch(() => { el.textContent = ''; el.append(small(L('랭킹 서버에 연결하지 못했어요.'))); });
   if (!NET.runId){ fallback(); return; }
   const runId = NET.runId; NET.runId = null;
   api('/api/run/finish', { runId, score:S.score, stage:S.stage, bossKills:S.bossKills, durationMs:Math.round(S.playMs) })
     .then(j => {
       if (j.ok) show(j.rank, j.total || j.rank, j.improved);
-      else { el.textContent = ''; el.append(small(j.reason || j.error || '이번 판은 랭킹에 반영되지 않았어요.')); }
+      else { el.textContent = ''; el.append(small(j.reason || j.error || L('이번 판은 랭킹에 반영되지 않았어요.'))); }
     }).catch(fallback);
 }
 let rankFrom = null;
@@ -1998,14 +2023,14 @@ function renderNick(){
   const box = $('nickBox'); box.textContent = '';
   const row = document.createElement('div'); row.className = 'nickrow';
   if (NET.nick && !NET.editing){
-    const t = document.createElement('span'); t.textContent = '내 닉네임: ' + NET.nick;
-    const b = document.createElement('button'); b.className = 'mini'; b.type = 'button'; b.textContent = '변경';
+    const t = document.createElement('span'); t.textContent = L('내 닉네임: ') + NET.nick;
+    const b = document.createElement('button'); b.className = 'mini'; b.type = 'button'; b.textContent = L('변경');
     b.onclick = () => { NET.editing = true; renderNick(); };
     row.append(t, b);
   } else {
-    const inp = document.createElement('input'); inp.id = 'nickInput'; inp.maxLength = 12; inp.placeholder = '닉네임 (한글·영문·숫자 2~12자)';
+    const inp = document.createElement('input'); inp.id = 'nickInput'; inp.maxLength = 12; inp.placeholder = L('닉네임 (한글·영문·숫자 2~12자)');
     inp.autocomplete = 'off'; inp.spellcheck = false; if (NET.nick) inp.value = NET.nick;
-    const b = document.createElement('button'); b.className = 'go'; b.type = 'button'; b.textContent = '등록'; b.style.fontSize = '26px'; b.style.padding = '6px 18px';
+    const b = document.createElement('button'); b.className = 'go'; b.type = 'button'; b.textContent = L('등록'); b.style.fontSize = '26px'; b.style.padding = '6px 18px';
     const go = () => registerNick(inp.value.trim());
     b.onclick = go; inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     row.append(inp, b);
@@ -2015,24 +2040,24 @@ function renderNick(){
 }
 function registerNick(nick){
   const msg = $('nickMsg');
-  if (!/^[가-힣A-Za-z0-9_]{2,12}$/.test(nick)){ msg.textContent = '닉네임은 한글, 영문, 숫자, _ 로 2~12자예요.'; return; }
-  msg.textContent = '등록 중...';
+  if (!/^[가-힣A-Za-z0-9_]{2,12}$/.test(nick)){ msg.textContent = L('닉네임은 한글, 영문, 숫자, _ 로 2~12자예요.'); return; }
+  msg.textContent = L('등록 중...');
   api('/api/register', { nickname: nick }).then(j => {
     if (j.ok){
       NET.nick = j.nickname; NET.editing = false;
       try { localStorage.setItem('nyangflash-nick', NET.nick); } catch(e){}
-      msg.textContent = '등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.';
+      msg.textContent = L('등록됐어요! 이제부터 판마다 기록이 랭킹에 올라가요.');
       renderNick(); loadRank();
-    } else msg.textContent = j.error || '등록하지 못했어요. 잠시 뒤에 다시 해 주세요.';
-  }).catch(() => { msg.textContent = '랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.'; });
+    } else msg.textContent = j.error || L('등록하지 못했어요. 잠시 뒤에 다시 해 주세요.');
+  }).catch(() => { msg.textContent = L('랭킹 서버에 연결하지 못했어요. nyanflash.com에서 열어 주세요.'); });
 }
 function loadRank(){
   const list = $('rankList'), me = $('myRank');
-  list.textContent = ''; me.textContent = '불러오는 중...';
+  list.textContent = ''; me.textContent = L('불러오는 중...');
   api('/api/leaderboard?mode=' + rankMode).then(j => {
-    if (!j.top){ me.textContent = j.error || '랭킹을 불러오지 못했어요.'; return; }
+    if (!j.top){ me.textContent = j.error || L('랭킹을 불러오지 못했어요.'); return; }
     me.textContent = '';
-    if (!j.top.length){ me.textContent = '이번 주 첫 기록의 주인공이 되어 보세요!'; }
+    if (!j.top.length){ me.textContent = L('이번 주 첫 기록의 주인공이 되어 보세요!'); }
     j.top.forEach((r, i) => {
       const li = document.createElement('li');
       if (j.me && r.nickname === j.me.nickname) li.className = 'me';
@@ -2042,29 +2067,29 @@ function loadRank(){
       li.append(no, nm, tierBadge(tierOf(r.score)), sc);
       list.append(li);
     });
-    if (j.me && j.me.rank) me.textContent = '내 순위: ' + j.me.rank + '위 / ' + j.total + '명 · ' + j.me.score.toLocaleString('ko-KR') + '점';
-    else if (NET.nick) me.textContent = '이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.';
-  }).catch((e) => { console.error('leaderboard', e); me.textContent = '순위를 불러오지 못했어요. (' + (e && e.message ? e.message : '연결 실패') + ')'; });
+    if (j.me && j.me.rank) me.textContent = L('내 순위: ') + j.me.rank + L('위 / ') + j.total + L('명 · ') + j.me.score.toLocaleString('ko-KR') + L('점');
+    else if (NET.nick) me.textContent = L('이번 주 기록이 아직 없어요. 한 판 하면 순위에 올라가요.');
+  }).catch((e) => { console.error('leaderboard', e); me.textContent = L('순위를 불러오지 못했어요. (') + (e && e.message ? e.message : L('연결 실패')) + ')'; });
 }
 
 /* ---- share ---- */
 let lastResult = null;
 function rankTitle(st){
-  if (st <= 2) return '아기 고양이';
-  if (st <= 4) return '골목 길냥이';
-  if (st <= 7) return '뱀 사냥꾼';
-  if (st <= 10) return '플래시 장인';
-  return '전설의 냥이';
+  if (st <= 2) return L('아기 고양이');
+  if (st <= 4) return L('골목 길냥이');
+  if (st <= 7) return L('뱀 사냥꾼');
+  if (st <= 10) return L('플래시 장인');
+  return L('전설의 냥이');
 }
 function shareText(r){
   const lines = [
-    '🐱 냥. 플 결과' + (r.hard ? ' (하드)' : ''),
-    '이번 주 티어: ' + r.tier + ' · 칭호: ' + rankTitle(r.stage) + ' (' + SKINS[r.skin].name + ')',
-    '스테이지 ' + r.stage + ' · ' + r.score.toLocaleString('ko-KR') + '점' + (r.isBest ? ' · 신기록!' : ''),
-    '보스 격파 ' + r.bossKills + ' · 캔 ' + r.eaten + '개 냠 · 최대 콤보 ' + r.maxCombo + ' · PERFECT ' + r.perfect + ' · 헛플 ' + r.whiff,
+    L('🐱 냥. 플 결과') + (r.hard ? L(' (하드)') : ''),
+    L('이번 주 티어: ') + r.tier + L(' · 칭호: ') + rankTitle(r.stage) + ' (' + SKINS[r.skin].name + ')',
+    L('스테이지 ') + r.stage + ' · ' + r.score.toLocaleString('ko-KR') + L('점') + (r.isBest ? L(' · 신기록!') : ''),
+    L('보스 격파 ') + r.bossKills + L(' · 캔 ') + r.eaten + L('개 냠 · 최대 콤보 ') + r.maxCombo + ' · PERFECT ' + r.perfect + L(' · 헛플 ') + r.whiff,
   ];
-  if (r.avg != null) lines.push('평균 타이밍: 닿기 ' + r.avg + 'ms 전 (최고 ' + r.fast + 'ms)');
-  lines.push('🐍 뱀한테 졌지만 다음엔 안 진다냥. 너도 피해 봐!');
+  if (r.avg != null) lines.push(L('평균 타이밍: 닿기 ') + r.avg + L('ms 전 (최고 ') + r.fast + 'ms)');
+  lines.push(L('🐍 뱀한테 졌지만 다음엔 안 진다냥. 너도 피해 봐!'));
   return lines.join('\n');
 }
 function flashMsg(t){ $('shareMsg').textContent = t; }
@@ -2072,9 +2097,9 @@ $('copyBtn').onclick = () => {
   if (!lastResult) return;
   const txt = shareText(lastResult), ta = $('copyText');
   ta.value = txt;
-  const fallback = () => { ta.hidden = false; ta.focus(); ta.select(); flashMsg('아래 문구를 선택해 두었어요. Ctrl+C로 복사하세요'); };
+  const fallback = () => { ta.hidden = false; ta.focus(); ta.select(); flashMsg(L('아래 문구를 선택해 두었어요. Ctrl+C로 복사하세요')); };
   try {
-    navigator.clipboard.writeText(txt).then(() => { ta.hidden = true; flashMsg('복사됐어요. 카톡이나 디코에 붙여넣기 하세요'); }, fallback);
+    navigator.clipboard.writeText(txt).then(() => { ta.hidden = true; flashMsg(L('복사됐어요. 카톡이나 디코에 붙여넣기 하세요')); }, fallback);
   } catch(e){ fallback(); }
 };
 
@@ -2095,8 +2120,8 @@ function drawCard(r){
   // text
   c.textBaseline = 'alphabetic'; c.textAlign = 'left';
   c.font = F(64); c.lineWidth = 10; c.strokeStyle = '#0b120e';
-  c.strokeText('냥. 플', 520, 130); c.fillStyle = '#ffc94a'; c.fillText('냥. 플', 520, 130);
-  const badge = r.tier + ' · ' + rankTitle(r.stage) + (r.isBest ? ' · 신기록' : '');
+  c.strokeText(L('냥. 플'), 520, 130); c.fillStyle = '#ffc94a'; c.fillText(L('냥. 플'), 520, 130);
+  const badge = r.tier + ' · ' + rankTitle(r.stage) + (r.isBest ? L(' · 신기록') : '');
   c.font = F(30); const bw = c.measureText(badge).width + 40;
   c.fillStyle = '#8fdc5b'; roundRect(c, 520, 145, bw, 50, 25); c.fill();
   c.fillStyle = '#132016'; c.fillText(badge, 540, 181);
@@ -2104,10 +2129,10 @@ function drawCard(r){
   c.font = F(26); c.fillStyle = '#9fb19c'; c.fillText('SCORE', 520, 262);
   c.font = F(96); c.fillStyle = '#f5ebd3'; c.fillText(r.score.toLocaleString('ko-KR'), 520, 350);
   const stats = [
-    ['스테이지', String(r.stage)],
-    ['최대 콤보', String(r.maxCombo)],
-    ['보스 격파', String(r.bossKills)],
-    ['평균 타이밍', r.avg != null ? r.avg + 'ms' : '-'],
+    [L('스테이지'), String(r.stage)],
+    [L('최대 콤보'), String(r.maxCombo)],
+    [L('보스 격파'), String(r.bossKills)],
+    [L('평균 타이밍'), r.avg != null ? r.avg + 'ms' : '-'],
   ];
   stats.forEach(([k, v], i) => {
     const x = 520 + (i % 2) * 300, y = 420 + Math.floor(i / 2) * 82;
@@ -2115,20 +2140,20 @@ function drawCard(r){
     c.font = F(42); c.fillStyle = '#ffc94a'; c.fillText(v, x, y + 46);
   });
   c.font = F(22); c.fillStyle = '#9fb19c'; c.textAlign = 'right';
-  c.fillText('F · D 플래시 반응 연습', w - 52, h - 44);
+  c.fillText(L('F · D 플래시 반응 연습'), w - 52, h - 44);
   return card.toDataURL('image/png');
 }
 $('cardBtn').onclick = () => {
   if (!lastResult) return;
   $('cardImg').src = drawCard(lastResult);
-  $('cardBox').hidden = false; flashMsg('카드를 만들었어요');
+  $('cardBox').hidden = false; flashMsg(L('카드를 만들었어요'));
 };
 $('copyImgBtn').onclick = () => {
-  const fail = () => flashMsg('여기선 이미지 복사가 막혀 있어요. 이미지를 우클릭해서 저장해 주세요');
+  const fail = () => flashMsg(L('여기선 이미지 복사가 막혀 있어요. 이미지를 우클릭해서 저장해 주세요'));
   try {
     if (!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) return fail();
     const item = new ClipboardItem({ 'image/png': new Promise(res => card.toBlob(res, 'image/png')) });
-    navigator.clipboard.write([item]).then(() => flashMsg('이미지가 복사됐어요. 채팅창에 붙여넣기 하세요'), fail);
+    navigator.clipboard.write([item]).then(() => flashMsg(L('이미지가 복사됐어요. 채팅창에 붙여넣기 하세요')), fail);
   } catch(e){ fail(); }
 };
 
