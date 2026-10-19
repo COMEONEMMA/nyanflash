@@ -1,3 +1,4 @@
+import { handleDash } from './dash.js';
 // 냥. 플 (Nyan Flash) weekly ranking API · © 2026 냥. 플. All rights reserved.
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -146,6 +147,7 @@ async function handle(req, env, url) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname === '/dash' || url.pathname.startsWith('/dash/')) return handleDash(req, env, url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     if (!env.DB) return json({ error: '랭킹 서버를 준비하고 있어요. 조금만 기다려 주세요.' }, 503);
     if (req.method === 'POST') {
