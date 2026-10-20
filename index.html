@@ -205,6 +205,21 @@ body.mobile #titleOv .panel > .who{order:0}
   padding:0 max(18px,env(safe-area-inset-right,0px)) max(18px,env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
 .joyf{position:absolute;left:0;top:0;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:rgba(10,20,14,.3);border:2px solid rgba(245,235,211,.45);pointer-events:none}
 .joy{pointer-events:auto;touch-action:none;width:132px;height:132px;border-radius:50%;background:rgba(10,20,14,.38);border:2px solid rgba(245,235,211,.35);position:relative}
+.joyf.move .joy-knob{background:rgba(143,220,91,.9)}
+.cardrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ncard{font:inherit;color:var(--cream);background:var(--night);border:2px solid var(--line);border-radius:16px;padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;text-align:center;min-height:190px;transition:transform .12s,border-color .12s}
+.ncard:hover,.ncard:focus-visible{transform:translateY(-4px);border-color:var(--amber);outline:none}
+.ncard .ci{font-size:40px;line-height:1.1}
+.ncard b{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1}
+.ncard span{font-size:14px;color:#e6e1cf;line-height:1.35}
+.ncard small{font-size:12px;color:var(--muted)}
+.ncard .key{margin-top:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.ncard.gold{border-color:#ffc94a;box-shadow:0 0 0 2px rgba(255,201,74,.25),0 0 24px rgba(255,201,74,.35);background:linear-gradient(180deg,#2c2a17,#16130a)}
+.ncard.gold b{color:var(--amber)}
+.ncard.rare{border-color:#8fd4ff}
+.ncard.curse{border-color:#c07cff;background:linear-gradient(180deg,#22172e,#120c18)}
+.ncard.curse b{color:#d6a8ff}
+@media (max-width:520px){.cardrow{grid-template-columns:minmax(0,1fr)}.ncard{min-height:0;flex-direction:row;flex-wrap:wrap;justify-content:center;text-align:left}.ncard .ci{font-size:32px}.ncard .key{display:none}}
 .joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,201,74,.85);border:3px solid #1d1505;box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .fbtn{pointer-events:auto;touch-action:none;width:96px;height:96px;border-radius:50%;border:3px solid #1d1505;position:relative;
   background:conic-gradient(rgba(10,16,13,.7) var(--cd,0%), transparent 0) , #ffc94a;
@@ -259,6 +274,7 @@ body.standalone .install{display:none!important}
   <main class="field" id="field">
     <canvas id="game" aria-label="게임 화면"></canvas>
     <div class="joyf" id="joyF" hidden><div class="joy-knob" id="joyKnob"></div></div>
+    <div class="joyf move" id="joyM" hidden><div class="joy-knob" id="joyMKnob"></div></div>
 
     <section class="overlay" id="titleOv">
       <div class="title-wrap">
@@ -267,8 +283,8 @@ body.standalone .install{display:none!important}
       <div class="panel">
         <h1>냥. 플</h1>
         <div class="who" id="whoLine"></div>
-        <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. 한글 입력 상태여도 됩니다.</p>
-        <p class="lead m-only">화면 아무 데나 손가락을 대고 피할 방향으로 쓱 끌었다가 <b>떼는 순간 플래시!</b> 끌지 않고 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.</p>
+        <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. <b>마우스 오른쪽 버튼</b>으로 롤처럼 걸어 다닐 수 있어요. 한글 입력 상태여도 됩니다.</p>
+        <p class="lead m-only">화면 <b>왼쪽</b>을 누르고 끌면 걷기. <b>오른쪽</b>에서 피할 방향으로 쓱 끌었다가 <b>떼는 순간 플래시!</b> 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.</p>
         <div class="vs" id="vsBox" hidden></div>
         <div class="label" id="modeLabel">난이도</div>
         <div class="modes" id="modeRow">
@@ -288,6 +304,8 @@ body.standalone .install{display:none!important}
           <li><span>가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔을 덮치거나 스치고 지나가면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.</span></li>
           <li><span>처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.</span></li>
           <li><span><b style="color:var(--hurt)">하드</b>: 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!</span></li>
+          <li><span>우클릭으로 걸어 다닐 수 있어요(모바일은 화면 왼쪽). 걸어서 피하면 작은 점수만, 큰 점수는 플래시 타이밍에서 나와요. 3스테이지부터 보라색 유도 뱀(플래시로 따돌리기), 5스테이지 주황 분열 뱀, 7스테이지 원형 탄막과 레이저가 나와요.</span></li>
+          <li><span>보스를 잡을 때마다 냥 카드 3장 중 1장을 골라 강해져요. 내 고양이 능력과 맞는 카드는 금색으로 더 세게 나와요!</span></li>
           <li><span>뱀은 <b>머리</b>에만 닿지 않으면 돼요. 날아오는 쪽으로 뱀을 뚫고 넘어가는 <b style="color:#ff9de2">역플</b>도 가능! 닿기 직전에 쓰면 보너스 점수.</span></li>
           <li><span>고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.</span></li>
           <li><span>닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!</span></li>
@@ -368,6 +386,15 @@ body.standalone .install{display:none!important}
         </div>
       </div>
     </section>
+    <section class="overlay" id="cardOv" hidden>
+      <div class="panel" style="max-width:720px">
+        <h2>냥 카드 선택</h2>
+        <p class="lead" id="cardLead">보스를 물리쳤어요! 한 장을 골라 강해지세요.</p>
+        <div class="cardrow" id="cardRow"></div>
+        <p class="mode-note" id="cardOwned"></p>
+      </div>
+    </section>
+
     <section class="overlay" id="adOv" hidden>
       <div class="panel">
         <h2>오늘 하드 도전 끝!</h2>
@@ -442,6 +469,29 @@ Object.assign(EN, { '내 순위': 'My rank',
   '게임 소개': 'About the game', '개인정보처리방침': 'Privacy policy',
   '역플!': 'Reverse Flash!', '뱀을 뚫고 넘어갔다냥 +': 'Flashed right through it +',
   '뱀은 ': 'Only the snake\'s ', '머리': 'head', '에만 닿지 않으면 돼요. 날아오는 쪽으로 뱀을 뚫고 넘어가는 ': ' hurts. You can Flash back through an incoming snake for a ', '역플': 'Reverse Flash', '도 가능! 닿기 직전에 쓰면 보너스 점수.': '! Do it right before impact for bonus points.',
+  '냥 카드 선택': 'Pick a cat card', '보스를 물리쳤어요! 한 장을 골라 강해지세요.': 'Boss defeated! Pick one card to power up.', ' (1·2·3 키)': ' (keys 1·2·3)',
+  '보유 카드 ': 'Your cards ', '금색 · ': 'Gold · ', ' 전용 강화': ' bonus', '저주 카드': 'Curse card', '희귀': 'Rare', '보유 ': 'Owned ', '금색 카드 획득!': 'Gold card!', '카드 획득!': 'Card get!',
+  '쿨타임 단축': 'Quick Paws', '플래시 쿨타임 -8%': 'Flash cooldown -8%', '플래시 쿨타임 -12%': 'Flash cooldown -12%',
+  '긴 플래시': 'Long Flash', '플래시 거리 +10%': 'Flash range +10%', '플래시 거리 +15%': 'Flash range +15%',
+  '날쌘 발': 'Swift Feet', '이동 속도 +12%': 'Move speed +12%', '이동 속도 +18%': 'Move speed +18%',
+  '생선 한 마리': 'Spare Fish', '최대 생선 +1, 1개 회복': 'Max fish +1, heal 1', '최대 생선 +1, 2개 회복': 'Max fish +1, heal 2',
+  '이중 플래시': 'Double Flash', '플래시를 2번까지 모아 둘 수 있어요': 'Store up to 2 Flash charges',
+  '잔상 방패': 'Afterimage Guard', '플래시한 자리의 잔상이 뱀 1마리를 막아요': 'Your afterimage blocks one snake',
+  '역플 장인': 'Reverse Master', '역플 보너스 점수 2배': 'Reverse Flash bonus x2',
+  '집중': 'Focus', 'PERFECT 판정 +20ms, 슬로모션 길게': 'PERFECT window +20ms, longer slow-mo',
+  '아슬아슬': 'Close Call', '아슬 회피하면 쿨타임 0.3초 감소': 'Near misses cut cooldown by 0.3s', '아슬 회피하면 쿨타임 0.45초 감소': 'Near misses cut cooldown by 0.45s',
+  '캔 냄새': 'Can Sniffer', '캔 먹는 범위 +30%, 캔이 더 자주 와요': 'Can reach +30%, more cans', '캔 먹는 범위 +45%, 캔이 더 자주 와요': 'Can reach +45%, more cans',
+  '뱀의 저주': 'Snake Curse', '뱀 속도 +15%, 대신 점수 x1.5': 'Snakes +15% faster, score x1.5',
+  '추적 끊음!': 'Lock broken!', '무빙 회피 +': 'Walk dodge +', '분열!': 'Split!', '원형 탄막!': 'Bullet ring!', '가까이 왔을 때 바깥으로 플래시!': 'Flash outward when it closes in!',
+  '탄막 돌파!': 'Ring cleared!', '보라색 유도 뱀 등장! 플래시로 따돌리세요': 'Purple homing snakes! Flash to break the lock',
+  '여러 마리가 동시에! 걷는 쪽을 노리는 뱀도 있어요': 'More at once, and some aim where you walk', '주황 분열 뱀 등장. 가까이 오면 세 갈래로!': 'Orange snakes split in three up close!',
+  '원형 탄막과 레이저까지! 진짜 시작이다냥': 'Bullet rings and lasers! Now it begins',
+  '왼쪽 끌기 이동 · 오른쪽 끌었다 떼면 플래시': 'Left: drag to walk · Right: drag & release to Flash', 'F · D 플래시 · 우클릭 이동': 'F · D Flash · Right-click to walk',
+  '! 마우스가 있는 쪽으로 순간이동해서 피하세요.': ' to blink toward your mouse cursor and dodge it.', '마우스 오른쪽 버튼': 'The right mouse button', '으로 롤처럼 걸어 다닐 수 있어요. 한글 입력 상태여도 됩니다.': ' walks you around, just like LoL.',
+  '화면': 'Drag the', '왼쪽': 'left side', '을 누르고 끌면 걷기.': ' to walk. Drag on the', '오른쪽': 'right side', '에서 피할 방향으로 쓱 끌었다가': ' toward where you want to go and',
+  '톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.': 'A quick tap flashes toward the spot you tapped. Landscape works best. Mobile plays Normal mode only.',
+  '우클릭으로 걸어 다닐 수 있어요(모바일은 화면 왼쪽). 걸어서 피하면 작은 점수만, 큰 점수는 플래시 타이밍에서 나와요. 3스테이지부터 보라색 유도 뱀(플래시로 따돌리기), 5스테이지 주황 분열 뱀, 7스테이지 원형 탄막과 레이저가 나와요.': 'Right-click to walk (left side of the screen on mobile). Walking dodges give small points; big points come from Flash timing. Purple homing snakes from stage 3 (Flash to shake them), orange splitting snakes from stage 5, bullet rings and lasers from stage 7.',
+  '보스를 잡을 때마다 냥 카드 3장 중 1장을 골라 강해져요. 내 고양이 능력과 맞는 카드는 금색으로 더 세게 나와요!': 'After every boss, pick 1 of 3 cat cards to power up. Cards that match your cat\'s ability can show up gold and stronger!',
   '하드 랭킹': 'Hard ranking', '노말 랭킹': 'Normal ranking', '이번 주 ': 'This week · ', '이번 주': 'This week', '전체 보기': 'See all', '아직 기록이 없어요. 첫 주인공이 되어 보세요!': 'No records yet. Be the first!',
   '고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.': 'Each cat has its own ability. When a rock wall rises, Flash over it! Near misses give bonus points. Daily missions unlock new cats.'
 });
@@ -471,7 +521,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---- tuning (units scale with field size: 600 units = shorter side) ---- */
 const CAT_R = 17, SNAKE_R = 8, FLASH_RANGE = 125, BODY_LEN = 95, NECK = 18;
-const COOLDOWN_N = 1.0, COOLDOWN_H = 1.15, HARD_FREE = 3;
+const COOLDOWN_N = 1.0, COOLDOWN_H = 1.15, HARD_FREE = 3, MOVE_N = 68, MOVE_H = 58;
 const PER_STAGE = 8, FONT_FAMILY = '"Dongle","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const F = px => '700 ' + Math.round(px*1.45) + 'px ' + FONT_FAMILY;
 
@@ -487,6 +537,8 @@ const ABILITY = ['cd', 'range', 'can', 'shield', 'graze', 'magnet'];
 const ABILITY_TEXT = [L('플래시 쿨타임 -10%'), L('플래시 거리 +15%'), L('캔 점수 2배 · 황금 캔↑'), L('판마다 보호막 1회'), L('아슬 회피 점수 3배'), L('캔 자석 (먹는 범위 +40%)')];
 const ab = () => ABILITY[S.skin] || 'cd';
 function skinLocked(i){ return SKINS[i] && SKINS[i].need ? missionTotal() < SKINS[i].need : false; }
+const HOMING_COL = { body:'#d14fb0', spot:'#7a1f63', head:'#e467c4' };
+const SPLIT_COL = { body:'#f2a03a', spot:'#a35f12', head:'#f7b55a' };
 const SNAKE_COLS = [
   { body:'#7ccf52', spot:'#4b9431', head:'#8ddc62' },
   { body:'#a879f0', spot:'#6c47b8', head:'#b78cf5' },
@@ -495,7 +547,9 @@ const SNAKE_COLS = [
 
 let W = 0, H = 0, U = 1, DPR = 1;
 const mouse = { x: 0, y: 0, seen: false };
-const cat = { x: 0, y: 0 };
+const cat = { x: 0, y: 0, tx:null, ty:null, vx:0, vy:0, flip:1, walkT:0, moving:0, dustT:0, recoil:0 };
+const MOVE = { id:null, ax:0, ay:0, mag:0, active:false };
+let beams = [], decoys = [], spawnQ = [];
 let snakes = [], parts = [], floats = [], ghosts = [], foods = [], walls = [], banner = null;
 
 const S = { mode:'title', skin:0, stage:1, score:0, lives:3, dodges:0, stageDodges:0, combo:0,
@@ -507,9 +561,13 @@ if (IS_MOBILE) document.body.classList.add('mobile');
 let MODE = 'normal';
 try { if (!IS_MOBILE && localStorage.getItem('nyangflash-mode') === 'hard') MODE = 'hard'; } catch(e){}
 const sfx = (m) => (m || MODE) === 'hard' ? '-hard' : '';
-function cooldown(){ return (S.hard ? COOLDOWN_H : COOLDOWN_N) * (ab() === 'cd' ? 0.9 : 1); }
-function flashRange(){ return FLASH_RANGE * (ab() === 'range' ? 1.15 : 1); }
-function HM(){ return S.hard ? 1.5 : 1; }
+function freshMods(){ return { cd:1, range:1, move:1, score:1, snake:1, through:1, slow:0.22, grazeCd:0, perfect:0.13, can:1, canRate:1, decoy:false }; }
+const MODS = () => S.mods || (S.mods = freshMods());
+function cooldown(){ return (S.hard ? COOLDOWN_H : COOLDOWN_N) * (ab() === 'cd' ? 0.9 : 1) * MODS().cd; }
+function flashRange(){ return FLASH_RANGE * (ab() === 'range' ? 1.15 : 1) * MODS().range; }
+function moveSpeed(){ return (S.hard ? MOVE_H : MOVE_N) * MODS().move; }
+function effStage(){ return S.stage + (S.hard ? 1 : 0); }
+function HM(){ return (S.hard ? 1.5 : 1) * MODS().score; }
 function loadBest(m){ try { return JSON.parse(localStorage.getItem('nyangflash-best' + sfx(m))) || null; } catch(e){ return null; } }
 function saveBest(b){ try { localStorage.setItem('nyangflash-best' + sfx(), JSON.stringify(b)); } catch(e){} }
 function dayKey(){ return new Date(Date.now() + 9*3600e3).toISOString().slice(0, 10); }
@@ -622,20 +680,23 @@ new ResizeObserver(resize).observe(cv);
 /* ---- stage params ---- */
 function P(){
   const s = S.stage;
+  const sx = MODS().snake;
   if (S.hard) return {
-    speed: Math.min(1750, 680 + (s-1)*80),
-    warn: Math.max(0.12, 0.38 - (s-1)*0.03),
-    interval: Math.max(1.2, 1.65 - (s-1)*0.06),
-    multi: Math.min(3, 2 + Math.floor((s-1)/3)),
+    speed: Math.min(1800, 720 + (s-1)*85) * sx,
+    warn: Math.max(0.12, 0.36 - (s-1)*0.03),
+    interval: Math.max(1.05, 1.5 - (s-1)*0.06),
+    multi: Math.min(4, 2 + Math.floor((s-1)/3)),
     fake: Math.min(0.35, 0.18 + (s-1)*0.02),
+    lead: Math.min(0.7, 0.3 + (s-1)*0.08),
     lane: false,
   };
   return {
-    speed: Math.min(1400, 520 + (s-1)*65),
-    warn: Math.max(0.16, 0.55 - (s-1)*0.035),
-    interval: Math.max(1.3, 2.1 - (s-1)*0.08),
-    multi: s >= 4 ? Math.min(3, 1 + Math.floor((s-1)/3)) : 1,
+    speed: Math.min(1450, 560 + (s-1)*70) * sx,
+    warn: Math.max(0.16, 0.5 - (s-1)*0.035),
+    interval: Math.max(1.1, 1.9 - (s-1)*0.08),
+    multi: s >= 3 ? Math.min(3, 1 + Math.floor((s-1)/2)) : 1,
     fake: s >= 3 ? Math.min(0.3, 0.12 + (s-3)*0.02) : 0,
+    lead: s >= 3 ? Math.min(0.6, 0.2 + (s-3)*0.1) : 0,
     lane: S.showLane,
   };
 }
@@ -664,11 +725,14 @@ function spawnWave(){
       if (k === 23) { pt = c; angles.push(a); }
     }
     const variant = S.stage >= 5 && Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 0 : 1);
-    snakes.push({
+    const es = effStage(), roll = Math.random();
+    const kindX = es >= 3 && roll < Math.min(0.3, 0.16 + (es-3)*0.04) ? 'homing'
+      : es >= 5 && roll < Math.min(0.52, 0.34 + (es-5)*0.05) ? 'split' : null;
+    snakes.push({ homing: kindX === 'homing' ? (S.hard ? 1.5 : 1.15) : 0, homeT: kindX === 'homing' ? 1.4 : 0, split: kindX === 'split',
       state:'warn', warn:p.warn, sx:pt.x, sy:pt.y, x:pt.x, y:pt.y, dx:0, dy:0,
       speed: p.speed * (variant === 2 ? 1.15 : 1) * (0.95 + Math.random()*0.1),
-      fake: Math.random() < p.fake, side: Math.random() < 0.5 ? -1 : 1,
-      col: SNAKE_COLS[variant], phase: Math.random()*TAU, lane: p.lane, r: SNAKE_R, len: BODY_LEN, kind:'snake', group:null,
+      fake: !kindX && Math.random() < p.fake, side: Math.random() < 0.5 ? -1 : 1,
+      col: kindX === 'homing' ? HOMING_COL : kindX === 'split' ? SPLIT_COL : SNAKE_COLS[variant], phase: Math.random()*TAU, lane: p.lane && !kindX, r: SNAKE_R, len: BODY_LEN, kind:'snake', group:null,
       threat:false, hit:false, grade:null, launchedAt:0, visibleAt:null,
     });
   }
@@ -688,6 +752,12 @@ function launch(s){
     tx += -dy/d*off; ty += dx/d*off;
     dx = tx - s.sx; dy = ty - s.sy; d = Math.hypot(dx, dy) || 1;
   } else {
+    const p = P();
+    if (!s.homing && p.lead > 0 && Math.random() < p.lead && (cat.vx || cat.vy)){
+      const tArr = d / (s.speed*U), m = margin();
+      tx = Math.min(W - m, Math.max(m, tx + cat.vx*tArr*0.9)); ty = Math.min(H - m, Math.max(m, ty + cat.vy*tArr*0.9));
+      dx = tx - s.sx; dy = ty - s.sy; d = Math.hypot(dx, dy) || 1; s.lead = true;
+    }
     const j = (Math.random()-0.5) * 8 * U;
     tx += -dy/d*j; ty += dx/d*j; dx = tx - s.sx; dy = ty - s.sy; d = Math.hypot(dx, dy) || 1;
   }
@@ -713,7 +783,7 @@ function segDist(px, py, ax, ay, bx, by){
 /* ---- actions ---- */
 function flash(){
   if (S.mode !== 'play') return;
-  if (S.cd > 0){ addFloat(L('쿨타임!'), '', '#9fb19c', 0.6, 22); return; }
+  if (S.charges <= 0){ addFloat(L('쿨타임!'), '', '#9fb19c', 0.6, 22); return; }
   let best = null, bestT = 1e9;
   const threatening = [];
   for (const s of snakes){
@@ -721,10 +791,19 @@ function flash(){
     const t = threatOf(s);
     if (t >= 0){ threatening.push(s); if (t < bestT){ bestT = t; best = s; } }
   }
+  for (const b of beams){
+    if (b.state !== 'warn' || b.hit || !beamOn(b)) continue;
+    threatening.push(b); if (b.warn < bestT){ bestT = b.warn; best = b; }
+  }
   const fx = cat.x, fy = cat.y;
   let dx = mouse.x - cat.x, dy = mouse.y - cat.y; const d = Math.hypot(dx, dy);
+  cat.tx = null; cat.moving = 0;
+  let broke = 0;
+  for (const s of snakes) if (s.homing && s.state === 'live'){ s.homing = 0; broke++; }
+  if (broke) floats.push({ x:fx, y:fy - 30*U, text:L('추적 끊음!'), sub:'', color:'#e467c4', life:0.8, size:20, t:0 });
+  if (MODS().decoy) decoys.push({ x:fx, y:fy, t:0, life:1.3 });
   if (d > 1){ const r = Math.min(d, flashRange()*U); cat.x += dx/d*r; cat.y += dy/d*r; clampCat(); landOutsideWalls(); clampCat(); }
-  S.cd = cooldown();
+  S.charges--; if (S.cd <= 0) S.cd = cooldown();
   // afterimages + sparkles
   const ate = eatCans(fx, fy);
   for (let i = 1; i <= 4; i++) ghosts.push({ x: fx + (cat.x-fx)*i/5, y: fy + (cat.y-fy)*i/5, life:0.25, t:0 });
@@ -742,11 +821,12 @@ function flash(){
   bestT = Math.max(0, bestT - lag);
   const margin = Math.round(bestT * 1000);
   let g, color;
-  if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; missionAdd('perfect', 1); if (!reduceMotion) S.slowT = 0.22; S.flashFx = 0.3; parts.push({ slash:true, x:fx, y:fy, dx:best.dx, dy:best.dy, life:0.4, t:0 }); S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
+  if (bestT <= MODS().perfect){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; missionAdd('perfect', 1); if (!reduceMotion) S.slowT = MODS().slow; S.flashFx = 0.3; parts.push({ slash:true, x:fx, y:fy, dx:best.dx || 0, dy:best.dy || 1, life:0.4, t:0 }); S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
   else if (bestT <= 0.3){ g = 'GOOD'; color = '#8fdc5b'; S.good++; S.margins.push(margin); }
   else { g = L('빠름'); color = '#f5ebd3'; S.early++; }
   threatening.forEach(s => {
     s.grade = g; if (s.group) s.group.grade = g;
+    if (s.beam) return;
     if (s.kind === 'snake' && (cat.x - s.x)*s.dx + (cat.y - s.y)*s.dy < 0 && (fx - s.x)*s.dx + (fy - s.y)*s.dy > 0) s.through = true;
   });
   addFloat(g, g === L('빠름') ? L('너무 일찍 썼어요 (닿기 ') + margin + L('ms 전)') : L('닿기 ') + margin + L('ms 전'), color, 0.9, g === 'PERFECT' ? 38 : 32);
@@ -754,6 +834,14 @@ function flash(){
 
 function onDodge(s){
   S.dodges++; S.stageDodges++;
+  if (s.grade == null){
+    // walked out of the way: small points, combo kept but not raised
+    const wp = Math.round(30 * S.stage * HM());
+    S.score += wp; S.walkDodges = (S.walkDodges || 0) + 1;
+    floats.push({ x:cat.x, y:cat.y + 46*U, text:L('무빙 회피 +') + wp.toLocaleString('ko-KR'), sub:'', color:'#bfe8ff', life:0.7, size:17, t:0 });
+    if (!S.boss && S.stageDodges >= PER_STAGE) startBoss();
+    return;
+  }
   const good = s.grade === 'PERFECT' || s.grade === 'GOOD';
   if (good){ S.combo++; S.maxCombo = Math.max(S.maxCombo, S.combo); missionMax('combo', S.combo); } else S.combo = 0;
   const mult = comboMult();
@@ -761,7 +849,7 @@ function onDodge(s){
   const pts = Math.round((100 + bonus) * S.stage * mult * HM());
   S.score += pts;
   if (s.through){
-    const tp = Math.round(200 * S.stage * HM());
+    const tp = Math.round(200 * S.stage * HM() * MODS().through);
     S.score += tp;
     floats.push({ x:cat.x, y:cat.y - 70*U, text:L('역플!'), sub:L('뱀을 뚫고 넘어갔다냥 +') + tp.toLocaleString('ko-KR'), color:'#ff9de2', life:1.0, size:30, t:0 });
     [523, 784, 1047].forEach((f, i) => beep(f, f, 0.07, 'triangle', 0.035, i*0.05));
@@ -778,10 +866,12 @@ function stageUp(bossObj, bonus){
   {
     S.stage++; S.stageDodges = 0; missionMax('stage', S.stage);
     let sub = L('뱀이 더 빨라졌다!');
-    if (S.stage % 3 === 1 && S.lives < 3){ S.lives++; sub = L('생선 1개 회복!'); }
-    else if (S.stage === 3) sub = L('빗나가는 뱀이 섞이기 시작해요');
-    else if (S.stage === 4) sub = L('이제 여러 마리가 동시에 와요');
-    else if (S.stage === 5) sub = L('빨간 독사 등장. 더 빠릅니다');
+    const es = effStage();
+    if (S.stage % 3 === 1 && S.lives < S.maxLives){ S.lives++; sub = L('생선 1개 회복!'); }
+    else if (es === 3) sub = L('보라색 유도 뱀 등장! 플래시로 따돌리세요');
+    else if (es === 4) sub = L('여러 마리가 동시에! 걷는 쪽을 노리는 뱀도 있어요');
+    else if (es === 5) sub = L('주황 분열 뱀 등장. 가까이 오면 세 갈래로!');
+    else if (es === 7) sub = L('원형 탄막과 레이저까지! 진짜 시작이다냥');
     pushBanner(L('보스 격파!'), bossObj + L(' 물리쳤다냥 · +') + bonus.toLocaleString('ko-KR'), 1.6);
     pushBanner('STAGE ' + S.stage, sub, 1.8);
     playTrack(stageTrack());
@@ -891,7 +981,8 @@ function updateBoss(dt){
       const opts = bossSpots().map((p, i) => ({ p, i })).filter(o => o.i !== b.spot && Math.hypot(o.p.x - cat.x, o.p.y - cat.y) > 280*U);
       if (opts.length){ b.spot = opts[Math.floor(Math.random()*opts.length)].i; b.phase = 'move'; b.t = 0.45; return; }
     }
-    b.pattern = b.def.patterns[Math.floor(Math.random()*b.def.patterns.length)];
+    const pool = b.def.patterns.concat(effStage() >= 3 ? ['homing'] : [], effStage() >= 5 ? ['split'] : []);
+    b.pattern = pool[Math.floor(Math.random()*pool.length)];
     b.wind = (Math.max(0.35, 0.6 + Math.random()*0.5 - b.loop*0.08 - S.stage*0.01) + (b.pattern === 'charge' ? 0.3 : 0)) * (S.hard ? 0.75 : 1);
     b.windMax = b.wind; b.phase = 'wind';
     beep(160, 110, 0.22, 'sawtooth', 0.05); duck(0.55, 0.4);
@@ -929,6 +1020,10 @@ function fireWave(b, pattern){
     mkProj(group, { x:b.x, y:b.y }, ax, ay, body, base*0.95);
     snakes[snakes.length - 1].bossId = b.def.id;
     shakeScreen(6);
+  } else if (pattern === 'homing'){
+    [-0.5, 0.5].forEach(a => { const [x, y] = rot(ax, ay, a); mkProj(group, o, x, y, spec, base*0.9); const q = snakes[snakes.length - 1]; q.homing = S.hard ? 1.4 : 1.05; q.homeT = 1.3; });
+  } else if (pattern === 'split'){
+    mkProj(group, o, ax, ay, spec, base*0.95); snakes[snakes.length - 1].split = true;
   } else if (pattern === 'lunge' || pattern === 'dive'){
     mkProj(group, o, ax, ay, spec, base * (pattern === 'dive' ? 1.3 : 1.1));
   } else if (pattern === 'fan'){
@@ -995,6 +1090,7 @@ function defeatBoss(){
   const ex = b.x - W/2, ey = b.y - H/2, el = Math.hypot(ex, ey) || 1;
   b.phase = 'leave'; b.lx = ex/el; b.ly = ey/el; b.t = 0.9;
   stageUp(b.def.obj, bonus);
+  S.cardIn = 1.15;
 }
 
 function bossEye(c, x, y, r, col, lk, dizzy){
@@ -1123,7 +1219,7 @@ function drawProj(c, s){
   c.save(); c.translate(s.x, s.y);
   if (s.kind === 'venom'){
     for (let i = 1; i <= 3; i++){ c.fillStyle = `rgba(143,220,91,${0.35 - i*0.08})`; c.beginPath(); c.arc(-s.dx*R*i*1.3, -s.dy*R*i*1.3, R*(1 - i*0.2), 0, TAU); c.fill(); }
-    c.fillStyle = '#9be35f'; c.strokeStyle = '#13201a'; c.lineWidth = 2;
+    c.fillStyle = s.ring ? '#c07cff' : '#9be35f'; c.strokeStyle = '#13201a'; c.lineWidth = 2;
     c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill(); c.stroke();
     c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.arc(-R*0.35, -R*0.35, R*0.25, 0, TAU); c.fill();
   } else if (s.kind === 'feather'){
@@ -1160,7 +1256,7 @@ function eatCans(fx, fy){
   for (const k of foods){
     if (k.eaten) continue;
     const kx = k.x + k.dx*k.speed*U*lag, ky = k.y + k.dy*k.speed*U*lag;
-    const reach = (CAT_R + k.r + 18)*U*(ab() === 'magnet' ? 1.4 : 1);
+    const reach = (CAT_R + k.r + 18)*U*(ab() === 'magnet' ? 1.4 : 1)*MODS().can;
     const near = Math.hypot(cat.x - kx, cat.y - ky) < reach;
     const swipe = fx != null && segDist(kx, ky, fx, fy, cat.x, cat.y) < reach*0.8;
     if (near || swipe){
@@ -1168,7 +1264,7 @@ function eatCans(fx, fy){
       const pts = Math.round((k.gold ? 1000 : 400) * S.stage * comboMult() * HM() * (ab() === 'can' ? 2 : 1));
       S.score += pts;
       let text = L('냠! 캔 획득');
-      if (k.gold){ text = L('황금 캔!'); if (S.lives < 3){ S.lives++; text = L('황금 캔! 생선 +1'); } }
+      if (k.gold){ text = L('황금 캔!'); if (S.lives < S.maxLives){ S.lives++; text = L('황금 캔! 생선 +1'); } }
       floats.push({ x:cat.x, y:cat.y - 95*U, text, sub:'+' + pts.toLocaleString('ko-KR'), color: k.gold ? '#ffc94a' : '#ff9fb4', life:1.1, size:28, t:0 });
       burst(k.x, k.y, k.gold ? '#ffc94a' : '#ff9fb4', 18, 1.2);
       meow(1.25, 0.3, 0.09); [1047, 1319].forEach((f, i) => beep(f, f, 0.06, 'triangle', 0.035, 0.2 + i*0.05)); duck(0.4, 0.35);
@@ -1177,7 +1273,7 @@ function eatCans(fx, fy){
   foods = foods.filter(k => !k.eaten);
   return n;
 }
-function canNear(x, y){ const m = ab() === 'magnet' ? 1.4 : 1; return foods.some(k => segDist(k.x, k.y, cat.x, cat.y, x, y) < (CAT_R + k.r + 18)*U*0.8*m || Math.hypot(x - k.x, y - k.y) < (CAT_R + k.r + 18)*U*m); }
+function canNear(x, y){ const m = (ab() === 'magnet' ? 1.4 : 1)*MODS().can; return foods.some(k => segDist(k.x, k.y, cat.x, cat.y, x, y) < (CAT_R + k.r + 18)*U*0.8*m || Math.hypot(x - k.x, y - k.y) < (CAT_R + k.r + 18)*U*m); }
 function drawCan(c, k){
   const R = k.r*U;
   c.save(); c.translate(k.x, k.y);
@@ -1199,9 +1295,222 @@ function drawCan(c, k){
   c.restore();
 }
 
+/* ---- walking ---- */
+function moveTo(x, y, mark){
+  const m = margin();
+  cat.tx = Math.min(W - m, Math.max(m, x)); cat.ty = Math.min(H - m, Math.max(m, y));
+  if (mark) parts.push({ mark:true, x:cat.tx, y:cat.ty, life:0.45, t:0 });
+}
+function updateMove(dt){
+  let dx = 0, dy = 0;
+  if (MOVE.active && MOVE.mag > 0.2){ dx = MOVE.ax; dy = MOVE.ay; cat.tx = null; }
+  else if (cat.tx != null){
+    const ex = cat.tx - cat.x, ey = cat.ty - cat.y, d = Math.hypot(ex, ey);
+    if (d < 1.5*U) cat.tx = null; else { dx = ex/d; dy = ey/d; }
+  }
+  const was = cat.moving > 0.5;
+  if (dx || dy){
+    const sp = moveSpeed()*U*(MOVE.active ? Math.min(1, 0.4 + MOVE.mag*0.7) : 1);
+    let step = sp*dt;
+    if (cat.tx != null) step = Math.min(step, Math.hypot(cat.tx - cat.x, cat.ty - cat.y));
+    const px = cat.x, py = cat.y;
+    cat.x += dx*step; cat.y += dy*step; clampCat(); blockWalls(px, py);
+    const k = 1/Math.max(dt, 1e-4);
+    cat.vx = (cat.x - px)*k; cat.vy = (cat.y - py)*k;
+    if (Math.abs(dx) > 0.2) cat.flip = dx > 0 ? -1 : 1;
+    cat.walkT += dt * 11 * Math.min(1.6, moveSpeed()/MOVE_N);
+    cat.dustT -= dt;
+    if (cat.dustT <= 0 && step > 0.2){
+      cat.dustT = 0.13;
+      parts.push({ x:cat.x - dx*6*U + (Math.random() - 0.5)*10*U, y:cat.y + CAT_R*U*1.0, vx:-dx*40*U, vy:-14*U, life:0.38, t:0, color: bgTheme === 'night' ? 'rgba(200,210,190,.5)' : 'rgba(150,120,70,.55)', r:2.4*U });
+    }
+  } else { cat.vx = 0; cat.vy = 0; }
+  const want = (dx || dy) ? 1 : 0;
+  if (was && !want) cat.recoil = 1;
+  cat.moving += (want - cat.moving) * Math.min(1, dt*14);
+  cat.recoil = Math.max(0, cat.recoil - dt*4);
+}
+function blockWalls(px, py){
+  for (const w of walls){
+    if (w.state === 'crumble') continue;
+    const clear = w.th/2 + CAT_R*0.8*U;
+    const before = w.axis === 'h' ? py - w.pos : px - w.pos;
+    const now = w.axis === 'h' ? cat.y - w.pos : cat.x - w.pos;
+    const side = Math.sign(before) || 1;
+    if (Math.abs(now) < clear || Math.sign(now) !== side){
+      if (w.axis === 'h') cat.y = w.pos + side*clear; else cat.x = w.pos + side*clear;
+    }
+  }
+}
+
+/* ---- split snakes, ring volleys, lasers, decoys ---- */
+function splitSnake(s){
+  s.didSplit = true;
+  const a0 = Math.atan2(s.dy, s.dx);
+  [-0.34, 0.34].forEach(da => {
+    const a = a0 + da;
+    const k = { state:'live', x:s.x, y:s.y, sx:s.x, sy:s.y, dx:Math.cos(a), dy:Math.sin(a), speed:s.speed*1.05, r:(s.r || SNAKE_R)*0.8, len:(s.len || BODY_LEN)*0.65,
+      kind:s.kind, col:s.col, phase:Math.random()*TAU, group:s.group, hit:false, grade:s.grade, launchedAt:S.t, visibleAt:S.t, child:true, side:1, fake:false, bossId:s.bossId };
+    k.threat = threatOf(k) >= 0;
+    if (s.group){ s.group.alive++; if (k.threat) s.group.threat = true; }
+    spawnQ.push(k);
+  });
+  burst(s.x, s.y, '#f7b55a', 10, 1); beep(700, 300, 0.08, 'square', 0.03);
+  floats.push({ x:s.x, y:s.y - 20*U, text:L('분열!'), sub:'', color:'#f7b55a', life:0.5, size:16, t:0 });
+}
+function startRing(){
+  const p = P(), n = S.hard ? 12 : 10, R0 = Math.min(380*U, Math.max(W, H)*0.55), cx = cat.x, cy = cat.y;
+  const g = { alive:0, hit:false, grade:null, threat:false, ring:true };
+  const a0 = Math.random()*TAU;
+  for (let i = 0; i < n; i++){
+    const a = a0 + i*TAU/n, sx = cx + Math.cos(a)*R0, sy = cy + Math.sin(a)*R0;
+    g.alive++;
+    snakes.push({ state:'warn', warn: S.hard ? 0.5 : 0.8, sx, sy, x:sx, y:sy, dx:0, dy:0, fixDir:{ dx:-Math.cos(a), dy:-Math.sin(a) },
+      speed: p.speed*0.48, r:10, len:20, kind:'venom', col:SNAKE_COLS[1], phase:Math.random()*TAU, group:g, threat:false, hit:false, grade:null,
+      launchedAt:0, visibleAt:null, endDist: R0 - 4*U, ring:true });
+  }
+  S.ringEvt = true;
+  if (!S.hard) pushBanner(L('원형 탄막!'), L('가까이 왔을 때 바깥으로 플래시!'), 1.2);
+  beep(220, 440, 0.3, 'sawtooth', 0.04);
+  return true;
+}
+function resolveRing(g){
+  S.ringEvt = false;
+  if (S.mode !== 'play' || g.hit || !g.threat) return;
+  if (g.grade == null){ onDodge({ grade:null }); return; }
+  const pts = Math.round(250 * S.stage * HM());
+  S.score += pts;
+  floats.push({ x:cat.x, y:cat.y - 90*U, text:L('탄막 돌파!'), sub:'+' + pts.toLocaleString('ko-KR'), color:'#c07cff', life:1.1, size:28, t:0 });
+  onDodge({ grade: g.grade });
+}
+function resolveAny(g){ if (g.wall) resolveWall(g); else if (g.ring) resolveRing(g); else resolveGroup(g); }
+function startBeam(){
+  const angs = [0, Math.PI/2, Math.PI/4, -Math.PI/4];
+  const a = angs[Math.floor(Math.random()*angs.length)] + (Math.random() - 0.5)*0.15;
+  const b = { beam:true, x:cat.x, y:cat.y, ux:Math.cos(a), uy:Math.sin(a), w:11*U, warn: S.hard ? 0.65 : 0.9, fire:0.22, state:'warn', hit:false, threat:true, grade:null, t:0 };
+  b.warnMax = b.warn;
+  beams.push(b);
+  beep(1200, 1600, 0.25, 'sine', 0.025);
+}
+function beamDist(b){ return Math.abs((cat.x - b.x)*b.uy - (cat.y - b.y)*b.ux); }
+function beamOn(b){ return beamDist(b) < b.w + CAT_R*0.85*U; }
+function updateBeams(dt){
+  for (const b of beams){
+    b.t += dt;
+    if (b.state === 'warn'){
+      b.warn -= dt;
+      if (b.warn <= 0){ b.state = 'fire'; beep(180, 90, 0.22, 'sawtooth', 0.06); shakeScreen(5); }
+    } else if (b.state === 'fire'){
+      if (!b.hit && S.invuln <= 0 && S.mode === 'play' && beamOn(b)) onHit(b);
+      b.fire -= dt;
+      if (b.fire <= 0){
+        b.state = 'done';
+        if (!b.hit && b.threat && S.mode === 'play') onDodge({ grade: b.grade });
+      }
+    }
+  }
+  beams = beams.filter(b => b.state !== 'done');
+}
+function drawBeam(c, b){
+  const L2 = Math.hypot(W, H);
+  const x1 = b.x - b.ux*L2, y1 = b.y - b.uy*L2, x2 = b.x + b.ux*L2, y2 = b.y + b.uy*L2;
+  c.save(); c.lineCap = 'butt';
+  if (b.state === 'warn'){
+    const k = 1 - b.warn/b.warnMax;
+    if (S.hard){ c.strokeStyle = `rgba(255,90,120,${0.12 + k*0.25})`; c.lineWidth = 1.5; }
+    else { c.strokeStyle = `rgba(255,90,120,${0.25 + k*0.45 + 0.1*Math.sin(S.t*40)})`; c.lineWidth = 2 + k*b.w*1.4; c.setLineDash([12, 10]); }
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  } else {
+    c.globalCompositeOperation = 'lighter';
+    c.strokeStyle = 'rgba(255,80,110,.45)'; c.lineWidth = b.w*3.2; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    c.strokeStyle = 'rgba(255,230,240,.95)'; c.lineWidth = b.w*1.1; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  }
+  c.restore();
+}
+function hitDecoy(s){
+  for (const d of decoys){
+    if (d.used) continue;
+    if (Math.hypot(s.x - d.x, s.y - d.y) < (CAT_R*0.9 + (s.r || SNAKE_R))*U){
+      d.used = true; s.dead = true;
+      burst(d.x, d.y, '#ffe9a6', 14, 1.1); beep(900, 500, 0.12, 'triangle', 0.04);
+      floats.push({ x:d.x, y:d.y - 30*U, text:L('잔상 방패!'), sub:'', color:'#ffe9a6', life:0.7, size:20, t:0 });
+      if (s.group){ s.group.alive--; if (s.group.alive <= 0) resolveAny(s.group); }
+      else if (s.threat && !s.hit && S.mode === 'play') onDodge(s);
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ---- roguelike: cat cards after each boss ---- */
+const CARDS = [
+  { id:'cd', icon:'⏱', name:L('쿨타임 단축'), desc:L('플래시 쿨타임 -8%'), gdesc:L('플래시 쿨타임 -12%'), max:5, w:10, syn:['cd'], apply:g => { S.mods.cd *= g ? 0.88 : 0.92; } },
+  { id:'range', icon:'↗', name:L('긴 플래시'), desc:L('플래시 거리 +10%'), gdesc:L('플래시 거리 +15%'), max:4, w:10, syn:['range'], apply:g => { S.mods.range *= g ? 1.15 : 1.1; } },
+  { id:'move', icon:'🐾', name:L('날쌘 발'), desc:L('이동 속도 +12%'), gdesc:L('이동 속도 +18%'), max:5, w:10, syn:[], apply:g => { S.mods.move *= g ? 1.18 : 1.12; } },
+  { id:'life', icon:'🐟', name:L('생선 한 마리'), desc:L('최대 생선 +1, 1개 회복'), gdesc:L('최대 생선 +1, 2개 회복'), max:2, w:7, syn:['shield'], apply:g => { S.maxLives = Math.min(5, S.maxLives + 1); S.lives = Math.min(S.maxLives, S.lives + (g ? 2 : 1)); } },
+  { id:'charge', icon:'⚡', name:L('이중 플래시'), desc:L('플래시를 2번까지 모아 둘 수 있어요'), max:1, w:3, rare:true, syn:[], apply:() => { S.maxCharges = 2; S.charges = Math.min(2, S.charges + 1); } },
+  { id:'decoy', icon:'👻', name:L('잔상 방패'), desc:L('플래시한 자리의 잔상이 뱀 1마리를 막아요'), max:1, w:3, rare:true, syn:[], apply:() => { S.mods.decoy = true; } },
+  { id:'through', icon:'🔁', name:L('역플 장인'), desc:L('역플 보너스 점수 2배'), max:2, w:6, syn:[], apply:() => { S.mods.through *= 2; } },
+  { id:'focus', icon:'🎯', name:L('집중'), desc:L('PERFECT 판정 +20ms, 슬로모션 길게'), max:2, w:5, rare:true, syn:[], apply:() => { S.mods.perfect += 0.02; S.mods.slow += 0.12; } },
+  { id:'graze', icon:'💨', name:L('아슬아슬'), desc:L('아슬 회피하면 쿨타임 0.3초 감소'), gdesc:L('아슬 회피하면 쿨타임 0.45초 감소'), max:2, w:6, syn:['graze'], apply:g => { S.mods.grazeCd += g ? 0.45 : 0.3; } },
+  { id:'magnet', icon:'🥫', name:L('캔 냄새'), desc:L('캔 먹는 범위 +30%, 캔이 더 자주 와요'), gdesc:L('캔 먹는 범위 +45%, 캔이 더 자주 와요'), max:2, w:6, syn:['magnet', 'can'], apply:g => { S.mods.can *= g ? 1.45 : 1.3; S.mods.canRate *= 0.8; } },
+  { id:'curse', icon:'💀', name:L('뱀의 저주'), desc:L('뱀 속도 +15%, 대신 점수 x1.5'), max:3, w:4, curse:true, syn:[], apply:() => { S.mods.snake *= 1.15; S.mods.score *= 1.5; } },
+];
+let cardHand = [];
+function drawCards(){
+  const pool = CARDS.filter(k => (S.cards[k.id] || 0) < k.max);
+  const out = [];
+  while (out.length < 3 && pool.length){
+    const tot = pool.reduce((a, k) => a + k.w, 0);
+    let r = Math.random()*tot, i = 0;
+    for (; i < pool.length; i++){ r -= pool[i].w; if (r <= 0) break; }
+    const k = pool.splice(Math.min(i, pool.length - 1), 1)[0];
+    out.push({ card:k, gold: k.syn.includes(ab()) && !!k.gdesc && Math.random() < 0.5 });
+  }
+  return out;
+}
+function openCards(){
+  if (S.mode !== 'play') return;
+  cardHand = drawCards();
+  if (!cardHand.length) return;
+  S.mode = 'card'; RMBHOLD = false;
+  const row = $('cardRow'); row.textContent = '';
+  cardHand.forEach((h, i) => {
+    const k = h.card, b = document.createElement('button');
+    b.type = 'button'; b.className = 'ncard' + (h.gold ? ' gold' : k.curse ? ' curse' : k.rare ? ' rare' : '');
+    const ic = document.createElement('div'); ic.className = 'ci'; ic.textContent = k.icon;
+    const nm = document.createElement('b'); nm.textContent = k.name;
+    const ds = document.createElement('span'); ds.textContent = h.gold ? k.gdesc : k.desc;
+    const tag = document.createElement('small');
+    tag.textContent = h.gold ? L('금색 · ') + SKINS[S.skin].name + L(' 전용 강화') : k.curse ? L('저주 카드') : k.rare ? L('희귀') : L('보유 ') + (S.cards[k.id] || 0) + '/' + k.max;
+    const key = document.createElement('span'); key.className = 'key'; key.textContent = String(i + 1);
+    b.append(ic, nm, ds, tag, key);
+    b.onclick = () => pickCard(i);
+    row.append(b);
+  });
+  const owned = CARDS.filter(k => S.cards[k.id]).map(k => k.icon + (S.cards[k.id] > 1 ? 'x' + S.cards[k.id] : '')).join('  ');
+  $('cardOwned').textContent = owned ? L('보유 카드 ') + owned : '';
+  $('cardLead').textContent = L('보스를 물리쳤어요! 한 장을 골라 강해지세요.') + (IS_MOBILE ? '' : L(' (1·2·3 키)'));
+  showOnly('cardOv');
+  [784, 988, 1175].forEach((f, i) => beep(f, f, 0.08, 'triangle', 0.035, i*0.06));
+  setTimeout(() => { const f = row.querySelector('button'); if (f && !IS_MOBILE) f.focus({ preventScroll:true }); }, 0);
+}
+function pickCard(i){
+  if (S.mode !== 'card' || !cardHand[i]) return;
+  const h = cardHand[i];
+  h.card.apply(h.gold);
+  S.cards[h.card.id] = (S.cards[h.card.id] || 0) + 1;
+  cardHand = [];
+  S.mode = 'play'; showOnly(null); last = performance.now();
+  pushBanner(h.card.icon + ' ' + h.card.name, h.gold ? L('금색 카드 획득!') : L('카드 획득!'), 1.1);
+  meow(1.2, 0.3, 0.08);
+  cv.focus({ preventScroll:true });
+}
+
 /* ---- graze (near miss) ---- */
 function graze(s){
   s.grazed = true; S.grazes++; missionAdd('graze', 1);
+  if (MODS().grazeCd > 0 && S.cd > 0) S.cd = Math.max(0.001, S.cd - MODS().grazeCd);
   const pts = Math.round(50 * S.stage * HM() * (ab() === 'graze' ? 3 : 1));
   S.score += pts;
   floats.push({ x:cat.x + 30*U, y:cat.y - 20*U, text:L('아슬!') + ' +' + pts.toLocaleString('ko-KR'), sub:'', color:'#bfe8ff', life:0.7, size:18, t:0 });
@@ -1417,7 +1726,7 @@ function ringFx(x, y){ parts.push({ ring:true, x, y, life:0.35, t:0 }); }
 
 /* ---- flow ---- */
 const $ = id => document.getElementById(id);
-function showOnly(id){ ['titleOv','pauseOv','overOv','rankOv','adOv','nickOv'].forEach(o => $(o).hidden = (o !== id)); }
+function showOnly(id){ ['titleOv','pauseOv','overOv','rankOv','adOv','nickOv','cardOv'].forEach(o => $(o).hidden = (o !== id)); }
 
 function start(){
   audio();
@@ -1430,10 +1739,10 @@ function start(){
   const plays = loadPlays();
   savePlays(plays + 1);
   Object.assign(S, { mode:'play', stage:1, score:0, lives:3, dodges:0, stageDodges:0, combo:0, perfect:0, good:0, early:0, whiff:0,
-    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, grazes:0, wallFlashes:0, slowT:0, stopT:0, flashFx:0, shield: ab() === 'shield' ? 1 : 0, wallEvt:false, vsBeat:false, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
-  snakes = []; parts = []; floats = []; ghosts = []; foods = []; walls = []; bannerQ = [];
+    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, grazes:0, wallFlashes:0, slowT:0, stopT:0, flashFx:0, shield: ab() === 'shield' ? 1 : 0, wallEvt:false, ringEvt:false, vsBeat:false, mods: freshMods(), cards:{}, maxCharges:1, charges:1, maxLives:3, cardIn:0, walkDodges:0, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
+  snakes = []; parts = []; floats = []; ghosts = []; foods = []; walls = []; beams = []; decoys = []; spawnQ = []; bannerQ = [];
   missionAdd('games', 1);
-  cat.x = W/2; cat.y = H/2;
+  cat.x = W/2; cat.y = H/2; Object.assign(cat, { tx:null, ty:null, vx:0, vy:0, flip:1, walkT:0, moving:0, recoil:0 });
   banner = S.hard ? { text:'HARD · STAGE 1', sub:L('안내선 없음. 오늘 남은 도전 ') + hardLeft() + L('번'), t:0, life:2.2 } : { text:'STAGE 1', sub: IS_MOBILE ? L('뱀이 온다! 끌었다 떼면 플래시!') : L('뱀이 온다! F 또는 D로 피하세요'), t:0, life:2 };
   playTrack(stageTrack());
   meow(1, 0.35, 0.08);
@@ -1443,7 +1752,7 @@ function start(){
 }
 function pause(){ if (S.mode !== 'play') return; $('pauseLead').textContent = L('큐 잡혔으면 다녀오세요. 창을 벗어나면 자동으로 멈춰요.'); S.mode = 'paused'; pauseMusic(); showOnly('pauseOv'); $('resumeBtn').focus(); }
 function resume(){ if (S.mode !== 'paused') return; S.mode = 'play'; showOnly(null); last = performance.now(); audio(); resumeMusic(); }
-function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; walls = []; snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); loadBoards(); $('startBtn').focus({ preventScroll:true }); const ov = $('titleOv'); if (ov) ov.scrollTop = 0; }
+function toTitle(){ stopMusic(); setTimeout(renderMode, 0); S.mode = 'title'; S.boss = null; bannerQ = []; foods = []; walls = []; beams = []; decoys = []; spawnQ = []; Object.assign(cat, { tx:null, moving:0, flip:1 }); snakes = []; floats = []; parts = []; ghosts = []; cat.x = W/2; cat.y = H/2; renderBest(); showOnly('titleOv'); loadBoards(); $('startBtn').focus({ preventScroll:true }); const ov = $('titleOv'); if (ov) ov.scrollTop = 0; }
 
 function endGame(){
   S.mode = 'over';
@@ -1510,7 +1819,12 @@ function renderBest(){
 /* ---- update ---- */
 function update(dt){
   S.t += dt;
-  S.cd = Math.max(0, S.cd - dt);
+  if (S.charges < S.maxCharges){
+    S.cd -= dt;
+    if (S.cd <= 0){ S.charges++; S.cd = S.charges < S.maxCharges ? cooldown() : 0; }
+  } else S.cd = 0;
+  if (S.mode === 'play') updateMove(dt);
+  if (S.cardIn > 0 && S.mode === 'play'){ S.cardIn -= dt; if (S.cardIn <= 0){ openCards(); return; } }
   S.invuln = Math.max(0, S.invuln - dt);
   S.hurt = Math.max(0, S.hurt - dt);
   S.shake *= Math.pow(0.002, dt);
@@ -1518,19 +1832,48 @@ function update(dt){
     if (S.boss) updateBoss(dt);
     else {
       S.spawnIn -= dt;
-      if (S.spawnIn <= 0 && !S.wallEvt){
+      if (S.spawnIn <= 0 && !S.wallEvt && !S.ringEvt){
+        const es = effStage();
         if (S.stage >= 2 && !snakes.length && Math.random() < (S.hard ? 0.28 : 0.22) && startWall()) S.spawnIn = P().interval * 1.4;
-        else { spawnWave(); S.spawnIn = P().interval * (0.85 + Math.random()*0.3); }
+        else if (es >= 7 && snakes.length <= 2 && Math.random() < 0.2 && startRing()) S.spawnIn = P().interval * 1.5;
+        else {
+          spawnWave();
+          if (es >= 7 && Math.random() < Math.min(0.35, 0.18 + (es-7)*0.04)) startBeam();
+          S.spawnIn = P().interval * (0.85 + Math.random()*0.3);
+        }
       }
     }
   }
   for (const s of snakes){
     if (s.state === 'warn'){ s.warn -= dt; if (s.warn <= 0) launch(s); continue; }
+    if (s.homing && s.homeT > 0 && !s.hit){
+      s.homeT -= dt;
+      const hx = cat.x - s.x, hy = cat.y - s.y, hd = Math.hypot(hx, hy) || 1;
+      if (hd < 70*U || hx*s.dx + hy*s.dy < 0) s.homing = 0;
+      else {
+        const want = Math.atan2(hy, hx), cur = Math.atan2(s.dy, s.dx);
+        let da = want - cur; while (da > Math.PI) da -= TAU; while (da < -Math.PI) da += TAU;
+        const turn = Math.max(-s.homing*dt, Math.min(s.homing*dt, da)), na = cur + turn;
+        s.dx = Math.cos(na); s.dy = Math.sin(na);
+        s.threat = s.threat || threatOf(s) >= 0;
+      }
+      if (s.homeT <= 0) s.homing = 0;
+    }
+    if (s.split && !s.didSplit && Math.hypot(cat.x - s.x, cat.y - s.y) < 230*U) splitSnake(s);
     const dist = s.speed * U * dt, steps = Math.max(1, Math.ceil(dist / (5*U)));
+    if (s.endDist != null){
+      s.trav = (s.trav || 0) + dist;
+      if (s.trav >= s.endDist){
+        s.dead = true; burst(s.x, s.y, '#c07cff', 6, 0.7);
+        if (s.group){ s.group.alive--; if (s.group.alive <= 0) resolveAny(s.group); }
+        continue;
+      }
+    }
     const L = s.kind === 'snake' ? NECK*U : s.len*U*0.85, hitR = (CAT_R*0.85 + s.r)*U;
     for (let k = 0; k < steps; k++){
       s.x += s.dx*dist/steps; s.y += s.dy*dist/steps;
       if (s.group && s.group.wall && wallBlocks(s)) break;
+      if (decoys.length && s.kind !== 'boss' && hitDecoy(s)) break;
       if (!s.hit && S.invuln <= 0 && S.mode === 'play'){
         const dd = segDist(cat.x, cat.y, s.x - s.dx*L, s.y - s.dy*L, s.x, s.y);
         if (dd < hitR){ onHit(s); break; }
@@ -1549,16 +1892,19 @@ function update(dt){
           const b = S.boss, sp = bossSpots()[b.spot], ex = sp.x - W/2, ey = sp.y - H/2, el = Math.hypot(ex, ey) || 1;
           b.hidden = false; b.x = sp.x + ex/el*170*U; b.y = sp.y + ey/el*170*U;
         }
-        s.group.alive--; if (s.group.alive <= 0) (s.group.wall ? resolveWall(s.group) : resolveGroup(s.group));
+        s.group.alive--; if (s.group.alive <= 0) resolveAny(s.group);
       }
       else if (s.threat && !s.hit && S.mode === 'play') onDodge(s);
     }
   }
   snakes = snakes.filter(s => !s.dead);
+  if (spawnQ.length){ snakes.push(...spawnQ); spawnQ = []; }
+  updateBeams(dt);
+  for (const d of decoys) d.t += dt; decoys = decoys.filter(d => d.t < d.life && !d.used);
   updateWalls(dt);
   if (S.mode === 'play'){
     S.canIn -= dt;
-    if (S.canIn <= 0){ spawnCan(); S.canIn = (5 + Math.random()*4) * (S.hard ? 1.4 : 1); }
+    if (S.canIn <= 0){ spawnCan(); S.canIn = (5 + Math.random()*4) * (S.hard ? 1.4 : 1) * MODS().canRate; }
   }
   for (const k of foods){
     k.x += k.dx*k.speed*U*dt; k.y += k.dy*k.speed*U*dt;
@@ -1567,7 +1913,7 @@ function update(dt){
   }
   for (const k of foods) if (k.gone && !k.eaten && S.mode === 'play' && !k.told){ k.told = true; floats.push({ x: Math.min(W - 60, Math.max(60, k.x)), y: Math.min(H - 60, Math.max(60, k.y)), text:L('캔 놓침'), sub:'', color:'#9fb19c', life:0.8, size:16, t:0 }); }
   foods = foods.filter(k => !k.gone);
-  for (const p of parts){ p.t += dt; if (!p.ring){ p.x += p.vx*dt; p.y += p.vy*dt; p.vx *= 0.9; p.vy *= 0.9; } }
+  for (const p of parts){ p.t += dt; if (p.vx != null){ p.x += p.vx*dt; p.y += p.vy*dt; p.vx *= 0.9; p.vy *= 0.9; } }
   parts = parts.filter(p => p.t < p.life);
   for (const g of ghosts) g.t += dt; ghosts = ghosts.filter(g => g.t < g.life);
   for (const f of floats) f.t += dt; floats = floats.filter(f => f.t < f.life);
@@ -1579,13 +1925,19 @@ function update(dt){
 /* ---- drawing ---- */
 function drawCat(c, x, y, R, sk, o = {}){
   const t = o.t || 0, ol = '#1a1517', lw = Math.max(1.4, R*0.07);
+  const mv = o.moving || 0, ph = o.walk || 0, rc = o.recoil || 0, fl = o.flip || 1;
   c.save(); c.translate(x, y);
-  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(0, R*1.12, R*0.95, R*0.26, 0, 0, TAU); c.fill();
-  // tail
-  const w = Math.sin(t*3) * R*0.25;
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(0, R*1.12, R*0.95*(1 - mv*0.08*Math.abs(Math.sin(ph))), R*0.26, 0, 0, TAU); c.fill();
+  // walking: flip toward travel, lean forward, bob on each step, small settle after stopping
+  c.scale(fl, 1);
+  const bob = -Math.abs(Math.sin(ph))*R*0.12*mv;
+  const lean = -0.09*mv - 0.07*Math.sin(rc*Math.PI);
+  c.translate(0, R*1.05); c.rotate(lean); c.translate(0, -R*1.05 + bob);
+  // tail (raised and wagging faster while walking)
+  const w = Math.sin(t*(3 + 7*mv)) * R*(0.25 + 0.08*mv);
   c.lineCap = 'round';
   c.strokeStyle = ol; c.lineWidth = R*0.28 + lw*2;
-  c.beginPath(); c.moveTo(R*0.55, R*0.78); c.quadraticCurveTo(R*1.4, R*0.6 + w, R*1.15, -R*0.05 + w); c.stroke();
+  c.beginPath(); c.moveTo(R*0.55, R*0.78); c.quadraticCurveTo(R*1.45, R*0.6 - R*0.35*mv + w, R*1.2 - R*0.1*mv, -R*0.05 - R*0.45*mv + w); c.stroke();
   c.strokeStyle = sk.pattern === 'calico' ? sk.earL : sk.base; c.lineWidth = R*0.28;
   c.stroke();
   // body
@@ -1593,7 +1945,11 @@ function drawCat(c, x, y, R, sk, o = {}){
   c.beginPath(); c.ellipse(0, R*0.62, R*0.78, R*0.55, 0, 0, TAU); c.fill(); c.stroke();
   c.fillStyle = sk.belly; c.beginPath(); c.ellipse(0, R*0.72, R*0.4, R*0.36, 0, 0, TAU); c.fill();
   c.fillStyle = sk.paw;
-  [-1, 1].forEach(sd => { c.beginPath(); c.ellipse(sd*R*0.33, R*1.05, R*0.2, R*0.13, 0, 0, TAU); c.fill(); c.stroke(); });
+  [-1, 1].forEach(sd => {
+    const st = Math.sin(ph + (sd > 0 ? Math.PI : 0));
+    const lift = Math.max(0, st)*R*0.16*mv, fwd = Math.cos(ph + (sd > 0 ? Math.PI : 0))*R*0.1*mv;
+    c.beginPath(); c.ellipse(sd*R*0.33 - fwd, R*1.05 - bob - lift, R*0.2, R*0.13, 0, 0, TAU); c.fill(); c.stroke();
+  });
   // ears
   [-1, 1].forEach(sd => {
     let col = sk.base;
@@ -1624,7 +1980,7 @@ function drawCat(c, x, y, R, sk, o = {}){
   c.fillStyle = 'rgba(255,120,140,.35)';
   [-1, 1].forEach(sd => { c.beginPath(); c.ellipse(sd*R*0.62, R*0.08, R*0.14, R*0.09, 0, 0, TAU); c.fill(); });
   // eyes
-  const lx = o.look ? o.look.x : 0, ly = o.look ? o.look.y : 0;
+  const lx = (o.look ? o.look.x : 0)*fl, ly = o.look ? o.look.y : 0;
   [-1, 1].forEach(sd => {
     const ex = sd*R*0.38, ey = -R*0.2;
     if (o.dizzy){
@@ -1693,8 +2049,13 @@ function drawSnake(c, s){
     c.strokeStyle = '#ff5c78'; c.lineWidth = Math.max(1.2, R*0.18);
     c.beginPath(); c.moveTo(R*1.2, 0); c.lineTo(R*2.0, 0); c.lineTo(R*2.4, -R*0.3); c.moveTo(R*2.0, 0); c.lineTo(R*2.4, R*0.3); c.stroke();
   }
+  if (s.homing){
+    c.fillStyle = `rgba(228,103,196,${0.25 + 0.15*Math.sin(S.t*18)})`;
+    c.beginPath(); c.arc(0, 0, R*2.4, 0, TAU); c.fill();
+  }
   c.fillStyle = s.col.head; c.strokeStyle = '#13201a'; c.lineWidth = 2;
   c.beginPath(); c.ellipse(0, 0, R*1.45, R*1.1, 0, 0, TAU); c.fill(); c.stroke();
+  if (s.split && !s.didSplit){ c.strokeStyle = '#3a1d05'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-R*0.8, -R*0.2); c.lineTo(-R*0.2, R*0.1); c.lineTo(-R*0.6, R*0.5); c.stroke(); }
   [-1, 1].forEach(sd => {
     c.fillStyle = '#ffe36b'; c.beginPath(); c.arc(R*0.45, sd*R*0.55, R*0.34, 0, TAU); c.fill();
     c.fillStyle = '#111'; c.beginPath(); c.ellipse(R*0.5, sd*R*0.55, R*0.08, R*0.26, 0, 0, TAU); c.fill();
@@ -1885,7 +2246,7 @@ function render(){
     const dayG = bgTheme === 'day';
     c.strokeStyle = dayG ? 'rgba(30,40,20,.35)' : 'rgba(245,235,211,.22)'; c.lineWidth = 1;
     c.beginPath(); c.arc(cat.x, cat.y, CAT_R*0.85*U, 0, TAU); c.stroke();
-    const ready = S.cd <= 0;
+    const ready = S.charges > 0;
     c.strokeStyle = ready ? (dayG ? 'rgba(120,80,0,.45)' : 'rgba(255,201,74,.22)') : (dayG ? 'rgba(30,40,20,.15)' : 'rgba(245,235,211,.08)');
     c.setLineDash([4, 6]); c.lineWidth = 1.5;
     c.beginPath(); c.arc(cat.x, cat.y, flashRange()*U, 0, TAU); c.stroke(); c.setLineDash([]);
@@ -1900,6 +2261,20 @@ function render(){
   }
 
   for (const w of walls) drawWall(c, w);
+  for (const b of beams) drawBeam(c, b);
+  for (const d of decoys){
+    c.globalAlpha = 0.45*(1 - d.t/d.life);
+    drawCat(c, d.x, d.y, CAT_R*U*1.05, SKINS[S.skin], { t:S.t, look:{ x:0, y:0.3 } });
+    c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(255,233,166,.7)'; c.lineWidth = 2; c.setLineDash([3, 4]);
+    c.beginPath(); c.arc(d.x, d.y, CAT_R*U*1.3, 0, TAU); c.stroke(); c.setLineDash([]);
+  }
+  if (!S.hard && S.mode === 'play' && snakes.some(s => s.homing && s.state === 'live')){
+    c.save(); c.translate(cat.x, cat.y); c.rotate(S.t*3);
+    c.strokeStyle = 'rgba(228,103,196,' + (0.55 + 0.3*Math.sin(S.t*20)) + ')'; c.lineWidth = 2;
+    for (let i = 0; i < 4; i++){ c.rotate(Math.PI/2); c.beginPath(); c.arc(0, 0, CAT_R*U*1.9, -0.35, 0.35); c.stroke(); }
+    c.restore();
+  }
   if (S.boss) drawBoss(c, S.boss);
   for (const k of foods) drawCan(c, k);
 
@@ -1937,7 +2312,8 @@ function render(){
       c.beginPath(); c.arc(cat.x, cat.y + R*0.2, R*1.7, 0, TAU); c.fill(); c.stroke();
     }
     drawCat(c, cat.x, cat.y, R, SKINS[S.skin], {
-      t: S.t || performance.now()/1000, dizzy: S.hurt > 0 || S.mode === 'dying', blink, look: nearestLook(), form: S.mode === 'title' ? 0 : S.form
+      t: S.t || performance.now()/1000, dizzy: S.hurt > 0 || S.mode === 'dying', blink, look: nearestLook(), form: S.mode === 'title' ? 0 : S.form,
+      walk: cat.walkT, moving: S.mode === 'title' ? 0 : cat.moving, flip: S.mode === 'title' ? 1 : cat.flip, recoil: cat.recoil
     });
   }
 
@@ -1945,7 +2321,14 @@ function render(){
 
   for (const p of parts){
     const k = 1 - p.t/p.life;
-    if (p.slash){
+    if (p.mark){
+      const r = (1 - k*0.6)*14*U + 4*U;
+      c.strokeStyle = `rgba(143,220,91,${k})`; c.lineWidth = 2.5;
+      for (let i = 0; i < 4; i++){
+        const a = i*Math.PI/2 + Math.PI/4, ex = p.x + Math.cos(a)*r, ey = p.y + Math.sin(a)*r;
+        c.beginPath(); c.moveTo(ex + Math.cos(a + 2.5)*6*U, ey + Math.sin(a + 2.5)*6*U); c.lineTo(ex, ey); c.lineTo(ex + Math.cos(a - 2.5)*6*U, ey + Math.sin(a - 2.5)*6*U); c.stroke();
+      }
+    } else if (p.slash){
       const Ls = 150*U, px = -p.dy, py = p.dx, w = 6*U*k;
       c.save(); c.globalCompositeOperation = 'lighter';
       c.strokeStyle = `rgba(255,255,255,${0.85*k})`; c.lineWidth = Math.max(1, w); c.lineCap = 'round';
@@ -2017,7 +2400,14 @@ function drawHUD(c){
     c.fillStyle = i < S.stageDodges ? '#8fdc5b' : 'rgba(245,235,211,.15)';
     roundRect(c, sx + i*12, pad + 34, 8, 12, 3); c.fill();
   }
-  for (let i = 0; i < 3; i++) drawFish(c, pad + 12 + i*30, pad + 66, 22, i < S.lives);
+  for (let i = 0; i < S.maxLives; i++) drawFish(c, pad + 12 + i*30, pad + 66, 22, i < S.lives);
+  const owned = S.cards ? CARDS.filter(k => S.cards[k.id]) : [];
+  if (owned.length){
+    c.font = '15px system-ui,sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+    let cx2 = pad;
+    owned.forEach(k => { const t2 = k.icon + (S.cards[k.id] > 1 ? S.cards[k.id] : ''); c.fillStyle = '#f5ebd3'; c.fillText(t2, cx2, pad + 92); cx2 += c.measureText(t2).width + 8; });
+    c.textBaseline = 'alphabetic';
+  }
 
   c.textAlign = 'right';
   c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText('SCORE', W - pad, pad + 12);
@@ -2048,14 +2438,14 @@ function drawHUD(c){
   // flash key
   const sz = 54, x = W/2 - sz/2, y = H - sz - 26;
   c.fillStyle = 'rgba(17,28,23,.85)'; roundRect(c, x, y, sz, sz, 12); c.fill();
-  c.strokeStyle = S.cd <= 0 ? '#ffc94a' : 'rgba(245,235,211,.25)'; c.lineWidth = 2.5; roundRect(c, x, y, sz, sz, 12); c.stroke();
+  c.strokeStyle = S.charges > 0 ? '#ffc94a' : 'rgba(245,235,211,.25)'; c.lineWidth = 2.5; roundRect(c, x, y, sz, sz, 12); c.stroke();
   // spark glyph
   c.save(); c.translate(W/2, y + sz/2);
-  c.fillStyle = S.cd <= 0 ? '#ffc94a' : 'rgba(245,235,211,.35)';
+  c.fillStyle = S.charges > 0 ? '#ffc94a' : 'rgba(245,235,211,.35)';
   c.beginPath();
   for (let i = 0; i < 8; i++){ const a = i*Math.PI/4 - Math.PI/2, r = i % 2 ? 7 : 17; c.lineTo(Math.cos(a)*r, Math.sin(a)*r); }
   c.closePath(); c.fill();
-  if (S.cd > 0){
+  if (S.cd > 0 && S.charges <= 0){
     c.fillStyle = 'rgba(10,16,13,.65)';
     c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, sz*0.72, -Math.PI/2, -Math.PI/2 + TAU*(S.cd/cooldown())); c.closePath();
     c.save(); roundRect(c, -sz/2, -sz/2, sz, sz, 12); c.clip(); c.fill(); c.restore();
@@ -2063,8 +2453,15 @@ function drawHUD(c){
     c.fillText(S.cd.toFixed(1), 0, 1);
   }
   c.restore();
+  if (S.maxCharges > 1){
+    for (let i = 0; i < S.maxCharges; i++){
+      c.fillStyle = i < S.charges ? '#ffc94a' : 'rgba(245,235,211,.2)'; c.strokeStyle = '#0b120e'; c.lineWidth = 2;
+      c.beginPath(); c.arc(W/2 + sz/2 + 10, y + 12 + i*14, 5, 0, TAU); c.fill(); c.stroke();
+    }
+    if (S.cd > 0 && S.charges > 0){ c.strokeStyle = '#ffc94a'; c.lineWidth = 2; c.beginPath(); c.arc(W/2 + sz/2 + 10, y + 12 + S.charges*14, 5, -Math.PI/2, -Math.PI/2 + TAU*(1 - S.cd/cooldown())); c.stroke(); }
+  }
   c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText(IS_MOBILE ? L('끌었다 떼면 플래시') : L('F · D 플래시'), W/2, H - 8);
+  c.font = F(13); c.fillStyle = '#9fb19c'; c.fillText(IS_MOBILE ? L('왼쪽 끌기 이동 · 오른쪽 끌었다 떼면 플래시') : L('F · D 플래시 · 우클릭 이동'), W/2, H - 8);
 }
 
 
@@ -2083,10 +2480,10 @@ function frame(now){
       const r = flashRange()*U*Math.max(0.15, JOY.mag);
       mouse.x = cat.x + JOY.ax*r; mouse.y = cat.y + JOY.ay*r; mouse.seen = true;
     }
-    if (!(S.mode === 'play' || S.mode === 'dying') && !$('joyF').hidden) $('joyF').hidden = true;
+    if (!(S.mode === 'play' || S.mode === 'dying')){ if (!$('joyF').hidden) $('joyF').hidden = true; if (!$('joyM').hidden){ $('joyM').hidden = true; MOVE.id = null; MOVE.active = false; MOVE.mag = 0; } }
   }
   if (S.mode === 'play' || S.mode === 'dying') update(dt);
-  else if (S.mode === 'title' || S.mode === 'over'){ S.t += dt; for (const p of parts) p.t += dt; parts = parts.filter(p => p.t < p.life); }
+  else if (S.mode === 'title' || S.mode === 'over'){ S.t += dt; cat.moving = 0; for (const p of parts) p.t += dt; parts = parts.filter(p => p.t < p.life); }
   render();
   requestAnimationFrame(frame);
 }
@@ -2099,8 +2496,19 @@ function frame(now){
   let ox = 0, oy = 0, px = 0, py = 0;
   const setKnob = (x, y) => { knob.style.transform = 'translate(' + x + 'px,' + y + 'px)'; };
   const local = e => { const r = field.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  const mb = $('joyM'), mk = $('joyMKnob');
+  let mox = 0, moy = 0;
   cv.addEventListener('pointerdown', e => {
-    if (S.mode !== 'play' || JOY.id != null) return;
+    if (S.mode !== 'play') return;
+    const [lx0, ly0] = local(e);
+    if (lx0 < field.clientWidth*0.4 && MOVE.id == null){
+      e.preventDefault(); audio();
+      MOVE.id = e.pointerId; MOVE.active = true; MOVE.mag = 0;
+      try { cv.setPointerCapture(e.pointerId); } catch(err){}
+      mox = lx0; moy = ly0; mb.style.left = mox + 'px'; mb.style.top = moy + 'px'; mk.style.transform = 'translate(0,0)'; mb.hidden = false;
+      return;
+    }
+    if (JOY.id != null) return;
     e.preventDefault(); audio();
     JOY.id = e.pointerId; JOY.active = true; JOY.moved = false;
     try { cv.setPointerCapture(e.pointerId); } catch(err){}
@@ -2108,6 +2516,14 @@ function frame(now){
     base.style.left = ox + 'px'; base.style.top = oy + 'px'; setKnob(0, 0); base.hidden = false;
   });
   cv.addEventListener('pointermove', e => {
+    if (e.pointerId === MOVE.id){
+      const [qx, qy] = local(e);
+      let x = qx - mox, y = qy - moy; const d = Math.hypot(x, y);
+      if (d > 8){ MOVE.ax = x/d; MOVE.ay = y/d; MOVE.mag = Math.min(1, d/R); } else MOVE.mag = 0;
+      if (d > R){ x = x/d*R; y = y/d*R; }
+      mk.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      return;
+    }
     if (e.pointerId !== JOY.id) return;
     [px, py] = local(e);
     let x = px - ox, y = py - oy; const d = Math.hypot(x, y);
@@ -2118,6 +2534,7 @@ function frame(now){
     setKnob(x, y);
   });
   const end = e => {
+    if (e.pointerId === MOVE.id){ MOVE.id = null; MOVE.active = false; MOVE.mag = 0; mb.hidden = true; return; }
     if (e.pointerId !== JOY.id) return;
     JOY.id = null; JOY.active = false; base.hidden = true;
     if (S.mode !== 'play' || e.type === 'pointercancel') return;
@@ -2131,16 +2548,29 @@ function frame(now){
     flash();
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
-  cv.addEventListener('contextmenu', e => e.preventDefault());
 })();
 function setMouse(e){ const r = cv.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; mouse.seen = true; }
-cv.addEventListener('pointermove', e => { if (!IS_MOBILE) setMouse(e); });
-cv.addEventListener('pointerdown', e => { if (IS_MOBILE) return; setMouse(e); if (e.pointerType !== 'mouse' && S.mode === 'play') flash(); });
+let RMBHOLD = false;
+cv.addEventListener('pointermove', e => {
+  if (IS_MOBILE) return;
+  setMouse(e);
+  if (RMBHOLD && (e.buttons & 2) && S.mode === 'play') moveTo(mouse.x, mouse.y, false);
+});
+cv.addEventListener('pointerdown', e => {
+  if (IS_MOBILE) return;
+  setMouse(e);
+  if (e.pointerType === 'mouse' && e.button === 2){ e.preventDefault(); if (S.mode === 'play'){ RMBHOLD = true; moveTo(mouse.x, mouse.y, true); } return; }
+  if (e.pointerType !== 'mouse' && S.mode === 'play') flash();
+});
+window.addEventListener('pointerup', e => { if (e.button === 2) RMBHOLD = false; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => {
   const k = e.code;
   if (e.target && e.target.tagName === 'INPUT'){ if (k === 'Escape' && S.mode === 'ranking') closeRank(); if (k === 'Escape' && S.mode === 'nick' && GATE.edit) closeGate(); return; }
   if (S.mode === 'nick'){ if (k === 'Escape' && GATE.edit) closeGate(); return; }
   if (S.mode === 'ranking'){ if (k === 'Escape') closeRank(); return; }
+  if (S.mode === 'card'){ const m = /^(?:Digit|Numpad)([1-3])$/.exec(k); if (m){ e.preventDefault(); pickCard(+m[1] - 1); } return; }
+  if (k === 'KeyS' && S.mode === 'play'){ cat.tx = null; return; }
   if (k === 'KeyF' || k === 'KeyD'){ if (S.mode === 'play'){ e.preventDefault(); if (!e.repeat) flash(); } return; }
   if (e.repeat) return;
   if (k === 'Escape' || k === 'KeyP'){ if (S.mode === 'play') pause(); else if (S.mode === 'paused') resume(); }

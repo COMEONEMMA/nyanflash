@@ -127,7 +127,7 @@ async function handle(req, env, url) {
     const plausible = durationMs <= elapsed + 3000
       && stage <= 1 + sec / 10
       && bossKills <= stage - 1
-      && score <= Math.max(4500, sec * 1600 * stage * (run.mode === 'hard' ? 1.6 : 1));
+      && score <= Math.max(4500, sec * 3500 * stage * (run.mode === 'hard' ? 1.6 : 1));
     if (!plausible) return json({ ok: false, reason: '기록이 비정상이라 랭킹에 반영되지 않았어요.' });
     const week = weekKey(now);
     const mode = run.mode === 'hard' ? 'hard' : 'normal';
