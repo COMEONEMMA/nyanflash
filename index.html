@@ -4,8 +4,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://cloudflareinsights.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.gstatic.com https://*.doubleclick.net https://*.adtrafficquality.google https://*.googletagservices.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self'; connect-src 'self' https://cloudflareinsights.com https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.adtrafficquality.google; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="google-adsense-account" content="ca-pub-9063467564360255">
 <style id="antiClickjack">html{display:none!important}</style>
 <script>if (window.self === window.top) { document.getElementById('antiClickjack').remove(); } else { window.top.location = window.self.location; }</script>
 <meta name="description" content="롤 큐 기다리는 동안 하는 플래시 반응 연습 게임. 날아오는 뱀을 F·D 플래시로 피하세요.">
@@ -302,6 +303,7 @@ body.standalone .install{display:none!important}
         </div>
         <footer class="foot">
           <span>문의 · 제보: <a href="mailto:xmas42@naver.com">xmas42@naver.com</a><button class="mini" id="copyMail" type="button">복사</button></span>
+          <span><a href="/about.html">게임 소개</a> · <a href="/privacy.html">개인정보처리방침</a></span>
           <span>© 2026 냥. 플 (Nyan Flash). 게임 코드, 그림, 음악의 무단 복제·수정·재배포 및 상업적 이용을 금지합니다.</span>
         </footer>
       </div>
@@ -436,6 +438,7 @@ Object.assign(EN, { '내 순위': 'My rank',
   '닉네임을 정하면 판마다 기록이 이번 주 랭킹과 티어에 올라가요. 나중에 언제든 바꿀 수 있어요.': 'With a nickname, every game counts toward the weekly ranking and your tier. You can change it anytime.',
   '랭킹 서버에 연결하지 못했어요. 게스트로 먼저 해 보세요.': "Couldn't reach the ranking server. Try playing as a guest for now.",
   '님, 어서 와요!': ', welcome back!', '닉네임 변경': 'Change name', '게스트로 플레이 중 · 기록이 랭킹에 안 올라가요': "Playing as guest · scores won't be ranked",
+  '게임 소개': 'About the game', '개인정보처리방침': 'Privacy policy',
   '하드 랭킹': 'Hard ranking', '노말 랭킹': 'Normal ranking', '이번 주 ': 'This week · ', '이번 주': 'This week', '전체 보기': 'See all', '아직 기록이 없어요. 첫 주인공이 되어 보세요!': 'No records yet. Be the first!',
   '고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.': 'Each cat has its own ability. When a rock wall rises, Flash over it! Near misses give bonus points. Daily missions unlock new cats.'
 });

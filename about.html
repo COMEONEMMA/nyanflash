@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google-adsense-account" content="ca-pub-9063467564360255">
+<title>냥. 플 게임 소개 · 조작법, 보스, 고양이 능력</title>
+<meta name="description" content="냥. 플(Nyan Flash) 조작법, 플래시 타이밍 판정, 보스 패턴, 고양이 능력, 하드 모드와 랭킹 안내.">
+<link rel="canonical" href="https://nyanflash.com/about.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<meta name="theme-color" content="#111c17">
+<style>
+:root{--bg:#111c17;--card:#1b2a22;--line:#2f4a3a;--cream:#f6efd9;--muted:#a9b8a8;--amber:#ffc94a;--venom:#8fdc5b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--cream);font:16px/1.75 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;word-break:keep-all}
+main{max-width:760px;margin:0 auto;padding:32px 16px 64px}
+a{color:var(--amber)}
+h1{font-size:36px;line-height:1.2;margin:8px 0 4px;color:var(--amber)}
+h2{font-size:22px;margin:36px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+h3{font-size:18px;margin:20px 0 4px}
+p,li{color:#e6e1cf}
+.muted{color:var(--muted);font-size:14px}
+.top{display:flex;gap:14px;flex-wrap:wrap;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:15px}
+td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.play{display:inline-block;background:var(--amber);color:#1b1405;font-weight:700;text-decoration:none;padding:10px 22px;border-radius:12px;margin-top:8px}
+footer{margin-top:48px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<nav class="top"><a href="/">← 게임하러 가기</a><a href="/about.html">게임 소개</a><a href="/privacy.html">개인정보처리방침</a></nav>
+
+<h1>냥. 플 (Nyan Flash) 게임 소개</h1>
+<p class="muted">롤 큐 기다리는 동안 하는 플래시 반응 연습 게임</p>
+<p>냥. 플은 리그 오브 레전드의 <b>점멸(플래시)</b> 타이밍을 연습하는 무료 웹 게임이에요. 귀여운 고양이가 숲속에서 날아오는 뱀을 피해야 해요. 키보드 <b>F</b>나 <b>D</b>를 누르면 마우스가 있는 방향으로 순간이동해요. 설치 없이 PC와 모바일 브라우저에서 바로 할 수 있어요.</p>
+<a class="play" href="/">지금 플레이하기</a>
+
+<h2>기본 조작</h2>
+<ul>
+<li><b>PC</b>: 마우스로 피할 방향을 가리키고 F 또는 D를 눌러 플래시해요. 한글 입력 상태여도 돼요. Esc로 일시정지, Enter로 시작해요.</li>
+<li><b>모바일</b>: 화면 아무 데나 손가락을 대고 피할 방향으로 끌었다가 떼는 순간 플래시해요. 톡 치면 친 곳으로 플래시해요. 모바일은 노말 모드만 할 수 있어요.</li>
+<li>플래시를 쓰면 쿨타임이 1초 생겨요. 뱀이 오기도 전에 미리 쓰면 정작 필요할 때 못 써요.</li>
+</ul>
+
+<h2>타이밍 판정</h2>
+<p>롤에서 좋은 점멸은 스킬이 닿기 직전에 쓰는 점멸이에요. 냥. 플도 뱀이 몸에 닿기 몇 ms 전에 플래시를 썼는지 재서 판정해요.</p>
+<table>
+<tr><th>판정</th><th>기준</th><th>의미</th></tr>
+<tr><td><b style="color:var(--amber)">PERFECT</b></td><td>닿기 직전 짧은 순간</td><td>가장 높은 점수, 콤보가 이어지고 화면이 잠깐 느려져요</td></tr>
+<tr><td>GOOD</td><td>조금 여유 있게</td><td>콤보가 이어져요</td></tr>
+<tr><td>빠름</td><td>너무 일찍</td><td>살긴 했지만 콤보가 끊겨요</td></tr>
+</table>
+<p>빗나가는 뱀도 섞여 나와요. 나한테 오지 않는 뱀에 플래시를 쓰면 <b>헛플</b>로 기록돼요. 뱀을 아슬하게 스치고 지나가면 <b>아슬!</b> 보너스 점수가 붙어요.</p>
+
+<h2>스테이지와 보스</h2>
+<p>뱀 8마리를 피하면 보스가 나와요. 보스마다 공격 패턴이 다르고, PERFECT나 GOOD으로 정해진 횟수만큼 연속해서 피해야 이기고 다음 스테이지로 넘어가요. 스테이지가 오를수록 뱀이 빨라져요.</p>
+<ul>
+<li><b>킹코브라</b>: 몸을 쭉 뻗는 찌르기, 부채꼴로 여러 마리 뿜기, 빠른 연사를 섞어 써요.</li>
+<li><b>독수리 대장</b>: 위에서 내리꽂는 급강하와 양쪽에서 동시에 오는 쌍공격이 특기예요.</li>
+<li><b>불독 두목</b>: 뱀을 벽처럼 한 줄로 몰아 보내고 빠르게 연사해요.</li>
+<li><b>아나콘다</b>: 넓은 벽 공격과 쌍공격을 섞어 쓰는 마지막 보스예요.</li>
+</ul>
+<p>모든 보스는 경고 후 고양이를 향해 몸통 박치기 <b>돌진</b>도 해요. 돌진 직전까지 기다렸다가 옆으로 플래시하는 게 핵심이에요.</p>
+<p>2스테이지부터는 가끔 <b>바위 벽</b>이 솟고 반대편에서 뱀이 한 줄로 몰려와요. 옆으로는 피할 곳이 없어서 <b>벽 너머로 플래시</b>해야만 살 수 있어요. 롤에서 벽 넘기 점멸을 연습하는 느낌이에요.</p>
+
+<h2>고양이와 능력</h2>
+<table>
+<tr><th>고양이</th><th>능력</th><th>얻는 법</th></tr>
+<tr><td>치즈</td><td>플래시 쿨타임 -10%</td><td>기본</td></tr>
+<tr><td>턱시도</td><td>플래시 거리 +15%</td><td>기본</td></tr>
+<tr><td>삼색이</td><td>캔 점수 2배, 황금 캔이 더 자주 나와요</td><td>기본</td></tr>
+<tr><td>러시안블루</td><td>판마다 보호막 1회</td><td>기본</td></tr>
+<tr><td>까망이</td><td>아슬 회피 점수 3배</td><td>미션 3개 완료</td></tr>
+<tr><td>금동이</td><td>캔 자석 (먹는 범위 +40%)</td><td>미션 9개 완료</td></tr>
+</table>
+<p>가끔 고양이 캔이 화면을 지나가요. 플래시로 덮치거나 스치면 보너스 점수를 얻고, 반짝이는 황금 캔은 생명(생선)도 1개 회복해 줘요. 콤보가 5, 10, 20에 닿으면 고양이가 변신해요.</p>
+
+<h2>노말과 하드</h2>
+<ul>
+<li><b>노말</b>: 처음 3판은 뱀 경로가 보여요. 경고 표시가 있어서 처음 하는 사람도 할 만해요. 아침과 밤 배경이 번갈아 나와요.</li>
+<li><b>하드</b>: 뱀이 훨씬 빠르고 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전할 수 있고 점수가 1.5배예요. 랭킹도 따로 매겨요. PC에서만 할 수 있어요.</li>
+</ul>
+
+<h2>일일 미션, 랭킹, 티어</h2>
+<p>매일 한국 시간 0시에 미션 3개가 새로 나와요. 캔 먹기, PERFECT 횟수, 벽 넘기 플래시, 보스 격파 같은 미션이에요. 누적해서 깬 미션 개수로 새 고양이가 열려요.</p>
+<p>닉네임을 등록하면 이번 주 최고 점수로 노말, 하드 랭킹이 각각 매겨져요. 점수에 따라 아이언부터 챌린저까지 티어 엠블럼을 받아요. 랭킹은 매주 월요일 0시(한국 시간)에 초기화돼요. 닉네임 없이 게스트로도 할 수 있지만, 게스트 기록은 랭킹에 올라가지 않아요.</p>
+<p>결과 화면의 <b>도전 링크 복사</b>를 누르면 친구에게 내 점수 도전장을 보낼 수 있어요. 링크로 들어온 친구는 게임 중에 목표 점수를 보면서 플레이해요.</p>
+
+<h2>자주 묻는 질문</h2>
+<h3>무료인가요?</h3><p>네, 전부 무료예요. 사이트 운영을 위해 광고가 표시될 수 있어요.</p>
+<h3>앱으로 설치할 수 있나요?</h3><p>브라우저의 "홈 화면에 추가"를 쓰면 앱처럼 바로 실행할 수 있어요.</p>
+<h3>라이엇 게임즈 공식 게임인가요?</h3><p>아니에요. 냥. 플은 개인이 만든 팬 연습 게임이고, 라이엇 게임즈와 관계가 없어요. 리그 오브 레전드는 Riot Games, Inc.의 상표예요.</p>
+<h3>버그나 제안은 어디로 보내나요?</h3><p><a href="mailto:xmas42@naver.com">xmas42@naver.com</a>으로 보내 주세요.</p>
+
+<footer>© 2026 냥. 플 (Nyan Flash) · 문의 <a href="mailto:xmas42@naver.com">xmas42@naver.com</a></footer>
+</main>
+</body>
+</html>
