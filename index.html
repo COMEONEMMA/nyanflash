@@ -804,6 +804,7 @@ function flash(){
   if (MODS().decoy) decoys.push({ x:fx, y:fy, t:0, life:1.3 });
   if (d > 1){ const r = Math.min(d, flashRange()*U); cat.x += dx/d*r; cat.y += dy/d*r; clampCat(); landOutsideWalls(); clampCat(); }
   S.charges--; if (S.cd <= 0) S.cd = cooldown();
+  S.lastFlashT = S.t;
   // afterimages + sparkles
   const ate = eatCans(fx, fy);
   for (let i = 1; i <= 4; i++) ghosts.push({ x: fx + (cat.x-fx)*i/5, y: fy + (cat.y-fy)*i/5, life:0.25, t:0 });
@@ -827,7 +828,11 @@ function flash(){
   threatening.forEach(s => {
     s.grade = g; if (s.group) s.group.grade = g;
     if (s.beam) return;
-    if (s.kind === 'snake' && (cat.x - s.x)*s.dx + (cat.y - s.y)*s.dy < 0 && (fx - s.x)*s.dx + (fy - s.y)*s.dy > 0) s.through = true;
+    // reverse flash only when the cat really jumped over the head and landed back on the snake's own path
+    if (s.kind === 'snake'){
+      const rx = cat.x - s.x, ry = cat.y - s.y, perpAfter = Math.abs(rx*s.dy - ry*s.dx);
+      if (rx*s.dx + ry*s.dy < 0 && (fx - s.x)*s.dx + (fy - s.y)*s.dy > 0 && perpAfter < (CAT_R + s.r)*U*1.1) s.through = true;
+    }
   });
   addFloat(g, g === L('빠름') ? L('너무 일찍 썼어요 (닿기 ') + margin + L('ms 전)') : L('닿기 ') + margin + L('ms 전'), color, 0.9, g === 'PERFECT' ? 38 : 32);
 }
@@ -1739,7 +1744,7 @@ function start(){
   const plays = loadPlays();
   savePlays(plays + 1);
   Object.assign(S, { mode:'play', stage:1, score:0, lives:3, dodges:0, stageDodges:0, combo:0, perfect:0, good:0, early:0, whiff:0,
-    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, grazes:0, wallFlashes:0, slowT:0, stopT:0, flashFx:0, shield: ab() === 'shield' ? 1 : 0, wallEvt:false, ringEvt:false, vsBeat:false, mods: freshMods(), cards:{}, maxCharges:1, charges:1, maxLives:3, cardIn:0, walkDodges:0, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
+    margins:[], maxCombo:0, boss:null, bossKills:0, eaten:0, canIn:6, playMs:0, form:0, grazes:0, wallFlashes:0, slowT:0, stopT:0, flashFx:0, shield: ab() === 'shield' ? 1 : 0, wallEvt:false, ringEvt:false, vsBeat:false, mods: freshMods(), cards:{}, lastFlashT:-9, maxCharges:1, charges:1, maxLives:3, cardIn:0, walkDodges:0, showLane: plays < 3 && MODE !== 'hard', cd:0, spawnIn:1.1, invuln:0, hurt:0, shake:0 });
   snakes = []; parts = []; floats = []; ghosts = []; foods = []; walls = []; beams = []; decoys = []; spawnQ = []; bannerQ = [];
   missionAdd('games', 1);
   cat.x = W/2; cat.y = H/2; Object.assign(cat, { tx:null, ty:null, vx:0, vy:0, flip:1, walkT:0, moving:0, recoil:0 });
@@ -1877,7 +1882,7 @@ function update(dt){
       if (!s.hit && S.invuln <= 0 && S.mode === 'play'){
         const dd = segDist(cat.x, cat.y, s.x - s.dx*L, s.y - s.dy*L, s.x, s.y);
         if (dd < hitR){ onHit(s); break; }
-        if (!s.grazed && dd < hitR*1.9 && (s.kind === 'snake' || s.kind === 'boss')) graze(s);
+        if (!s.grazed && dd < hitR*1.9 && (s.kind === 'snake' || s.kind === 'boss') && S.t - S.lastFlashT < 0.8) graze(s);
       }
     }
     if (s.dead) continue;
