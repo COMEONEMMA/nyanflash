@@ -288,6 +288,7 @@ body.standalone .install{display:none!important}
           <li><span>가끔 고양이 캔이 옆으로 지나가요. 플래시로 캔을 덮치거나 스치고 지나가면 냠! 보너스 점수. 반짝이는 황금 캔은 생선 1개 회복.</span></li>
           <li><span>처음 3판만 뱀 경로가 보여요. 생선 3개를 다 잃으면 뱀의 승리.</span></li>
           <li><span><b style="color:var(--hurt)">하드</b>: 뱀이 훨씬 빠르고, 경고 표시와 안내선이 전부 사라져요. 하루 3번 도전, 점수 1.5배, 랭킹 따로!</span></li>
+          <li><span>뱀은 <b>머리</b>에만 닿지 않으면 돼요. 날아오는 쪽으로 뱀을 뚫고 넘어가는 <b style="color:#ff9de2">역플</b>도 가능! 닿기 직전에 쓰면 보너스 점수.</span></li>
           <li><span>고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.</span></li>
           <li><span>닉네임을 등록하면 이번 주 최고 점수로 전체 랭킹과 티어가 매겨져요. 매주 월요일 초기화!</span></li>
         </ul>
@@ -439,6 +440,8 @@ Object.assign(EN, { '내 순위': 'My rank',
   '랭킹 서버에 연결하지 못했어요. 게스트로 먼저 해 보세요.': "Couldn't reach the ranking server. Try playing as a guest for now.",
   '님, 어서 와요!': ', welcome back!', '닉네임 변경': 'Change name', '게스트로 플레이 중 · 기록이 랭킹에 안 올라가요': "Playing as guest · scores won't be ranked",
   '게임 소개': 'About the game', '개인정보처리방침': 'Privacy policy',
+  '역플!': 'Reverse Flash!', '뱀을 뚫고 넘어갔다냥 +': 'Flashed right through it +',
+  '뱀은 ': 'Only the snake\'s ', '머리': 'head', '에만 닿지 않으면 돼요. 날아오는 쪽으로 뱀을 뚫고 넘어가는 ': ' hurts. You can Flash back through an incoming snake for a ', '역플': 'Reverse Flash', '도 가능! 닿기 직전에 쓰면 보너스 점수.': '! Do it right before impact for bonus points.',
   '하드 랭킹': 'Hard ranking', '노말 랭킹': 'Normal ranking', '이번 주 ': 'This week · ', '이번 주': 'This week', '전체 보기': 'See all', '아직 기록이 없어요. 첫 주인공이 되어 보세요!': 'No records yet. Be the first!',
   '고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.': 'Each cat has its own ability. When a rock wall rises, Flash over it! Near misses give bonus points. Daily missions unlock new cats.'
 });
@@ -467,7 +470,7 @@ const ctx = cv.getContext('2d');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---- tuning (units scale with field size: 600 units = shorter side) ---- */
-const CAT_R = 17, SNAKE_R = 8, FLASH_RANGE = 125, BODY_LEN = 95;
+const CAT_R = 17, SNAKE_R = 8, FLASH_RANGE = 125, BODY_LEN = 95, NECK = 18;
 const COOLDOWN_N = 1.0, COOLDOWN_H = 1.15, HARD_FREE = 3;
 const PER_STAGE = 8, FONT_FAMILY = '"Dongle","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const F = px => '700 ' + Math.round(px*1.45) + 'px ' + FONT_FAMILY;
@@ -742,7 +745,10 @@ function flash(){
   if (bestT <= 0.13){ g = 'PERFECT'; color = '#ffc94a'; buzz(18); S.perfect++; missionAdd('perfect', 1); if (!reduceMotion) S.slowT = 0.22; S.flashFx = 0.3; parts.push({ slash:true, x:fx, y:fy, dx:best.dx, dy:best.dy, life:0.4, t:0 }); S.margins.push(margin); beep(880, 1760, 0.14, 'square', 0.045, 0.05); duck(0.4, 0.3); }
   else if (bestT <= 0.3){ g = 'GOOD'; color = '#8fdc5b'; S.good++; S.margins.push(margin); }
   else { g = L('빠름'); color = '#f5ebd3'; S.early++; }
-  threatening.forEach(s => { s.grade = g; if (s.group) s.group.grade = g; });
+  threatening.forEach(s => {
+    s.grade = g; if (s.group) s.group.grade = g;
+    if (s.kind === 'snake' && (cat.x - s.x)*s.dx + (cat.y - s.y)*s.dy < 0 && (fx - s.x)*s.dx + (fy - s.y)*s.dy > 0) s.through = true;
+  });
   addFloat(g, g === L('빠름') ? L('너무 일찍 썼어요 (닿기 ') + margin + L('ms 전)') : L('닿기 ') + margin + L('ms 전'), color, 0.9, g === 'PERFECT' ? 38 : 32);
 }
 
@@ -754,6 +760,12 @@ function onDodge(s){
   const bonus = s.grade === 'PERFECT' ? 150 : s.grade === 'GOOD' ? 60 : 0;
   const pts = Math.round((100 + bonus) * S.stage * mult * HM());
   S.score += pts;
+  if (s.through){
+    const tp = Math.round(200 * S.stage * HM());
+    S.score += tp;
+    floats.push({ x:cat.x, y:cat.y - 70*U, text:L('역플!'), sub:L('뱀을 뚫고 넘어갔다냥 +') + tp.toLocaleString('ko-KR'), color:'#ff9de2', life:1.0, size:30, t:0 });
+    [523, 784, 1047].forEach((f, i) => beep(f, f, 0.07, 'triangle', 0.035, i*0.05));
+  }
   floats.push({ x:cat.x, y:cat.y + 46*U, text:L('회피 +') + pts.toLocaleString('ko-KR') + (mult > 1 ? '  x' + mult.toFixed(1) : ''), sub:'', color: mult > 1 ? '#8fdc5b' : '#f5ebd3', life:0.8, size:20, t:0 });
   if (good && [5, 10, 20, 30, 50].includes(S.combo)){
     pushBanner(S.combo + L(' 콤보!'), L('점수 x') + mult.toFixed(1), 1.3);
@@ -1515,7 +1527,7 @@ function update(dt){
   for (const s of snakes){
     if (s.state === 'warn'){ s.warn -= dt; if (s.warn <= 0) launch(s); continue; }
     const dist = s.speed * U * dt, steps = Math.max(1, Math.ceil(dist / (5*U)));
-    const L = s.len*U*0.85, hitR = (CAT_R*0.85 + s.r)*U;
+    const L = s.kind === 'snake' ? NECK*U : s.len*U*0.85, hitR = (CAT_R*0.85 + s.r)*U;
     for (let k = 0; k < steps; k++){
       s.x += s.dx*dist/steps; s.y += s.dy*dist/steps;
       if (s.group && s.group.wall && wallBlocks(s)) break;
