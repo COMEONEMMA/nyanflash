@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>냥플 디펜스 · 시제품</title>
+<meta name="description" content="계단을 기어오르는 야생 포식자들을 귀여운 블록 동물들로 막아내는 픽셀 디펜스 게임. 냥. 플의 새 게임 시제품.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f7c6d9">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+@font-face{font-family:'Galmuri';src:url('fonts/Galmuri11.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Galmuri';src:url('fonts/Galmuri11-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+:root{
+  --ink:#3b2a3a; --paper:#fff8ee; --pink:#f7a8c4; --pink-d:#d9789d; --mint:#a8e6cf; --mint-d:#6cc4a4;
+  --yellow:#ffe58a; --yellow-d:#e8b84a; --lav:#c9b6f2; --sky:#a8d8f7; --red:#ff6b81; --coin:#ffcf3f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#f9d9e6;color:var(--ink);font-family:'Galmuri',monospace;user-select:none;-webkit-user-select:none}
+body{background:linear-gradient(180deg,#b9e3ff 0%,#f9d9e6 55%,#ffe9c9 100%)}
+#view{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;display:block}
+#floats{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.fl{position:absolute;left:0;top:0;font-weight:700;font-size:15px;white-space:nowrap;color:#fff;text-shadow:2px 0 0 var(--ink),-2px 0 0 var(--ink),0 2px 0 var(--ink),0 -2px 0 var(--ink),2px 2px 0 var(--ink);will-change:transform}
+.fl.coin{color:var(--coin);font-size:12px}
+.fl.crit{color:#ffe14d;font-size:20px}
+.fl.miss{color:#c8c8d8;font-size:12px}
+.fl.big{color:#fff;font-size:24px}
+
+/* pixel panels: stepped borders instead of rounded web cards */
+.px{background:var(--paper);border:3px solid var(--ink);box-shadow:inset -3px -3px 0 #e9d8c4,inset 3px 3px 0 #fff,4px 4px 0 rgba(59,42,58,.35);image-rendering:pixelated}
+.btn{font:inherit;font-weight:700;color:var(--ink);background:var(--yellow);border:3px solid var(--ink);box-shadow:inset -3px -3px 0 var(--yellow-d),inset 3px 3px 0 #fff6c9,3px 3px 0 rgba(59,42,58,.35);padding:8px 14px;cursor:pointer;line-height:1.1}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translate(2px,2px);box-shadow:inset -3px -3px 0 var(--yellow-d),inset 3px 3px 0 #fff6c9,1px 1px 0 rgba(59,42,58,.35)}
+.btn.mint{background:var(--mint);box-shadow:inset -3px -3px 0 var(--mint-d),inset 3px 3px 0 #e2fff3,3px 3px 0 rgba(59,42,58,.35)}
+.btn.pink{background:var(--pink);box-shadow:inset -3px -3px 0 var(--pink-d),inset 3px 3px 0 #ffe1ec,3px 3px 0 rgba(59,42,58,.35)}
+.btn.ghost{background:var(--paper);box-shadow:inset -3px -3px 0 #e9d8c4,inset 3px 3px 0 #fff,3px 3px 0 rgba(59,42,58,.35)}
+.btn:disabled{filter:grayscale(.8) brightness(.9);cursor:not-allowed}
+.btn.sq{width:42px;height:42px;padding:0;font-size:18px;display:grid;place-items:center}
+
+#hud{position:fixed;left:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+.stat{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;font-weight:700;font-size:18px}
+.stat i{font-style:normal;width:26px;height:26px;display:grid;place-items:center;font-size:18px}
+.stat small{font-size:12px;font-weight:400;opacity:.7}
+#hpbar{width:80px;height:10px;border:2px solid var(--ink);background:#fff;position:relative}
+#hpbar b{position:absolute;inset:0;width:100%;background:var(--red)}
+#tools{position:fixed;right:12px;top:12px;display:flex;gap:6px}
+
+#bar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:8px;padding:8px;align-items:stretch}
+.card{font:inherit;color:var(--ink);width:96px;padding:4px 4px 6px;background:#fff;border:3px solid var(--ink);box-shadow:inset -3px -3px 0 #e9d8c4,3px 3px 0 rgba(59,42,58,.3);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.card img{width:64px;height:64px;image-rendering:pixelated}
+.card b{font-size:14px}
+.card span{font-size:13px;font-weight:700;color:#a8701a}
+.card small{font-size:11px;opacity:.7}
+.card .k{position:absolute;left:4px;top:2px;font-size:11px;opacity:.6}
+.card.armed{background:var(--yellow);transform:translateY(-6px)}
+.card.poor{opacity:.5}
+#waveBtn{font-size:20px;padding:10px 18px;align-self:center;margin-left:6px;white-space:nowrap}
+
+#info{position:fixed;right:12px;bottom:12px;width:250px;padding:12px;display:none}
+#info h3{margin:0 0 2px;font-size:20px}
+#info .sub{font-size:12px;opacity:.75;margin-bottom:8px}
+#info table{width:100%;font-size:13px;border-collapse:collapse}
+#info td{padding:2px 0}
+#info td:last-child{text-align:right;font-weight:700}
+#info .hint{font-size:12px;margin-top:8px;padding:6px;background:#f3eadf;border:2px dashed #cbb69b}
+#info .row{display:flex;gap:6px;margin-top:10px}
+#info .row .btn{flex:1;font-size:13px;padding:6px}
+
+#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);padding:10px 18px;font-weight:700;font-size:20px;display:none;text-align:center;z-index:5}
+#toast small{display:block;font-size:13px;font-weight:400;margin-top:4px}
+#toast.hidden-job{background:#2b1f3d;color:#ffe58a;border-color:#ffe58a;box-shadow:0 0 0 3px #2b1f3d,0 0 24px #c9b6f2}
+
+.ov{position:fixed;inset:0;display:none;place-items:center;background:rgba(59,42,58,.35);z-index:10;padding:16px}
+.ov.on{display:grid}
+.ov .px{max-width:640px;width:100%;padding:18px 20px;max-height:calc(100vh - 32px);overflow:auto}
+.ov h1{margin:0;font-size:40px;line-height:1.1;color:var(--pink-d);text-shadow:3px 3px 0 var(--ink)}
+.ov h2{margin:0 0 6px;font-size:28px}
+.ov p{margin:6px 0;line-height:1.6;font-size:14px}
+.ov ol{margin:8px 0;padding-left:22px;line-height:1.8;font-size:14px}
+.ov .tag{display:inline-block;background:var(--mint);color:var(--ink);text-shadow:none;border:2px solid var(--ink);padding:1px 8px;font-size:12px;margin-left:6px;vertical-align:middle}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.choices.two{grid-template-columns:repeat(2,1fr)}
+.choice{font:inherit;color:var(--ink);background:#fff;border:3px solid var(--ink);box-shadow:inset -3px -3px 0 #e9d8c4,3px 3px 0 rgba(59,42,58,.3);padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.choice:hover,.choice:focus-visible{background:var(--yellow);outline:none;transform:translateY(-3px)}
+.choice .ic{font-size:34px;line-height:1}
+.choice img{width:84px;height:84px;image-rendering:pixelated}
+.choice b{font-size:16px}
+.choice span{font-size:12px;line-height:1.4}
+.row2{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.score{font-size:44px;font-weight:700;color:var(--pink-d);text-shadow:3px 3px 0 var(--ink);text-align:center;margin:8px 0}
+.codex{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.cx{border:3px solid var(--ink);background:#fff;padding:6px;text-align:center;font-size:12px}
+.cx img{width:64px;height:64px;image-rendering:pixelated;display:block;margin:0 auto}
+.cx.locked img{filter:brightness(0) opacity(.55)}
+.cx b{display:block;font-size:13px}
+
+@media (max-width:700px){
+  .card{width:70px}.card img{width:44px;height:44px}.card small{display:none}
+  #waveBtn{position:fixed;right:8px;bottom:128px;font-size:16px;padding:10px 12px;margin:0}
+  #bar{bottom:6px;gap:5px;padding:5px;max-width:calc(100vw - 12px)}
+  #cards{gap:5px!important}
+  #hud{left:8px;top:8px;gap:5px;flex-direction:column;align-items:flex-start}
+  #tools{right:8px;top:8px;flex-direction:column}
+  #info{left:12px;right:12px;width:auto;bottom:118px}
+  .stat{font-size:15px;padding:4px 8px 4px 6px}#hpbar{width:50px}
+  .choices{grid-template-columns:1fr}.choices.two{grid-template-columns:1fr 1fr}
+  .codex{grid-template-columns:repeat(3,1fr)}
+  .ov h1{font-size:30px}
+  #tools .btn.sq{width:36px;height:36px;font-size:15px}
+}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="floats"></div>
+
+<div id="hud">
+  <div class="stat px"><i>❤</i><div id="hpbar"><b id="hpFill"></b></div><span id="hpText">20</span></div>
+  <div class="stat px"><i>🪙</i><span id="coinText">0</span></div>
+  <div class="stat px"><i>🌊</i><span id="waveText">0/10</span></div>
+</div>
+<div id="tools">
+  <button class="btn ghost sq" id="speedBtn" title="속도">x1</button>
+  <button class="btn ghost sq" id="pauseBtn" title="일시정지">Ⅱ</button>
+  <button class="btn ghost sq" id="rotL" title="왼쪽으로 돌리기">⟲</button>
+  <button class="btn ghost sq" id="rotR" title="오른쪽으로 돌리기">⟳</button>
+  <button class="btn ghost sq" id="codexBtn" title="도감">📖</button>
+  <button class="btn ghost sq" id="muteBtn" title="소리">♪</button>
+  <a class="btn ghost sq" id="homeBtn" href="/" title="냥. 플로 돌아가기" style="text-decoration:none">⌂</a>
+</div>
+
+<div id="bar" class="px">
+  <div id="cards" style="display:flex;gap:8px"></div>
+  <button class="btn pink" id="waveBtn">▶ 웨이브 1</button>
+</div>
+
+<div id="info" class="px"></div>
+<div id="toast" class="px"></div>
+
+<section class="ov on" id="introOv">
+  <div class="px">
+    <h1>냥플 디펜스<span class="tag">시제품</span></h1>
+    <p>파스텔 계단을 기어오르는 야생 포식자들로부터 꼭대기의 <b>생선 창고</b>를 지켜 주세요!</p>
+    <ol>
+      <li>아래 카드에서 동물을 고르고 <b>빈 블록</b>을 눌러 배치해요. (키보드 1~4)</li>
+      <li><b>같은 동물, 같은 레벨</b>끼리 끌어다 겹치면 합성해서 레벨업! 3레벨에서는 두 갈래 중 하나로 전직해요.</li>
+      <li><b>높은 블록</b>일수록 사거리와 공격력이 올라가요. 계단이 꺾이는 모서리가 명당이에요.</li>
+      <li>짝수 웨이브를 깨면 <b>강화 카드</b>를 한 장 골라요.</li>
+      <li>어딘가에 <b>히든 전직</b> 조건이 숨어 있어요. 도감의 ??? 를 찾아보세요.</li>
+    </ol>
+    <p style="opacity:.75;font-size:12px">동물 드래그: 이동·합성 · 빈 곳 드래그/방향키: 화면 이동 · 휠: 확대 · ⟲⟳ 또는 Q/E: 회전 · Space: 웨이브 시작</p>
+    <div class="row2"><button class="btn pink" id="startBtn" style="font-size:22px;padding:12px 26px">시작하기</button></div>
+  </div>
+</section>
+
+<section class="ov" id="cardOv">
+  <div class="px">
+    <h2>강화 카드 선택</h2>
+    <p>웨이브를 막아냈어요! 한 장을 골라 이번 판 동안 강해지세요.</p>
+    <div class="choices" id="cardChoices"></div>
+  </div>
+</section>
+
+<section class="ov" id="branchOv">
+  <div class="px">
+    <h2 id="branchTitle">전직 선택</h2>
+    <p>3레벨이 되었어요! 어떤 길로 갈까요?</p>
+    <div class="choices two" id="branchChoices"></div>
+  </div>
+</section>
+
+<section class="ov" id="endOv">
+  <div class="px">
+    <h2 id="endTitle">결과</h2>
+    <div class="score" id="endScore">0</div>
+    <p id="endInfo" style="text-align:center"></p>
+    <div class="row2">
+      <button class="btn pink" id="retryBtn">다시 하기</button>
+      <a class="btn ghost" href="/" style="text-decoration:none">냥. 플로 돌아가기</a>
+    </div>
+  </div>
+</section>
+
+<section class="ov" id="codexOv">
+  <div class="px">
+    <h2>동물 도감</h2>
+    <p>발견한 동물과 전직이에요. 히든 전직은 조건을 만족하면 열려요.</p>
+    <div class="codex" id="codexGrid"></div>
+    <div class="row2"><button class="btn" id="codexClose">닫기</button></div>
+  </div>
+</section>
+
+<script type="module" src="game.js"></script>
+</body>
+</html>

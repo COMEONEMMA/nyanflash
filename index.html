@@ -191,6 +191,12 @@ body.mobile #nickOv{place-items:center}
 .who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px;color:var(--muted);margin-top:-6px}
 .who b{color:var(--cream);font-size:17px}
 body.mobile #titleOv .panel > .who{order:0}
+body.mobile #titleOv .panel > .newgame{order:0}
+.newgame{display:flex;align-items:center;gap:10px;text-decoration:none;color:#2b2030;background:linear-gradient(90deg,#ffd6e6,#fff0b8 55%,#c8f2df);border:2px solid #2b2030;padding:8px 12px;font-size:15px;box-shadow:3px 3px 0 rgba(0,0,0,.35);transition:transform .1s}
+.newgame:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,.35)}
+.newgame b{font-weight:700}
+.newgame span:nth-child(2){flex:1}
+.ng-tag{background:#ff6b81;color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border:2px solid #2b2030}
 .nickrow input{font:inherit;font-size:16px;color:var(--cream);background:var(--night);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0;flex:1 1 160px}
 .netmsg{font-size:14px;color:var(--muted);margin:0}
 .modes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -283,6 +289,7 @@ body.standalone .install{display:none!important}
       <div class="panel">
         <h1>냥. 플</h1>
         <div class="who" id="whoLine"></div>
+        <a class="newgame" id="defLink" href="/defense/"><span class="ng-tag">NEW</span><span>신작 <b>냥플 디펜스</b> 시제품 해보기</span><span aria-hidden="true">→</span></a>
         <p class="lead pc-only">뱀이 날아오면 <kbd>F</kbd> 또는 <kbd>D</kbd>! 마우스가 있는 쪽으로 순간이동해서 피하세요. <b>마우스 오른쪽 버튼</b>으로 롤처럼 걸어 다닐 수 있어요. 한글 입력 상태여도 됩니다.</p>
         <p class="lead m-only">화면 <b>왼쪽</b>을 누르고 끌면 걷기. <b>오른쪽</b>에서 피할 방향으로 쓱 끌었다가 <b>떼는 순간 플래시!</b> 톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.</p>
         <div class="vs" id="vsBox" hidden></div>
@@ -492,6 +499,7 @@ Object.assign(EN, { '내 순위': 'My rank',
   '톡 치면 친 곳으로 플래시해요. 폰을 가로로 돌리면 더 편해요. 모바일은 노말 모드만 할 수 있어요.': 'A quick tap flashes toward the spot you tapped. Landscape works best. Mobile plays Normal mode only.',
   '우클릭으로 걸어 다닐 수 있어요(모바일은 화면 왼쪽). 걸어서 피하면 작은 점수만, 큰 점수는 플래시 타이밍에서 나와요. 3스테이지부터 보라색 유도 뱀(플래시로 따돌리기), 5스테이지 주황 분열 뱀, 7스테이지 원형 탄막과 레이저가 나와요.': 'Right-click to walk (left side of the screen on mobile). Walking dodges give small points; big points come from Flash timing. Purple homing snakes from stage 3 (Flash to shake them), orange splitting snakes from stage 5, bullet rings and lasers from stage 7.',
   '보스를 잡을 때마다 냥 카드 3장 중 1장을 골라 강해져요. 내 고양이 능력과 맞는 카드는 금색으로 더 세게 나와요!': 'After every boss, pick 1 of 3 cat cards to power up. Cards that match your cat\'s ability can show up gold and stronger!',
+  '신작': 'New:', '냥플 디펜스': 'Nyan Defense', '시제품 해보기': 'prototype — try it',
   '하드 랭킹': 'Hard ranking', '노말 랭킹': 'Normal ranking', '이번 주 ': 'This week · ', '이번 주': 'This week', '전체 보기': 'See all', '아직 기록이 없어요. 첫 주인공이 되어 보세요!': 'No records yet. Be the first!',
   '고양이마다 능력이 달라요. 바위 벽이 솟으면 벽 너머로 플래시! 뱀을 아슬하게 스치면 보너스 점수. 매일 바뀌는 미션을 깨면 새 고양이가 열려요.': 'Each cat has its own ability. When a rock wall rises, Flash over it! Near misses give bonus points. Daily missions unlock new cats.'
 });
