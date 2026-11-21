@@ -15,7 +15,7 @@ const MAPS = {
   mountain: { name:'와인딩 산길', icon:'🗻', desc:'지그재그로 오르는 산길. 높은 곳이 명당', w:11, d:16,
     wp:[[1, 15], [1, 11], [9, 11], [9, 7], [1, 7], [1, 3], [5, 3], [5, 1]], base:[5, 0], hstep:3, hp:1 },
   stadium: { name:'운동장', icon:'🏟', desc:'트랙을 한 바퀴 반 돌아 한가운데 창고로. 두 트랙 사이가 명당', w:13, d:13,
-    wp:[[1, 12], [1, 1], [11, 1], [11, 11], [3, 11], [3, 3], [9, 3], [9, 6], [7, 6]], base:[6, 6], hstep:30, hp:1.4, fly:[[1, 1], [11, 1], [11, 11], [3, 11], [3, 4]], isNew:true },
+    wp:[[1, 12], [1, 1], [11, 1], [11, 11], [3, 11], [3, 3], [9, 3], [9, 6], [7, 6]], base:[6, 6], hstep:999, hp:1.4, fly:[[1, 1], [11, 1], [11, 11], [3, 11], [3, 4]], isNew:true },
 };
 const MAP_ID = (() => { let m = null; try { m = new URLSearchParams(location.search).get('map') || localStorage.getItem('nyandef-map'); } catch(e){} return MAPS[m] ? m : 'mountain'; })();
 const MAPDEF = MAPS[MAP_ID];
@@ -56,13 +56,13 @@ if (MAP_ID === 'stadium'){
     const off = Math.min(x, z, MAP_W - 1 - x, MAP_D - 1 - z);
     let h;
     // a flat sports ground: nothing tall enough to hide a lane. rim at track level, one-step stands between laps, infield podium
-    if (off === 0) h = nh;
-    else if (off === 2) h = maxNear + 1;
-    else h = Math.max(maxNear, nh) + (best >= 2 ? 2 : 1);
-    if (off >= 4) h = Math.min(h, baseH + 1);
+    // flat track; every other block stands exactly one step above it, so no block ever hides a lane by more than a step
+    h = off === 0 ? nh : nh + 1;
+    const nearBase = Math.max(Math.abs(x - BASE_TILE[0]), Math.abs(z - BASE_TILE[1])) <= 1;
+    if (nearBase) h = baseH;   // keep the storehouse's yard level so its towers aren't cut by blocks
     let elev = -9, en = -1;
     PATH.forEach(([px, pz], i) => { if (Math.max(Math.abs(px - x), Math.abs(pz - z)) <= Math.max(2, best) && h - PATH_H[i] > elev){ elev = h - PATH_H[i]; en = i; } });
-    const type = best === 1 || (best === 2 && off >= 4 && hash(x, z) < 0.5) ? 'build' : 'land';
+    const type = nearBase ? 'land' : best === 1 || (best === 2 && off >= 4 && hash(x, z) < 0.5) ? 'build' : 'land';
     TILE[z][x] = { type, h, near:en, elev, dist:best };
   }
 } else
@@ -334,7 +334,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
 const PITCH0 = 0.78;
 let camAngle = Math.PI / 4, camAngleTarget = camAngle, zoom = MAP_ID === 'stadium' ? 1.3 : 1.05, camPitch = PITCH0, camPitchTarget = PITCH0;
-const camTarget = MAP_ID === 'stadium' ? new THREE.Vector3(0.9, MAX_H * 0.36, 1.4) : new THREE.Vector3(0, MAX_H * 0.36, 0.5);
+const camTarget = MAP_ID === 'stadium' ? new THREE.Vector3(2.4, MAX_H * 0.36, 3.0) : new THREE.Vector3(0, MAX_H * 0.36, 0.5);
 let PIX = 2;
 // dot size in CSS px (1 sharp · 2 normal · 3 retro). Each render pixel always covers a whole number of
 // device pixels, so dots stay perfectly square and crisp at any window size instead of smearing.
@@ -2138,7 +2138,7 @@ function renderSynPanel(){
 const outlineMat = new THREE.MeshBasicMaterial({ color:'#59ff8a', side:THREE.BackSide });
 const noRay = () => {};
 function addOutline(u){
-  const hulls = [], T = 0.085;
+  const hulls = [], T = 0.035;
   const list = [];
   u.mesh.userData.body.traverse(o => { if (o.isMesh && o.geometry === boxGeo && !o.material.transparent && Math.min(o.scale.x, o.scale.y, o.scale.z) >= 0.05) list.push(o); });
   for (const o of list){
@@ -3027,7 +3027,9 @@ function animate(rdt, dt){
   else if (tile && !G.modal){
     const t2 = TILE[tile.z][tile.x];
     const ok = ptype ? canPlace(ptype, tile.x, tile.z) : canBuild(tile.x, tile.z);
-    if (t2.type === 'build' || unitAt(tile.x, tile.z) || (ptype && TYPES[ptype].onPath && t2.type === 'path')){
+    const hu0 = unitAt(tile.x, tile.z);
+    if (hu0 && outlined.has(hu0) && !ptype){ /* already outlined: no extra box */ }
+    else if (t2.type === 'build' || hu0 || (ptype && TYPES[ptype].onPath && t2.type === 'path')){
       hoverBox.visible = true;
       hoverBox.position.set(wx(tile.x), t2.h - 0.5, wz(tile.z));
       hoverBox.material.color.set(ok ? 0xffffff : 0xffcf3f);
