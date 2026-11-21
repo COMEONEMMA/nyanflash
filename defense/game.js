@@ -10,9 +10,18 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 /* ---------------- map ---------------- */
-const MAP_W = 11, MAP_D = 16;
-const WAYPOINTS = [[1, 15], [1, 11], [9, 11], [9, 7], [1, 7], [1, 3], [5, 3], [5, 1]];
-const BASE_TILE = [5, 0];
+/* maps: each one is its own route. picked on the title screen (switching reloads the page) */
+const MAPS = {
+  mountain: { name:'와인딩 산길', icon:'🗻', desc:'지그재그로 오르는 산길. 높은 곳이 명당', w:11, d:16,
+    wp:[[1, 15], [1, 11], [9, 11], [9, 7], [1, 7], [1, 3], [5, 3], [5, 1]], base:[5, 0], hstep:3, hp:1 },
+  stadium: { name:'운동장', icon:'🏟', desc:'트랙을 한 바퀴 반 돌아 한가운데 창고로. 두 트랙 사이가 명당', w:13, d:13,
+    wp:[[1, 12], [1, 1], [11, 1], [11, 11], [3, 11], [3, 3], [9, 3], [9, 6], [7, 6]], base:[6, 6], hstep:30, hp:1.4, fly:[[1, 1], [11, 1], [11, 11], [3, 11], [3, 4]], isNew:true },
+};
+const MAP_ID = (() => { let m = null; try { m = new URLSearchParams(location.search).get('map') || localStorage.getItem('nyandef-map'); } catch(e){} return MAPS[m] ? m : 'mountain'; })();
+const MAPDEF = MAPS[MAP_ID];
+const MAP_W = MAPDEF.w, MAP_D = MAPDEF.d;
+const WAYPOINTS = MAPDEF.wp;
+const BASE_TILE = MAPDEF.base;
 function expandPath(wp){
   const out = [];
   for (let i = 0; i < wp.length - 1; i++){
@@ -25,7 +34,7 @@ function expandPath(wp){
   return out;
 }
 const PATH = expandPath(WAYPOINTS);
-const PATH_H = PATH.map((_, i) => 1 + Math.floor(i / 3));
+const PATH_H = PATH.map((_, i) => 1 + Math.floor(i / MAPDEF.hstep));
 const hash = (x, z) => { let h = (x * 374761393 + z * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 const TILE = [];   // TILE[z][x] = { type, h, near (path index), elev }
@@ -35,6 +44,28 @@ for (let z = 0; z < MAP_D; z++){
 }
 PATH.forEach(([x, z], i) => { TILE[z][x] = { type:'path', h:PATH_H[i], near:i, elev:0, step:i }; });
 const CX = (MAP_W - 1) / 2, CZ = (MAP_D - 1) / 2;
+if (MAP_ID === 'stadium'){
+  /* stadium: the strip between the two laps sits one block above both lanes (covers both: the best seats) */
+  const isPath = (x, z) => z >= 0 && z < MAP_D && x >= 0 && x < MAP_W && TILE[z][x].type === 'path';
+  const baseH = PATH_H[PATH_H.length - 1];
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    if (isPath(x, z)) continue;
+    let best = 99, near = -1, nh = 0, maxNear = 0;
+    PATH.forEach(([px, pz], i) => { const d = Math.max(Math.abs(px - x), Math.abs(pz - z)); if (d < best){ best = d; near = i; } if (d <= 1) maxNear = Math.max(maxNear, PATH_H[i]); });
+    nh = PATH_H[near];
+    const off = Math.min(x, z, MAP_W - 1 - x, MAP_D - 1 - z);
+    let h;
+    // a flat sports ground: nothing tall enough to hide a lane. rim at track level, one-step stands between laps, infield podium
+    if (off === 0) h = nh;
+    else if (off === 2) h = maxNear + 1;
+    else h = Math.max(maxNear, nh) + (best >= 2 ? 2 : 1);
+    if (off >= 4) h = Math.min(h, baseH + 1);
+    let elev = -9, en = -1;
+    PATH.forEach(([px, pz], i) => { if (Math.max(Math.abs(px - x), Math.abs(pz - z)) <= Math.max(2, best) && h - PATH_H[i] > elev){ elev = h - PATH_H[i]; en = i; } });
+    const type = best === 1 || (best === 2 && off >= 4 && hash(x, z) < 0.5) ? 'build' : 'land';
+    TILE[z][x] = { type, h, near:en, elev, dist:best };
+  }
+} else
 /* winding mountain road: the ground climbs with the road like a hill-climb course.
    Everything on the downhill (front) or outer side of the road is always LOWER than the road,
    so from the default view nothing ever stands in front of the route. Uphill ground overlooks the road below. */
@@ -302,8 +333,8 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
 const PITCH0 = 0.78;
-let camAngle = Math.PI / 4, camAngleTarget = camAngle, zoom = 1.05, camPitch = PITCH0, camPitchTarget = PITCH0;
-const camTarget = new THREE.Vector3(0, MAX_H * 0.36, 0.5);
+let camAngle = Math.PI / 4, camAngleTarget = camAngle, zoom = MAP_ID === 'stadium' ? 1.3 : 1.05, camPitch = PITCH0, camPitchTarget = PITCH0;
+const camTarget = MAP_ID === 'stadium' ? new THREE.Vector3(0.9, MAX_H * 0.36, 1.4) : new THREE.Vector3(0, MAX_H * 0.36, 0.5);
 let PIX = 2;
 // dot size in CSS px (1 sharp · 2 normal · 3 retro). Each render pixel always covers a whole number of
 // device pixels, so dots stay perfectly square and crisp at any window size instead of smearing.
@@ -467,7 +498,7 @@ scene.add(walls, steps);
   const ri = new THREE.InstancedMesh(boxGeo, railMat, rails.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3();
   rails.forEach(([x, y, z, vert], i) => { sc.set(vert ? 0.07 : 1.0, 0.1, vert ? 1.0 : 0.07); m.compose(pos.set(x, y, z), q.identity(), sc); ri.setMatrixAt(i, m); });
-  ri.castShadow = false; ri.receiveShadow = true; scene.add(ri);
+  // (the dark edge rails were dropped: the coloured steps read fine on their own)
   const ai = new THREE.InstancedMesh(boxGeo, arrowMat, arrows.length * 2);
   arrows.forEach(([x, y, z, yaw], i) => {
     [-1, 1].forEach((side, j) => {
@@ -1194,7 +1225,7 @@ function spawnFoe(type, elite){
   const w = G.wave - 1, wq = Math.min(w, 9);
   const scale = (1 + 0.5 * wq + 0.07 * wq * wq) * Math.pow(HP_GROW, Math.max(0, w - 9)) * 1.06 * (G.mode === 'hard' ? 1.05 + 0.025 * wq + 0.006 * Math.max(0, w - 9) : 1)
     * (def.boss ? (w >= 39 ? 0.3 : w >= 19 ? 0.45 : 1) : 1);
-  const hpm = def.boss ? 1 : HP_MUL;
+  const hpm = (def.boss ? 1 : HP_MUL) * MAPDEF.hp;
   const e = { type, def, hp:def.hp * scale * hpm, maxHp:def.hp * scale * hpm, s:0, u:0, spd: G.mode === 'hard' ? 1.07 : 1, curseT:0, curseP:0, slowT:0, slowP:0, freezeT:0, stunT:0, dead:false, summonT:5, walk:Math.random() * TAU };
   if (G.curseWave && G.curseWave === G.wave) e.spd *= 1.15;
   e.mesh = makeFoe(type);
@@ -1227,12 +1258,21 @@ function makeBar(w){
 }
 const FLY_FROM = new THREE.Vector3(wx(PATH[0][0]) + 2, PATH_H[0] + 3, wz(PATH[0][1]) + 3);
 const FLY_TO = new THREE.Vector3(wx(BASE_TILE[0]), PATH_H[PATH_H.length - 1] + 1.8, wz(BASE_TILE[1]));
-const FLY_LEN = FLY_FROM.distanceTo(FLY_TO);
+// fliers cut straight to the storehouse on the mountain; on the stadium they circle one lap over the track first
+const FLY_PTS = [FLY_FROM, ...(MAPDEF.fly || []).map(([x, z]) => new THREE.Vector3(wx(x), TILE[z][x].h + 1.8, wz(z))), FLY_TO];
+const FLY_SEG = []; let FLY_LEN = 0;
+for (let i = 0; i < FLY_PTS.length - 1; i++){ const l = FLY_PTS[i].distanceTo(FLY_PTS[i + 1]); FLY_SEG.push(l); FLY_LEN += l; }
+function flyAt(u, out){
+  let d = clamp(u, 0, 1) * FLY_LEN, i = 0;
+  while (i < FLY_SEG.length - 1 && d > FLY_SEG[i]){ d -= FLY_SEG[i]; i++; }
+  out.lerpVectors(FLY_PTS[i], FLY_PTS[i + 1], Math.min(1, d / FLY_SEG[i]));
+  return i;
+}
 function placeFoe(e, dt){
   if (e.def.fly){
-    const p = new THREE.Vector3().lerpVectors(FLY_FROM, FLY_TO, e.u);
+    const p = new THREE.Vector3(), seg = flyAt(e.u, p);
     p.y += Math.sin(e.walk * 0.5) * 0.15;
-    const dir = new THREE.Vector3().subVectors(FLY_TO, FLY_FROM);
+    const dir = new THREE.Vector3().subVectors(FLY_PTS[seg + 1], FLY_PTS[seg]);
     e.mesh.position.copy(p);
     e.mesh.rotation.y = Math.atan2(dir.x, dir.z);
     e.prog = e.u;
@@ -1703,7 +1743,7 @@ function finish(win){
   stopBgm();
   checkUnlocks(win);
   const score = Math.round((win ? G.wave * 800 + 10000 + G.hp * 500 + G.kills * 20 + G.coins : G.wave * 800 + G.kills * 20) * (G.mode === 'hard' ? 1.5 : 1));
-  const bestKey = 'nyandef-best-' + G.mode, best = store.get(bestKey, 0);
+  const bestKey = 'nyandef-best-' + G.mode + (MAP_ID === 'mountain' ? '' : '-' + MAP_ID), best = store.get(bestKey, 0);
   if (score > best) store.set(bestKey, score);
   $('endTitle').textContent = (G.mode === 'hard' ? '[하드] ' : '') + (win ? '🎉 생선 창고를 지켜냈어요!' : '창고가 털렸어요…');
   $('endScore').textContent = score.toLocaleString('ko-KR');
@@ -1979,8 +2019,9 @@ function updateOcclusion(rdt){
     for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
       const t = TILE[z][x]; if (t.type === 'void' || t.type === 'land') continue;
       const key = t.type === 'path' || t.type === 'base' || unitAt(x, z);
-      cast(x, z, t.h + 0.05, key ? 0 : 2);
-      if (key) cast(x, z, t.h + 0.8);
+      // a one-step ledge in front only clips the edge of a tile: dithering it looks worse than the clip
+      cast(x, z, t.h + 0.05, MAP_ID === 'mountain' && key ? 0 : 2);
+      if (key) cast(x, z, t.h + 0.8, MAP_ID === 'mountain' ? 0 : 1.5);
     }
   }
   let dirty = false;
@@ -2097,7 +2138,7 @@ function renderSynPanel(){
 const outlineMat = new THREE.MeshBasicMaterial({ color:'#59ff8a', side:THREE.BackSide });
 const noRay = () => {};
 function addOutline(u){
-  const hulls = [], T = 0.06;
+  const hulls = [], T = 0.085;
   const list = [];
   u.mesh.userData.body.traverse(o => { if (o.isMesh && o.geometry === boxGeo && !o.material.transparent && Math.min(o.scale.x, o.scale.y, o.scale.z) >= 0.05) list.push(o); });
   for (const o of list){
@@ -2580,6 +2621,21 @@ $('codexBtn').onclick = openCodex;
 $('codexClose').onclick = () => { $('codexOv').classList.remove('on'); G.modal = false; };
 $('muteBtn').onclick = () => { muted = !muted; store.set('nyandef-mute', muted); $('muteBtn').textContent = muted ? '✕' : '♪'; if (muted) stopBgm(); else if (G.state === 'wave') playBgm(isBossWave(G.wave)); };
 $('muteBtn').textContent = muted ? '✕' : '♪';
+function renderMaps(){
+  const box = $('mapGrid'); if (!box) return;
+  box.textContent = '';
+  Object.entries(MAPS).forEach(([id, m]) => {
+    const b = document.createElement('button'); b.className = 'mp' + (id === MAP_ID ? ' on' : '');
+    const i = document.createElement('i'); i.textContent = m.icon;
+    const n = document.createElement('b'); n.textContent = m.name;
+    const d = document.createElement('small'); d.textContent = m.desc;
+    b.append(i, n, d);
+    if (m.isNew){ const t = document.createElement('em'); t.textContent = 'NEW'; b.append(t); }
+    b.onclick = () => { if (id === MAP_ID) return; try { localStorage.setItem('nyandef-map', id); } catch(e){} location.href = location.pathname + '?map=' + id; };
+    box.append(b);
+  });
+}
+renderMaps();
 function renderDeck(){
   const box = $('deckGrid'); if (!box) return;
   box.textContent = '';
@@ -2955,7 +3011,7 @@ function animate(rdt, dt){
   updateDanger(rdt);
   {
     const list = G.modal ? [] : selList();
-    const marks = list.map(u => ({ kind:'sel', x:u.x, z:u.z }));
+    const marks = [];
     if (list.length && G.hover && !G.drag && !down){
       const hu = unitAt(G.hover.x, G.hover.z);
       if (!(hu && list.includes(hu))) planMove(list, G.hover).forEach(p => { if (p.u.x !== p.x || p.u.z !== p.z) marks.push({ kind:'dst', x:p.x, z:p.z }); });
@@ -3017,4 +3073,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { gasAt:(x, z) => clouds2.some(c => Math.hypot(wx(x) - c.c.x, wz(z) - c.c.z) <= c.r), fx:(u) => transformFx(u, 3, '강화 성공! +4', { cols:[PLUS_COLS[4], '#ffffff'], banner:'강화 +4!' }), dbgPick:(x, y) => { pointerRay({ clientX:x, clientY:y }); const o = ray.ray.origin, d = ray.ray.direction, out = []; for (let z = 0; z < MAP_D; z++) for (let xx = 0; xx < MAP_W; xx++){ const t = TILE[z][xx]; if (t.type === 'void') continue; const tt = (t.h - o.y) / d.y; const px = o.x + d.x * tt - wx(xx), pz = o.z + d.z * tt - wz(z); if (Math.abs(px) <= 0.5 && Math.abs(pz) <= 0.5) out.push([xx, z, t.type, t.h, +tt.toFixed(2)]); } return out.sort((a, b) => a[4] - b[4]); }, MAX_WAVE, synAt, SYN, tileXYo:(x, z, ox, oz) => screenXY(new THREE.Vector3(wx(x) + ox, TILE[z][x].h, wz(z) + oz)), pickAt:(x, y, vis) => { pointerRay({ clientX:x, clientY:y }); return vis ? pickVisible() : pickTile(); }, rotate:(d) => { camAngleTarget += d * Math.PI / 2; camAngle = camAngleTarget; }, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { setMapHP:(v) => { MAPDEF.hp = v; }, scene, walls, gasAt:(x, z) => clouds2.some(c => Math.hypot(wx(x) - c.c.x, wz(z) - c.c.z) <= c.r), fx:(u) => transformFx(u, 3, '강화 성공! +4', { cols:[PLUS_COLS[4], '#ffffff'], banner:'강화 +4!' }), dbgPick:(x, y) => { pointerRay({ clientX:x, clientY:y }); const o = ray.ray.origin, d = ray.ray.direction, out = []; for (let z = 0; z < MAP_D; z++) for (let xx = 0; xx < MAP_W; xx++){ const t = TILE[z][xx]; if (t.type === 'void') continue; const tt = (t.h - o.y) / d.y; const px = o.x + d.x * tt - wx(xx), pz = o.z + d.z * tt - wz(z); if (Math.abs(px) <= 0.5 && Math.abs(pz) <= 0.5) out.push([xx, z, t.type, t.h, +tt.toFixed(2)]); } return out.sort((a, b) => a[4] - b[4]); }, MAX_WAVE, synAt, SYN, tileXYo:(x, z, ox, oz) => screenXY(new THREE.Vector3(wx(x) + ox, TILE[z][x].h, wz(z) + oz)), pickAt:(x, y, vis) => { pointerRay({ clientX:x, clientY:y }); return vis ? pickVisible() : pickTile(); }, rotate:(d) => { camAngleTarget += d * Math.PI / 2; camAngle = camAngleTarget; }, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
