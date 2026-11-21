@@ -69,19 +69,33 @@ body{background:linear-gradient(180deg,#b9e3ff 0%,#f9d9e6 55%,#ffe9c9 100%)}
 #pixSeg{display:flex;gap:6px}
 #pixSeg button{flex:1;font:inherit;font-size:12px;padding:5px 0;border:2px solid var(--ink);background:#fff;cursor:pointer}
 #pixSeg button.on{background:#ffd84d;font-weight:700}
-#betBox{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 6px;border:2px dashed #c9b6d9;font-size:11px;min-width:168px}
-#betBox .bt{font-weight:700;font-size:12px;white-space:nowrap}
-#betBox .seg{display:flex;gap:3px}
-#betBox button{flex:1;font:inherit;font-size:11px;padding:3px 0;border:2px solid var(--ink);background:#fff;cursor:pointer}
-#betBox button.on{background:#ffd84d;font-weight:700}
-#betBox button:disabled{opacity:.45;cursor:default}
-#betBox.live{border-color:#ffb800;background:#fff6cf;animation:betPulse .8s steps(2) infinite}
-#betBox.lost{border-color:#999;background:#eee;color:#777}
-@keyframes betPulse{50%{border-color:#ff5c8a}}
-#betInfo{white-space:nowrap}
 #info .enh{margin-top:8px;padding-top:8px;border-top:2px dashed #e3d6ea;display:flex;flex-direction:column;gap:4px}
 #info .enh .btn{font-size:13px;padding:6px 8px}
 #info .enh label{font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer}
+/* 냥냥 룰렛: neon casino panel */
+#casino{position:fixed;left:50%;top:calc(50% - 50px);transform:translate(-50%,-50%);z-index:8;width:430px;padding:16px 18px 14px;text-align:center;color:#fff6dc;
+  background:radial-gradient(circle at 50% 30%,#3a1f5c,#1a0f2c 70%);border:4px solid #ffcf3f;box-shadow:0 0 0 4px #7a4a00,0 0 0 8px #1a0f2c,0 10px 0 8px rgba(0,0,0,.25)}
+#casino[hidden]{display:none}
+#casino{outline:6px dotted #fff6c8;outline-offset:-12px;animation:czBulb 1s steps(1) infinite}
+#casino.spinning{animation-duration:.2s}
+@keyframes czBulb{50%{outline-color:#ff5c8a}}
+.cz-title{margin:2px 0 0;font-size:30px;letter-spacing:2px;color:#ffe14d;text-shadow:2px 2px 0 #ff3d6e,4px 4px 0 #7a1036}
+.cz-sub{font-size:12px;color:#ffb3cb;margin:2px 0 8px}
+.cz-wheel{position:relative;width:320px;height:320px;margin:0 auto}
+#wheel{width:320px;height:320px;image-rendering:pixelated;display:block}
+.cz-ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid #fff6dc;z-index:2;filter:drop-shadow(0 3px 0 #7a1036)}
+#czResult{min-height:22px;margin:8px 0 6px;font-size:16px;font-weight:700;color:#fff}
+#casino.done #czResult{color:#ffe14d;animation:czWin .5s steps(3) 3}
+@keyframes czWin{50%{transform:scale(1.12)}}
+.cz-btns{display:flex;gap:8px;justify-content:center}
+#czSpin{background:#ffcf3f;color:#3a1f00;font-size:18px;padding:10px 16px;border-color:#7a4a00}
+#czSpin:disabled{background:#8a7a5a;color:#3a3020;cursor:default}
+#czPass{background:transparent;color:#ffb3cb;border-color:#ffb3cb}
+#czOdds{display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:center;margin-top:10px;font-size:11px;color:#d9c8ef}
+#czOdds span{display:inline-flex;align-items:center;gap:2px}#czOdds img{width:18px;height:18px;image-rendering:pixelated}
+#czChip{align-self:center;background:#2a1640;color:#ffe14d;border-color:#ffcf3f;white-space:nowrap;animation:czChip 1s steps(2) infinite}
+@keyframes czChip{50%{box-shadow:0 0 0 3px #ff5c8a}}
+#czChip[hidden]{display:none}
 #selBox{position:fixed;display:none;pointer-events:none;z-index:4;border:2px solid #fff;outline:2px solid #2b2147;background:rgba(60,240,138,.16)}
 #setPanel ul{margin:6px 0 0;padding-left:16px;line-height:1.8}
 kbd{display:inline-block;border:2px solid var(--ink);background:#fff;padding:0 5px;font-family:inherit;font-size:12px;line-height:1.3}
@@ -140,7 +154,9 @@ kbd{display:inline-block;border:2px solid var(--ink);background:#fff;padding:0 5
   #waveBtn{position:fixed;right:8px;bottom:128px;font-size:16px;padding:10px 12px;margin:0}
   #bar{bottom:6px;gap:5px;padding:5px;max-width:calc(100vw - 12px)}
   #cards{gap:5px!important}
-  #betBox{position:fixed;left:8px;bottom:128px;background:#fffaf2;min-width:0;width:178px}
+  #czChip{position:fixed;left:8px;bottom:128px;margin:0}
+  #casino{width:min(92vw,400px);padding:14px 12px}
+  #casino .cz-wheel{width:280px;height:280px}#wheel{width:280px;height:280px}
   #hud{left:8px;top:8px;gap:5px;flex-direction:column;align-items:flex-start}
   #tools{right:8px;top:8px;flex-direction:column}
   #info{left:12px;right:12px;width:auto;bottom:118px}
@@ -175,15 +191,21 @@ kbd{display:inline-block;border:2px solid var(--ink);background:#fff;padding:0 5
 
 <div id="bar" class="px">
   <div id="cards" style="display:flex;gap:8px"></div>
-  <div id="betBox"><div class="bt">🎲 더블 오어 낫띵 <kbd>B</kbd></div>
-    <div class="seg"><button data-f="0">없음</button><button data-f="0.25">25%</button><button data-f="0.5">50%</button><button data-f="1">올인</button></div>
-    <div id="betInfo">무피해면 건 코인 2배</div></div>
+  <button class="btn" id="czChip" hidden>🎰 룰렛 <kbd>C</kbd></button>
   <button class="btn pink" id="waveBtn">▶ 웨이브 1</button>
 </div>
 
 <div id="info" class="px"></div>
 <div id="coverTip"></div>
 <div id="selBox"></div>
+<section id="casino" class="px" hidden>
+  <h2 class="cz-title">🎰 냥냥 룰렛</h2>
+  <div class="cz-sub">준비 시간 한정 · 한 번만 돌릴 수 있어요</div>
+  <div class="cz-wheel"><div class="cz-ptr"></div><canvas id="wheel" width="160" height="160"></canvas></div>
+  <div id="czResult"></div>
+  <div class="cz-btns"><button class="btn" id="czSpin">🎰 돌리기</button><button class="btn" id="czPass">패스</button></div>
+  <div id="czOdds"></div>
+</section>
 <div id="setPanel" class="px" hidden>
   <b>설정</b>
   <label>도트 크기 <span id="pixSeg"><button data-v="1">선명</button><button data-v="2">기본</button><button data-v="3">레트로</button></span></label>
@@ -198,7 +220,7 @@ kbd{display:inline-block;border:2px solid var(--ink);background:#fff;padding:0 5
     <li>우클릭: 고른 동물 배치 · 선택한 동물 이동 · 같은 동물 위면 합성</li>
     <li><kbd>W</kbd>: 커서 아래 동물 잡기 → 한 번 더 누르면 놓기</li>
     <li><kbd>E</kbd>: 커서 아래 동물 판매 · <kbd>F</kbd>: 강화 (3레벨부터)</li>
-    <li><kbd>B</kbd>: 베팅 금액 바꾸기 (없음→25%→50%→올인)</li>
+    <li><kbd>C</kbd>: 냥냥 룰렛 열기/닫기 (준비 시간에 한 번)</li>
     <li><kbd>1</kbd>~<kbd>5</kbd>: 덱 동물 고르기 · <kbd>Space</kbd>: 웨이브 시작</li>
   </ul>
 </div>
@@ -213,7 +235,7 @@ kbd{display:inline-block;border:2px solid var(--ink);background:#fff;padding:0 5
       <li><b>같은 동물, 같은 레벨</b>끼리 끌어다 겹치면 합성해서 레벨업! 3레벨에서는 두 갈래 중 하나로 전직해요.</li>
       <li><b>높은 블록</b>일수록 사거리와 공격력이 올라가요. 계단이 꺾이는 모서리가 명당이에요.</li>
       <li>짝수 웨이브를 깨면 <b>강화 카드</b>를 한 장 골라요.</li>
-      <li>🎲 <b>더블 오어 낫띵</b>: 웨이브 전에 코인을 걸고, 한 마리도 안 새면 2배! 3레벨 동물은 <b>⚒ 강화</b>(+1~+5) 도박도 할 수 있어요.</li>
+      <li>🎰 준비 시간마다 <b>냥냥 룰렛</b>을 한 번 돌릴 수 있어요. 코인·동물·버프… 꽝이나 저주도 있어요! 3레벨 동물은 <b>⚒ 강화</b>(+1~+5) 도박도 할 수 있어요.</li>
       <li>어딘가에 <b>히든 전직</b> 조건이 숨어 있어요. 히든 동물에게는 <b>숨겨진 각성</b>까지! 도감의 ??? 를 찾아보세요.</li>
     </ol>
     <div class="deckhead"><b>내 덱</b><span id="deckCount">4 / 5</span><small>눌러서 넣고 빼요 · 특화 동물은 진행하면 해금</small></div>

@@ -127,11 +127,11 @@ Object.assign(TYPES, {
     unlock:{ text:'하드 5웨이브 도달', check:(m, w) => m === 'hard' && w >= 5 } },
   raccoon: { name:'너구리 딜러', cost:90, air:true, role:'주사위 공격 · 옆 동물 대박 치명타', special:true, lvName:['너구리 딜러', '타짜 너구리', '카지노 너구리'],
     lv:[ { dmg:10, rate:1.2, range:2.8, luck:0.05 }, { dmg:22, rate:1.3, range:3.0, luck:0.08 }, { dmg:40, rate:1.4, range:3.2, luck:0.12, lucky:true } ],
-    unlock:{ text:'더블 오어 낫띵 베팅 3번 성공 (누적)', check:() => betWins >= 3 } },
+    unlock:{ text:'룰렛 누적 8번 돌리기', check:() => spinCount >= 8 } },
 });
 const BASIC = ['cat', 'dog', 'rabbit', 'penguin'];
 const unlocked = new Set(store0('nyandef-unlock', []));
-let betWins = store0('nyandef-betwins', 0);
+let spinCount = store0('nyandef-spins', 0);
 function store0(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } }
 const isOpen = t => !TYPES[t].special || unlocked.has(t);
 let deck = store0('nyandef-deck', BASIC.slice()).filter(t => TYPES[t] && isOpen(t)).slice(0, 5);
@@ -201,7 +201,7 @@ function resetState(){
   Object.assign(G, { mode, coins: mode === 'hard' ? 130 : 140, hp:20, maxHp:20, wave:0, state:'build', kills:0, speed:1, paused:false, modal:false, autoT: 15,
     mods:{ catspd:1, rabrng:1, dogkb:1, dogdmg:1, pengslow:0, pengaoe:1, alldmg:1, coin:1, height:1, interest:false, discount:1 },
     taken:{}, spawnQ:[], waveT:0, leaks:0, armed:null, selTile:null, selUnit:null, hover:null, drag:null,
-    bet:0, betF:0, betLost:false, betAll:false, charms:1, useCharm:true, enhBonus:0, group:[] });
+    spun:false, buffWave:0, curseWave:0, charms:1, useCharm:true, enhBonus:0, group:[] });
 }
 resetState();
 const store = {
@@ -819,6 +819,163 @@ function iconFor(type, level = 1, branch = null, hidden = null, awake = false){
   return icons[k] || renderIcon(k, makeAnimal(hidden ? HIDDEN[hidden].base : type, Math.max(level, 1), branch, hidden, awake));
 }
 
+/* ---------------- 냥냥 룰렛 (prep-time casino) ---------------- */
+// little voxel prize models, rendered to icons with the same pipeline as the animals
+function prizeModel(id){
+  const g = new THREE.Group();
+  const coin = (x, y, z) => { vox(g, 0.42, 0.1, 0.42, '#ffcf3f', x, y, z, '#4a3400'); vox(g, 0.3, 0.02, 0.3, '#ffe58a', x, y + 0.06, z); };
+  if (id === 'x2'){ for (let i = 0; i < 3; i++) coin(-0.18, 0.05 + i * 0.11, 0); for (let i = 0; i < 2; i++) coin(0.22, 0.05 + i * 0.11, 0.1);
+    vox(g, 0.36, 0.36, 0.08, '#ffcf3f', 0.05, 0.55, 0.15, '#4a3400'); vox(g, 0.14, 0.2, 0.03, '#b88a10', 0.05, 0.55, 0.2); }
+  if (id === 'x5'){ for (let i = 0; i < 5; i++) coin(-0.25 + (i % 3) * 0.25, 0.05 + Math.floor(i / 3) * 0.11, (i % 2) * 0.15);
+    vox(g, 0.6, 0.18, 0.28, '#ffd84d', 0, 0.36, -0.05, '#5a4200'); vox(g, 0.5, 0.12, 0.2, '#fff3a0', 0, 0.5, -0.05, '#5a4200');
+    [-0.2, 0, 0.2].forEach((x, i) => vox(g, 0.1, 0.16 + (i === 1 ? 0.08 : 0), 0.1, '#ffcf3f', x, 0.66, -0.05, '#5a4200')); vox(g, 0.08, 0.08, 0.05, '#ff3d6e', 0, 0.5, 0.06); }
+  if (id === 'miss'){ vox(g, 0.3, 0.26, 0.22, '#d8d2dc', 0.34, 0.3, 0); vox(g, 0.06, 0.06, 0.03, '#2a1d2a', 0.4, 0.34, 0.12); vox(g, 0.62, 0.06, 0.06, '#d8d2dc', -0.06, 0.3, 0);
+    for (let i = 0; i < 4; i++){ vox(g, 0.05, 0.28, 0.05, '#d8d2dc', -0.28 + i * 0.13, 0.3, 0); } vox(g, 0.2, 0.3, 0.06, '#d8d2dc', -0.44, 0.3, 0); }
+  if (id === 'unit1' || id === 'unit2'){ const c = id === 'unit2' ? '#ffcf3f' : '#ff5c8a', r = id === 'unit2' ? '#ff3d6e' : '#ffd84d';
+    vox(g, 0.62, 0.48, 0.62, c, 0, 0.24, 0); vox(g, 0.68, 0.14, 0.68, c, 0, 0.52, 0);
+    vox(g, 0.14, 0.62, 0.7, r, 0, 0.3, 0); vox(g, 0.7, 0.62, 0.14, r, 0, 0.3, 0); vox(g, 0.16, 0.16, 0.16, r, -0.12, 0.66, 0); vox(g, 0.16, 0.16, 0.16, r, 0.12, 0.66, 0);
+    if (id === 'unit2'){ vox(g, 0.1, 0.1, 0.1, '#ffffff', 0.3, 0.7, 0.3, '#888888'); vox(g, 0.08, 0.08, 0.08, '#ffffff', -0.3, 0.6, 0.32, '#888888'); } }
+  if (id === 'charm'){ vox(g, 0.66, 0.66, 0.1, '#2f6fd6', 0, 0.36, 0); vox(g, 0.46, 0.46, 0.12, '#ffffff', 0, 0.36, 0.01); vox(g, 0.3, 0.3, 0.14, '#7ac8ff', 0, 0.36, 0.02); vox(g, 0.14, 0.14, 0.16, '#1d1d3a', 0, 0.36, 0.03);
+    vox(g, 0.06, 0.16, 0.06, '#ffcf3f', 0, 0.76, 0); }
+  if (id === 'buff'){ const sw = new THREE.Group(); vox(sw, 0.12, 0.6, 0.06, '#e8eef8', 0, 0.42, 0, '#333333'); vox(sw, 0.06, 0.1, 0.06, '#e8eef8', 0, 0.76, 0, '#333333');
+    vox(sw, 0.36, 0.08, 0.1, '#ffcf3f', 0, 0.1, 0, '#4a3400'); vox(sw, 0.08, 0.2, 0.08, '#8a5a3a', 0, -0.04, 0); sw.rotation.z = -0.7; sw.position.set(-0.1, 0.1, 0); g.add(sw);
+    vox(g, 0.12, 0.12, 0.05, '#ff5c8a', 0.3, 0.62, 0.05); vox(g, 0.08, 0.08, 0.05, '#ffd84d', 0.38, 0.4, 0.05); }
+  if (id === 'heart'){ const rows = ['0110110', '1111111', '1111111', '0111110', '0011100', '0001000'];
+    rows.forEach((r, y) => [...r].forEach((c, x) => { if (c === '1') vox(g, 0.1, 0.1, 0.16, y === 1 && x === 1 ? '#ffb3cb' : '#ff3d6e', (x - 3) * 0.1, 0.62 - y * 0.1, 0); })); }
+  if (id === 'curse'){ vox(g, 0.56, 0.46, 0.5, '#f4f0ea', 0, 0.42, 0); vox(g, 0.4, 0.14, 0.4, '#f4f0ea', 0, 0.14, 0.02);
+    vox(g, 0.14, 0.14, 0.04, '#2a1d2a', -0.13, 0.44, 0.25); vox(g, 0.14, 0.14, 0.04, '#2a1d2a', 0.13, 0.44, 0.25); vox(g, 0.06, 0.08, 0.04, '#2a1d2a', 0, 0.3, 0.25);
+    [-0.12, -0.04, 0.04, 0.12].forEach(x => vox(g, 0.05, 0.08, 0.04, '#2a1d2a', x, 0.13, 0.23)); vox(g, 0.1, 0.1, 0.1, '#a98bf0', 0.32, 0.72, 0); }
+  return g;
+}
+// weights add to 100 and are shown on the panel, so the odds are honest
+const ROUL = [
+  { id:'x2', name:'코인 2배', w:10, col:'#d42a4c' }, { id:'miss', name:'꽝', w:12, col:'#241830' },
+  { id:'unit1', name:'랜덤 동물', w:15, col:'#d42a4c' }, { id:'charm', name:'보호 부적', w:10, col:'#241830' },
+  { id:'x5', name:'잭팟 5배', w:4, col:'#e8a800' }, { id:'miss', name:'꽝', w:12, col:'#241830' },
+  { id:'buff', name:'공격력 +25%', w:10, col:'#d42a4c' }, { id:'heart', name:'체력 +3', w:7, col:'#241830' },
+  { id:'curse', name:'저주: 적 +15% 속도', w:5, col:'#1f9e5a' }, { id:'unit2', name:'2레벨 동물', w:5, col:'#e8a800' },
+  { id:'x2', name:'코인 2배', w:10, col:'#241830' },
+];
+{ let a = -Math.PI / 2; for (const r of ROUL){ r.a0 = a; a += r.w / 100 * TAU; r.a1 = a; } }
+const czCost = () => 25 + 10 * (G.wave + 1);
+let czOpenNow = false, czSpinning = false, czPending = 0, czRot = 0;
+const prizeImg = {};
+function drawWheel(){
+  const cv = $('wheel'); if (!cv) return;
+  const g = cv.getContext('2d'), W = cv.width, R = W / 2;
+  g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, W, W);
+  // gold rim with bulbs
+  g.fillStyle = '#7a4a00'; g.beginPath(); g.arc(R, R, R - 1, 0, TAU); g.fill();
+  g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(R, R, R - 4, 0, TAU); g.fill();
+  for (let i = 0; i < 24; i++){ const a = i / 24 * TAU; g.fillStyle = i % 2 ? '#fff6c8' : '#ff5c8a'; g.fillRect(Math.round(R + Math.cos(a) * (R - 8)) - 2, Math.round(R + Math.sin(a) * (R - 8)) - 2, 4, 4); }
+  const rr = R - 13;
+  for (const s of ROUL){
+    g.fillStyle = s.col; g.beginPath(); g.moveTo(R, R); g.arc(R, R, rr, s.a0, s.a1); g.closePath(); g.fill();
+    g.strokeStyle = '#ffcf3f'; g.lineWidth = 2; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(s.a0) * rr, R + Math.sin(s.a0) * rr); g.stroke();
+    const img = prizeImg[s.id];
+    if (img && img.complete){
+      const mid = (s.a0 + s.a1) / 2, sz = s.w <= 5 ? 20 : 28, d = rr * 0.64;
+      g.save(); g.translate(R + Math.cos(mid) * d, R + Math.sin(mid) * d); g.rotate(mid + Math.PI / 2);
+      g.drawImage(img, -sz / 2, -sz / 2, sz, sz); g.restore();
+    }
+  }
+  // hub
+  g.fillStyle = '#7a4a00'; g.beginPath(); g.arc(R, R, 17, 0, TAU); g.fill();
+  g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(R, R, 14, 0, TAU); g.fill();
+  g.fillStyle = '#ff3d6e'; g.fillRect(R - 6, R - 6, 12, 12); g.fillStyle = '#fff6c8'; g.fillRect(R - 3, R - 3, 6, 6);
+}
+function buildCasino(){
+  ROUL.forEach(s => { if (!prizeImg[s.id]){ const im = new Image(); im.onload = drawWheel; im.src = renderIcon('prize-' + s.id, prizeModel(s.id)); prizeImg[s.id] = im; } });
+  const odds = $('czOdds'); odds.textContent = '';
+  const seen = {};
+  ROUL.forEach(s => { seen[s.id] = seen[s.id] || { s, w:0 }; seen[s.id].w += s.w; });
+  Object.values(seen).forEach(({ s, w }) => {
+    const d = document.createElement('span'); const im = document.createElement('img'); im.src = prizeImg[s.id].src; im.alt = '';
+    d.append(im, ` ${s.name} ${w}%`); odds.append(d);
+  });
+  drawWheel();
+}
+function openCasino(){
+  if (G.state !== 'build' || G.wave >= WAVES.length || G.modal) return;
+  if (!$('czOdds').childElementCount) buildCasino();
+  czOpenNow = true;
+  const el = $('casino'); el.hidden = false; el.classList.remove('done');
+  $('czResult').textContent = G.spun ? '이번 준비 시간엔 이미 돌렸어요' : '준비 시간에 딱 한 번! 돌릴까요?';
+  $('czSpin').disabled = G.spun || czSpinning; $('czPass').textContent = G.spun ? '닫기' : '패스';
+  $('czSpin').textContent = `🎰 돌리기  🪙${czCost()}`;
+  blip(700, 1100, 0.08, 'square', 0.025);
+  updateCasinoChip();
+}
+function closeCasino(force){
+  if (czSpinning && !force) return;
+  czOpenNow = false; $('casino').hidden = true; updateCasinoChip();
+}
+function updateCasinoChip(){
+  const c = $('czChip'); if (!c) return;
+  c.hidden = !(G.state === 'build' && !G.spun && !czOpenNow && G.wave < WAVES.length && (G.wave > 0 || G.coins > 0));
+}
+function spinWheel(){
+  if (czSpinning || G.spun || G.state !== 'build') return;
+  const cost = czCost();
+  if (G.coins < cost){ toast('코인이 부족해요', '룰렛 ' + cost + '코인'); blip(200, 150, 0.12, 'square', 0.03); return; }
+  G.coins -= cost; G.spun = true; czSpinning = true; ui();
+  spinCount++; store.set('nyandef-spins', spinCount);
+  $('czSpin').disabled = true; $('casino').classList.add('spinning');
+  $('czResult').textContent = '두구두구두구…';
+  // pick by weight, then land somewhere inside that slice under the pointer (top = -90°)
+  let r = Math.random() * 100, pick = ROUL[0];
+  for (const s of ROUL){ if ((r -= s.w) < 0){ pick = s; break; } }
+  const inside = pick.a0 + (pick.a1 - pick.a0) * (0.2 + Math.random() * 0.6);
+  // a slice at local angle θ shows at θ + rotation, so the winner needs rotation ≡ -90° - θ
+  const start = czRot, want = -Math.PI / 2 - inside, target = start + TAU * 5 + (((want - start) % TAU) + TAU) % TAU;
+  const dur = 4200, t0 = performance.now(), cv = $('wheel');
+  let lastSeg = -1;
+  const frame = (now) => {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+    czRot = start + (target - start) * e;
+    cv.style.transform = `rotate(${czRot}rad)`;
+    // tick whenever a slice boundary passes the pointer
+    const under = -Math.PI / 2 - czRot;
+    const seg = ROUL.findIndex(s => { const a = ((under - s.a0) % TAU + TAU) % TAU; return a < s.a1 - s.a0; });
+    if (seg !== lastSeg){ lastSeg = seg; blip(1400 - k * 600, 900, 0.025, 'square', 0.02); }
+    if (k < 1) requestAnimationFrame(frame);
+    else { czSpinning = false; $('casino').classList.remove('spinning'); payout(pick, cost); checkUnlocks(false); }
+  };
+  requestAnimationFrame(frame);
+}
+function payout(p, cost){
+  const el = $('casino'); el.classList.add('done');
+  const say = (t, sub, special) => { $('czResult').textContent = t; toast(t, sub || '', special); };
+  const target = G.state === 'wave' ? G.wave : G.wave + 1;
+  if (p.id === 'miss'){ say('꽝… 생선 뼈만 남았어요'); blip(400, 90, 0.5, 'sawtooth', 0.04); }
+  if (p.id === 'x2'){ G.coins += cost * 2; say('코인 2배! +' + cost * 2); [660, 990].forEach((f, i) => setTimeout(() => blip(f, f, 0.1, 'square', 0.035), i * 90)); }
+  if (p.id === 'x5'){ G.coins += cost * 5; say('🎉 잭팟! +' + cost * 5, '룰렛 5배 당첨', true); shake = 0.3; SFX.hidden(); [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => blip(f, f, 0.12, 'triangle', 0.05), i * 90)); }
+  if (p.id === 'charm'){ G.charms++; say('🧿 보호 부적 +1', '강화 실패 때 하락·파괴를 막아요'); blip(800, 1200, 0.15, 'triangle', 0.04); }
+  if (p.id === 'buff'){ G.buffWave = target; say('⚔ 다음 웨이브 공격력 +25%'); blip(500, 1000, 0.15, 'square', 0.035); }
+  if (p.id === 'heart'){ G.hp += 3; G.maxHp = Math.max(G.maxHp, G.hp); say('❤ 체력 +3'); blip(600, 900, 0.15, 'triangle', 0.04); }
+  if (p.id === 'curse'){ G.curseWave = target; say('💀 저주! 다음 웨이브 적이 빨라져요'); blip(300, 60, 0.6, 'sawtooth', 0.05); shake = 0.2; }
+  if (p.id === 'unit1' || p.id === 'unit2'){
+    const lv = p.id === 'unit2' ? 2 : 1;
+    const pool = deck.filter(t => isOpen(t));
+    const type = pool[Math.floor(Math.random() * pool.length)];
+    const T = TYPES[type], rng = T.lv[lv - 1].range;
+    let best = null, bc = -1;
+    for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){ if (!canPlace(type, x, z)) continue; const c = coverCount(x, z, rng) + Math.random() * 0.5; if (c > bc){ bc = c; best = { x, z }; } }
+    if (best){
+      const u = placeUnit(type, best.x, best.z, lv); discover(type);
+      setTimeout(() => transformFx(u, lv, '룰렛 선물!'), 200);
+      say('🎁 ' + (T.lvName ? T.lvName[lv - 1] : T.name) + (lv > 1 ? ' 2레벨' : '') + ' 당첨!', '좋은 자리에 놓아 뒀어요. 옮겨도 돼요');
+    } else { G.coins += cost * 2; say('자리가 없어서 코인으로 +' + cost * 2); }
+  }
+  $('czSpin').textContent = '다음 준비 시간에 또!'; $('czPass').textContent = '닫기';
+  buildCards(); ui();
+  setTimeout(() => { if (czOpenNow && !czSpinning) closeCasino(); }, 2600);
+}
+$('czSpin').onclick = () => { audio(); spinWheel(); };
+$('czPass').onclick = () => closeCasino();
+$('czChip').onclick = () => openCasino();
+
 /* ---------------- entities ---------------- */
 const units = [], foes = [], shots = [], bits = [];
 const unitAt = (x, z) => units.find(u => u.x === x && u.z === z);
@@ -842,6 +999,7 @@ function statsOf(u){
   if (u.hidden === 'catdog'){ s.rate *= 2.2; s.air = true; if (u.awake){ s.rate *= 1.5; s.dmg *= 1.4; s.splash = 0.9; s.stun = 0.3; } }
   if (u.hidden === 'witch'){ s.dmg *= 1.5; s.curse = 0.25; if (u.awake){ s.dmg *= 1.8; s.curse = 0.5; s.range += 0.6; } }
   if (u.hidden === 'aurora'){ s.dmg *= 2; s.aoe *= 1.4; s.slow = Math.min(0.85, s.slow + 0.15); if (u.awake){ s.dmg *= 1.6; s.aoe = Math.max(s.aoe, 2.1); s.freeze = 0.35; s.slow = Math.min(0.85, s.slow + 0.1); } }
+  if (G.buffWave && G.buffWave === G.wave) s.dmg *= 1.25;
   if (u.plus){ s.dmg *= 1 + 0.18 * u.plus; s.rate *= 1 + 0.03 * u.plus; if (s.income) s.income = Math.round(s.income * (1 + 0.15 * u.plus)); }
   // raccoon dealers share luck: neighbours get a chance at a triple-damage jackpot hit
   for (const o of units){
@@ -896,6 +1054,7 @@ function spawnFoe(type){
   const def = FOES[type];
   const w = G.wave - 1, scale = (1 + 0.5 * w + 0.07 * w * w) * 1.06 * (G.mode === 'hard' ? 1.12 + 0.045 * w : 1);
   const e = { type, def, hp:def.hp * scale, maxHp:def.hp * scale, s:0, u:0, spd: G.mode === 'hard' ? 1.07 : 1, curseT:0, curseP:0, slowT:0, slowP:0, freezeT:0, stunT:0, dead:false, summonT:5, walk:Math.random() * TAU };
+  if (G.curseWave && G.curseWave === G.wave) e.spd *= 1.15;
   e.mesh = makeFoe(type);
   e.bar = makeBar(def.boss ? 1.6 : 0.7);
   e.mesh.add(e.bar);
@@ -1237,13 +1396,11 @@ function startWave(auto){
   if (G.mode === 'hard' && !auto && G.autoT > 1){ const early = Math.floor(G.autoT) * 2; G.coins += early; floatText(baseMesh.position.clone().add(new THREE.Vector3(0, 1.6, 0)), '빨리 시작 +' + early, 'coin', 0.9); }
   G.wave++;
   checkUnlocks(false);
-  G.bet = 0; G.betLost = false; G.betAll = false;
-  if (G.betF > 0 && G.coins > 0){
-    const b = Math.min(betCap(G.wave), G.betF >= 1 ? G.coins : Math.floor(G.coins * G.betF));
-    if (b > 0){ G.coins -= b; G.bet = b; G.betAll = G.betF >= 1; setTimeout(() => toast('🎲 ' + b + '코인 베팅!', '이번 웨이브에 한 마리도 안 새면 ' + b * 2 + '코인' + (G.betAll ? ' + 🧿부적' : '')), 50); blip(400, 900, 0.15, 'square', 0.03); }
-  }
   if (G.mods.interest){ const add = Math.min(40, Math.floor(G.coins * 0.1)); if (add > 0){ G.coins += add; toast('저금통 이자 +' + add); } }
   G.state = 'wave'; G.waveT = 0;
+  closeCasino(true);
+  if (G.buffWave === G.wave) setTimeout(() => toast('⚔ 룰렛 버프', '이번 웨이브 공격력 +25%'), 300);
+  if (G.curseWave === G.wave) setTimeout(() => toast('💀 룰렛 저주', '이번 웨이브 적이 15% 빨라요'), 300);
   G.spawnQ = [];
   for (const grp of WAVES[G.wave - 1]){
     const n = G.mode === 'hard' ? Math.ceil(grp.n * 1.15) : grp.n, gap = grp.gap * (G.mode === 'hard' ? 0.85 : 1);
@@ -1259,25 +1416,16 @@ function endWave(){
   G.state = 'build';
   const bonus = 18 + G.wave * 4;
   G.coins += bonus;
-  let betMsg = '';
-  if (G.bet && !G.betLost){
-    const win = G.bet * 2; G.coins += win; betWins++; store.set('nyandef-betwins', betWins);
-    if (G.betAll) G.charms++;
-    betMsg = '🎲 베팅 성공 +' + win + (G.betAll ? ' · 🧿부적 +1' : '');
-    floatText(baseMesh.position.clone().add(new THREE.Vector3(0, 2, 0)), '베팅 성공 +' + win, 'crit', 1.3);
-    [660, 880, 1320].forEach((f, i) => setTimeout(() => blip(f, f, 0.1, 'square', 0.035), i * 90));
-    checkUnlocks(false);
-  }
-  G.bet = 0; G.betF = 0;
   for (const u of units){
     u.spent = 0;
     if (u.type === 'hamster'){ const inc = statsOf(u).income; G.coins += inc; floatText(u.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), '+' + inc, 'coin', 1.1); u.punch = 1; }
   }
   if (G.wave >= WAVES.length){ finish(true); return; }
-  toast('웨이브 ' + G.wave + ' 클리어!', betMsg || ('보너스 코인 +' + bonus + (G.mode === 'hard' ? ' · 다음 웨이브 자동 시작' : '')));
+  toast('웨이브 ' + G.wave + ' 클리어!', '보너스 코인 +' + bonus + (G.mode === 'hard' ? ' · 다음 웨이브 자동 시작' : ''));
   G.autoT = 10;
   waveEndHidden();
   if (G.wave % 2 === 0) setTimeout(openCards, 600);
+  G.spun = false; czPending = performance.now() + 1100;
   ui();
 }
 function finish(win){
@@ -1765,7 +1913,7 @@ addEventListener('keydown', e => {
   if (code === 'KeyW'){ keyGrab(); return; }
   if (code === 'KeyE'){ sellUnit(hoveredUnit() || G.selUnit); return; }
   if (code === 'KeyF'){ enhance(hoveredUnit() || G.selUnit); return; }
-  if (code === 'KeyB'){ setBet(BET_STEPS[(BET_STEPS.indexOf(G.betF) + 1) % BET_STEPS.length]); return; }
+  if (code === 'KeyC'){ if (czOpenNow) closeCasino(); else openCasino(); return; }
   const pan = { ArrowLeft:[-1, 0], ArrowRight:[1, 0], ArrowUp:[0, 1], ArrowDown:[0, -1] }[code];
   if (pan){ e.preventDefault(); panBy(pan[0] * 60, pan[1] * 60); }
 });
@@ -1927,21 +2075,6 @@ function buildCards(){
   });
 }
 let lastCoins = -1;
-const BET_STEPS = [0, 0.25, 0.5, 1];
-// table limit grows with the wave so doubling can't snowball the whole run
-function betCap(w = G.state === 'wave' ? G.wave : G.wave + 1){ return 50 + 25 * w; }
-function setBet(f){ if (G.state !== 'build') return; G.betF = f; blip(600, 700, 0.04, 'square', 0.02); ui(); }
-document.querySelectorAll('#betBox button').forEach(b => { b.onclick = () => setBet(+b.dataset.f); });
-function updateBet(){
-  const box = $('betBox'); if (!box) return;
-  const wave = G.state === 'wave';
-  box.classList.toggle('live', wave && G.bet > 0 && !G.betLost);
-  box.classList.toggle('lost', wave && G.betLost);
-  box.querySelectorAll('button').forEach(b => { b.classList.toggle('on', +b.dataset.f === G.betF); b.disabled = wave; });
-  const amt = Math.min(betCap(), G.betF >= 1 ? G.coins : Math.floor(G.coins * G.betF));
-  $('betInfo').textContent = wave ? (G.bet ? (G.betLost ? '베팅 실패…' : `${G.bet} → ${G.bet * 2} 도전 중`) : '이번 웨이브 베팅 없음')
-    : G.betF ? `${amt}코인 걸기 · 무피해면 2배` : `무피해면 2배 · 한도 ${betCap()}`;
-}
 function ui(){
   $('hpText').textContent = Math.max(0, G.hp);
   $('hpFill').style.width = clamp(G.hp / G.maxHp, 0, 1) * 100 + '%';
@@ -1950,7 +2083,7 @@ function ui(){
   const wb = $('waveBtn');
   wb.disabled = G.state !== 'build' || G.wave >= WAVES.length;
   wb.textContent = G.state === 'wave' ? `웨이브 ${G.wave} 진행 중` : G.wave >= WAVES.length ? '끝!' : G.mode === 'hard' ? `▶ 지금 시작 (${Math.max(0, Math.ceil(G.autoT))})` : `▶ 웨이브 ${G.wave + 1}`;
-  updateBet();
+  updateCasinoChip();
   if (G.coins !== lastCoins){ lastCoins = G.coins; [...$('cards').children].forEach((b, i) => deck[i] && b.classList.toggle('poor', G.coins < costOf(deck[i]))); }
 }
 let toastT = 0;
@@ -2016,7 +2149,7 @@ function renderDeck(){
   });
   $('deckCount').textContent = deck.length + ' / 5';
 }
-function begin(mode){ audio(); G.mode = mode; resetState(); $('introOv').classList.remove('on'); G.modal = false; buildCards(); ui();
+function begin(mode){ audio(); G.mode = mode; resetState(); $('introOv').classList.remove('on'); G.modal = false; buildCards(); ui(); czPending = performance.now() + 1500;
   if (mode === 'hard') toast('하드 모드', '웨이브가 자동으로 시작돼요. 15초 안에 배치하세요!'); }
 $('startBtn').onclick = () => begin('normal');
 $('startHard').onclick = () => begin('hard');
@@ -2050,7 +2183,7 @@ let last = performance.now(), shake = 0, simT = 0;
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'wave'){ G.paused = true; $('pauseBtn').textContent = '▶'; } });
 function update(dt){
   if (G.state === 'build' && G.mode === 'hard' && G.wave < WAVES.length){
-    G.autoT -= dt;
+    if (!czSpinning) G.autoT -= dt;
     if (G.autoT <= 0) startWave(true);
     else if (Math.floor(G.autoT + dt) !== Math.floor(G.autoT)) ui();
   }
@@ -2124,7 +2257,6 @@ function leak(e){
   e.dead = true;
   foeRoot.remove(e.mesh);
   G.hp -= e.def.dmg; G.leaks++;
-  if (G.bet && !G.betLost){ G.betLost = true; toast('🎲 베팅 실패…', G.bet + '코인을 잃었어요'); blip(500, 90, 0.4, 'sawtooth', 0.04); ui(); }
   shake = Math.max(shake, e.def.boss ? 0.8 : 0.25);
   SFX.leak();
   burst(baseMesh.position.clone().add(new THREE.Vector3(0, 0.6, 0)), ['#ff6b81', '#ffffff'], 8, 2);
@@ -2235,6 +2367,7 @@ function animate(rdt, dt){
     tip.style.transform = `translate(${lastPtr.clientX + 16}px, ${lastPtr.clientY + 14}px)`;
   } else tip.style.display = 'none';
   updateBadges(placing() && !G.modal, ptype || (G.topView ? 'cat' : null));
+  if (czPending && performance.now() > czPending && !G.modal && G.state === 'build' && !G.spun && G.wave < WAVES.length){ czPending = 0; openCasino(); }
   if (toastT > 0){ toastT -= rdt; if (toastT <= 0) $('toast').style.display = 'none'; }
 }
 function loop(now){
@@ -2256,4 +2389,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, setBet, ENH, betWins:() => betWins, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
