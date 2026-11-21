@@ -89,9 +89,13 @@ Object.assign(TYPES, {
   hedgehog: { name:'고슴도치', cost:70, air:false, role:'계단 위 가시 함정', special:true, onPath:true, lvName:['고슴도치', '밤송이 고슴도치', '강철 고슴도치'],
     lv:[ { dmg:14, rate:4, range:0.75, slow:0.2 }, { dmg:32, rate:4, range:0.8, slow:0.3 }, { dmg:75, rate:4, range:0.85, slow:0.4 } ],
     unlock:{ text:'하드 5웨이브 도달', check:(m, w) => m === 'hard' && w >= 5 } },
+  raccoon: { name:'너구리 딜러', cost:90, air:true, role:'주사위 공격 · 옆 동물 대박 치명타', special:true, lvName:['너구리 딜러', '타짜 너구리', '카지노 너구리'],
+    lv:[ { dmg:10, rate:1.2, range:2.8, luck:0.05 }, { dmg:22, rate:1.3, range:3.0, luck:0.08 }, { dmg:40, rate:1.4, range:3.2, luck:0.12, lucky:true } ],
+    unlock:{ text:'더블 오어 낫띵 베팅 3번 성공 (누적)', check:() => betWins >= 3 } },
 });
 const BASIC = ['cat', 'dog', 'rabbit', 'penguin'];
 const unlocked = new Set(store0('nyandef-unlock', []));
+let betWins = store0('nyandef-betwins', 0);
 function store0(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } }
 const isOpen = t => !TYPES[t].special || unlocked.has(t);
 let deck = store0('nyandef-deck', BASIC.slice()).filter(t => TYPES[t] && isOpen(t)).slice(0, 5);
@@ -150,6 +154,8 @@ const CARDS = [
   { id:'height', icon:'⛰', name:'높은 곳이 좋아', desc:'높이 보너스 2배' },
   { id:'interest', icon:'🏦', name:'저금통', desc:'웨이브 시작마다 보유 코인 10% 이자 (최대 40)' },
   { id:'discount', icon:'🏷', name:'단골 할인', desc:'배치 비용 -15%' },
+  { id:'charm', icon:'🧿', name:'보호 부적', desc:'강화 실패 때 단계 하락·파괴를 막는 부적 2장' },
+  { id:'luck', icon:'🍀', name:'행운의 동전', desc:'강화 성공 확률 +8%p' },
 ];
 
 /* ---------------- state ---------------- */
@@ -158,7 +164,8 @@ function resetState(){
   const mode = G.mode || 'normal';
   Object.assign(G, { mode, coins: mode === 'hard' ? 130 : 140, hp:20, maxHp:20, wave:0, state:'build', kills:0, speed:1, paused:false, modal:false, autoT: 15,
     mods:{ catspd:1, rabrng:1, dogkb:1, dogdmg:1, pengslow:0, pengaoe:1, alldmg:1, coin:1, height:1, interest:false, discount:1 },
-    taken:{}, spawnQ:[], waveT:0, leaks:0, armed:null, selTile:null, selUnit:null, hover:null, drag:null });
+    taken:{}, spawnQ:[], waveT:0, leaks:0, armed:null, selTile:null, selUnit:null, hover:null, drag:null,
+    bet:0, betF:0, betLost:false, betAll:false, charms:1, useCharm:true, enhBonus:0, group:[] });
 }
 resetState();
 const store = {
@@ -546,6 +553,26 @@ function makeAnimal(type, level = 1, branch = null, hidden = null, awake = false
     vox(body, 0.05, 0.04, 0.03, '#2a1d2a', 0, 0.17, 0.29);
     face(body, 0.2, 0.25, 0.3, { blush:true });
   }
+  if (type === 'raccoon'){
+    const c = '#8d8a92', d = '#3a3640', w2 = '#ece8ef';
+    vox(body, 0.4, 0.3, 0.4, c, 0, 0.24, -0.02);
+    vox(body, 0.24, 0.22, 0.04, w2, 0, 0.24, 0.19);
+    vox(body, 0.46, 0.36, 0.38, c, 0, 0.56, 0.05);
+    vox(body, 0.47, 0.1, 0.05, d, 0, 0.6, 0.23);          // bandit mask
+    vox(body, 0.2, 0.1, 0.06, w2, 0, 0.5, 0.25);
+    vox(body, 0.06, 0.05, 0.03, '#2a1d2a', 0, 0.53, 0.285);
+    vox(body, 0.12, 0.12, 0.08, c, -0.16, 0.8, 0.04); vox(body, 0.12, 0.12, 0.08, c, 0.16, 0.8, 0.04);
+    vox(body, 0.06, 0.06, 0.03, d, -0.16, 0.8, 0.085); vox(body, 0.06, 0.06, 0.03, d, 0.16, 0.8, 0.085);
+    face(body, 0.6, 0.26, 0.45, { eye:'#ffffff' });
+    vox(body, 0.16, 0.07, 0.04, level >= 3 ? '#ffcf3f' : '#e04a5a', 0, 0.38, 0.215);   // bow tie
+    if (level >= 2){ vox(body, 0.5, 0.04, 0.22, '#2fb36a', 0, 0.76, 0.18); }            // dealer visor
+    const tail = new THREE.Group();
+    for (let i = 0; i < 4; i++) vox(tail, 0.13, 0.13, 0.1, i % 2 ? d : c, 0, i * 0.02, -i * 0.1);
+    tail.position.set(0, 0.3, -0.26); tail.rotation.x = 0.5; body.add(tail); g.userData.tail = tail;
+    const die = vox(body, 0.13, 0.13, 0.13, '#ffffff', 0.24, 0.34, 0.14, '#888888');
+    vox(body, 0.04, 0.04, 0.02, '#e04a5a', 0.24, 0.34, 0.21);
+    leg(c, -0.12, 0.12); leg(c, 0.12, 0.12); leg(c, -0.12, -0.14); leg(c, 0.12, -0.14);
+  }
   // hidden / awakened accessories
   if (hidden === 'witch'){
     vox(body, 0.56, 0.05, 0.5, '#5a3a8a', 0, 0.78, 0.06);
@@ -573,7 +600,7 @@ function makeAnimal(type, level = 1, branch = null, hidden = null, awake = false
   // level dressing: bandana for 2, crown for 3
   if (level === 2 && !hidden) vox(body, 0.3, 0.06, 0.08, '#6fa8ff', 0, 0.4, 0.2);
   if (level >= 3 && hidden !== 'witch' && hidden !== 'aurora'){
-    const crownY = type === 'rabbit' ? 1.1 : type === 'penguin' ? (branch === 'b' ? 1.18 : 0.9) : type === 'bear' ? 1.0 : type === 'owl' ? 1.0 : type === 'hamster' ? 0.76 : type === 'hedgehog' ? 0.44 : 0.86;
+    const crownY = type === 'rabbit' ? 1.1 : type === 'penguin' ? (branch === 'b' ? 1.18 : 0.9) : type === 'bear' ? 1.0 : type === 'owl' ? 1.0 : type === 'hamster' ? 0.76 : type === 'hedgehog' ? 0.44 : type === 'raccoon' ? 0.86 : 0.86;
     if (!(type === 'rabbit')){
       vox(body, 0.22, 0.06, 0.22, '#ffcf3f', 0, crownY, 0.06, '#5a4200');
       [-1, 0, 1].forEach(i => vox(body, 0.05, 0.07, 0.05, '#ffcf3f', i * 0.08, crownY + 0.06, 0.15, '#5a4200'));
@@ -736,7 +763,8 @@ const unitAt = (x, z) => units.find(u => u.x === x && u.z === z);
 const unitRoot = new THREE.Group(), foeRoot = new THREE.Group(), fxRoot = new THREE.Group();
 scene.add(unitRoot, foeRoot, fxRoot);
 
-function unitName(u){ const T = TYPES[u.type]; return u.awake ? AWAKE[u.hidden].name : u.hidden ? HIDDEN[u.hidden].name : (u.level >= 3 && T.br) ? T.br[u.branch].name : T.lvName ? T.lvName[u.level - 1] : T.name; }
+function unitName(u){ return (u.plus ? '+' + u.plus + ' ' : '') + baseName(u); }
+function baseName(u){ const T = TYPES[u.type]; return u.awake ? AWAKE[u.hidden].name : u.hidden ? HIDDEN[u.hidden].name : (u.level >= 3 && T.br) ? T.br[u.branch].name : T.lvName ? T.lvName[u.level - 1] : T.name; }
 function statsOf(u){
   const T = TYPES[u.type];
   const base = (u.level >= 3 && T.br) ? T.br[u.branch] : T.lv[Math.min(u.level, T.lv.length) - 1];
@@ -752,6 +780,12 @@ function statsOf(u){
   if (u.hidden === 'catdog'){ s.rate *= 2.2; s.air = true; if (u.awake){ s.rate *= 1.5; s.dmg *= 1.4; s.splash = 0.9; s.stun = 0.3; } }
   if (u.hidden === 'witch'){ s.dmg *= 1.5; s.curse = 0.25; if (u.awake){ s.dmg *= 1.8; s.curse = 0.5; s.range += 0.6; } }
   if (u.hidden === 'aurora'){ s.dmg *= 2; s.aoe *= 1.4; s.slow = Math.min(0.85, s.slow + 0.15); if (u.awake){ s.dmg *= 1.6; s.aoe = Math.max(s.aoe, 2.1); s.freeze = 0.35; s.slow = Math.min(0.85, s.slow + 0.1); } }
+  if (u.plus){ s.dmg *= 1 + 0.18 * u.plus; s.rate *= 1 + 0.03 * u.plus; if (s.income) s.income = Math.round(s.income * (1 + 0.15 * u.plus)); }
+  // raccoon dealers share luck: neighbours get a chance at a triple-damage jackpot hit
+  for (const o of units){
+    if (o === u || o.type !== 'raccoon' || Math.max(Math.abs(o.x - u.x), Math.abs(o.z - u.z)) !== 1) continue;
+    s.luck = (s.luck || 0) + TYPES.raccoon.lv[o.level - 1].luck;
+  }
   // owls buff neighbours (not themselves)
   for (const o of units){
     if (o === u || o.type !== 'owl' || Math.max(Math.abs(o.x - u.x), Math.abs(o.z - u.z)) !== 1) continue;
@@ -775,6 +809,14 @@ function placeUnit(type, x, z, level = 1, branch = null, hidden = null){
   dropIn(u.mesh);
   return u;
 }
+const PLUS_COLS = [null, '#9fe8ff', '#7af0a0', '#ffd84d', '#ff8fb8', '#c89aff'];
+function plusDecor(u){
+  if (!u.plus) return;
+  const r = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.6 + u.plus * 0.015, 4, 1), new THREE.MeshBasicMaterial({ color:PLUS_COLS[u.plus], transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+  r.rotation.x = -Math.PI / 2; r.position.y = 0.03; r.userData.unit = u;
+  u.mesh.add(r); u.mesh.userData.plusRing = r;
+  if (u.plus >= 4){ for (let i = 0; i < u.plus - 2; i++){ const sp = vox(u.mesh, 0.06, 0.06, 0.06, PLUS_COLS[u.plus], Math.cos(i * 2.1) * 0.42, 0.5 + i * 0.12, Math.sin(i * 2.1) * 0.42); sp.userData.unit = u; } }
+}
 function rebuildUnit(u){
   const pos = u.mesh.position.clone(), yaw = u.mesh.rotation.y;
   unitRoot.remove(u.mesh);
@@ -782,6 +824,7 @@ function rebuildUnit(u){
   u.mesh.position.copy(pos); u.mesh.rotation.y = yaw;
   u.mesh.traverse(o => { o.userData.unit = u; });
   unitRoot.add(u.mesh);
+  plusDecor(u);
   u.punch = 1;
 }
 function removeUnit(u){ unitRoot.remove(u.mesh); units.splice(units.indexOf(u), 1); }
@@ -931,7 +974,7 @@ function hurt(e, dmg, u, opts = {}){
   let d = Math.max(1, dmg - (e.def.armor || 0)) * (e.curseT > 0 ? 1 + e.curseP : 1);
   if (opts.air && e.def.fly) d *= opts.air;
   let cls = '';
-  if (opts.crit){ d *= 3; cls = 'crit'; }
+  if (opts.crit || (u && u.luck && Math.random() < u.luck)){ d *= 3; cls = 'crit'; }
   e.hp -= d;
   if (cls || d >= 150) floatText(e.mesh.position.clone().add(new THREE.Vector3(0, 1.1, 0)), Math.round(d).toString(), cls || 'big', 0.6);
   e.mesh.userData.flash = 0.08;
@@ -988,14 +1031,15 @@ function fire(u, s, e){
     blip(1400, 300, 0.12, 'sawtooth', 0.03);
     return;
   }
-  const kind = u.type === 'penguin' ? 'snow' : u.type === 'rabbit' ? 'carrot' : 'fish';
+  const kind = u.type === 'penguin' ? 'snow' : u.type === 'rabbit' ? 'carrot' : u.type === 'raccoon' ? 'dice' : 'fish';
   const m = new THREE.Group();
+  if (kind === 'dice'){ vox(m, 0.17, 0.17, 0.17, '#ffffff', 0, 0, 0, '#777777'); vox(m, 0.05, 0.05, 0.19, '#e04a5a', 0, 0, 0); }
   if (kind === 'fish'){ vox(m, 0.16, 0.08, 0.05, u.hidden === 'catdog' ? '#ffe58a' : '#a8d8f7', 0, 0, 0); vox(m, 0.05, 0.09, 0.05, '#7fb6dc', -0.1, 0, 0); }
   if (kind === 'carrot'){ vox(m, 0.07, 0.07, 0.24, u.hidden === 'moon' ? '#fff3a0' : '#ff9f3f', 0, 0, 0, u.hidden === 'moon' ? '#6a5a00' : undefined); vox(m, 0.08, 0.06, 0.06, '#6cc47a', 0, 0, -0.14); }
   if (kind === 'snow') vox(m, 0.18, 0.18, 0.18, '#ffffff', 0, 0, 0);
   m.position.copy(from);
   fxRoot.add(m);
-  shots.push({ kind, m, u, e, s, last: e.mesh.position.clone(), t:0, from: from.clone(), speed: kind === 'snow' ? 7 : kind === 'carrot' ? 14 : 11, crit: s.crit && Math.random() < s.crit });
+  shots.push({ kind, m, u, e, s, last: e.mesh.position.clone(), t:0, from: from.clone(), speed: kind === 'snow' ? 7 : kind === 'carrot' ? 14 : kind === 'dice' ? 9 : 11, crit: s.crit && Math.random() < s.crit });
   SFX.shoot();
 }
 function starStrike(u, s, e){
@@ -1047,6 +1091,21 @@ function impact(p, at){
       }
     }
     burst(at, ['#ffffff', '#cdeafc'], 8, 1.6);
+    return;
+  }
+  if (p.kind === 'dice'){
+    if (p.e.dead) return;
+    const r = 1 + Math.floor(Math.random() * 6), jackpot = r === 6 || (s.lucky && r === 5);
+    const pos = p.e.mesh.position.clone().add(new THREE.Vector3(0, 1.05, 0));
+    if (jackpot){
+      hurt(p.e, s.dmg * 6, p.u, { sure:true });
+      floatText(pos, '🎲' + r + ' 대박!', 'crit', 0.8);
+      burst(at, ['#ffd84d', '#ffffff', '#e04a5a'], 10, 2.2);
+      blip(1200, 1800, 0.12, 'square', 0.035);
+    } else if (r === 1){
+      if (Math.random() < 0.5) floatText(pos, '🎲1 꽝', 'miss', 0.5);
+      burst(at, ['#ffffff'], 3, 0.8);
+    } else { hurt(p.e, s.dmg * r / 3.5, p.u, { sure:true }); SFX.hit(); }
     return;
   }
   if (p.kind === 'star'){
@@ -1116,6 +1175,11 @@ function startWave(auto){
   if (G.mode === 'hard' && !auto && G.autoT > 1){ const early = Math.floor(G.autoT) * 2; G.coins += early; floatText(baseMesh.position.clone().add(new THREE.Vector3(0, 1.6, 0)), '빨리 시작 +' + early, 'coin', 0.9); }
   G.wave++;
   checkUnlocks(false);
+  G.bet = 0; G.betLost = false; G.betAll = false;
+  if (G.betF > 0 && G.coins > 0){
+    const b = Math.min(betCap(G.wave), G.betF >= 1 ? G.coins : Math.floor(G.coins * G.betF));
+    if (b > 0){ G.coins -= b; G.bet = b; G.betAll = G.betF >= 1; setTimeout(() => toast('🎲 ' + b + '코인 베팅!', '이번 웨이브에 한 마리도 안 새면 ' + b * 2 + '코인' + (G.betAll ? ' + 🧿부적' : '')), 50); blip(400, 900, 0.15, 'square', 0.03); }
+  }
   if (G.mods.interest){ const add = Math.min(40, Math.floor(G.coins * 0.1)); if (add > 0){ G.coins += add; toast('저금통 이자 +' + add); } }
   G.state = 'wave'; G.waveT = 0;
   G.spawnQ = [];
@@ -1133,12 +1197,22 @@ function endWave(){
   G.state = 'build';
   const bonus = 18 + G.wave * 4;
   G.coins += bonus;
+  let betMsg = '';
+  if (G.bet && !G.betLost){
+    const win = G.bet * 2; G.coins += win; betWins++; store.set('nyandef-betwins', betWins);
+    if (G.betAll) G.charms++;
+    betMsg = '🎲 베팅 성공 +' + win + (G.betAll ? ' · 🧿부적 +1' : '');
+    floatText(baseMesh.position.clone().add(new THREE.Vector3(0, 2, 0)), '베팅 성공 +' + win, 'crit', 1.3);
+    [660, 880, 1320].forEach((f, i) => setTimeout(() => blip(f, f, 0.1, 'square', 0.035), i * 90));
+    checkUnlocks(false);
+  }
+  G.bet = 0; G.betF = 0;
   for (const u of units){
     u.spent = 0;
-    if (u.type === 'hamster'){ const inc = TYPES.hamster.lv[u.level - 1].income; G.coins += inc; floatText(u.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), '+' + inc, 'coin', 1.1); u.punch = 1; }
+    if (u.type === 'hamster'){ const inc = statsOf(u).income; G.coins += inc; floatText(u.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), '+' + inc, 'coin', 1.1); u.punch = 1; }
   }
   if (G.wave >= WAVES.length){ finish(true); return; }
-  toast('웨이브 ' + G.wave + ' 클리어!', '보너스 코인 +' + bonus + (G.mode === 'hard' ? ' · 다음 웨이브 자동 시작' : ''));
+  toast('웨이브 ' + G.wave + ' 클리어!', betMsg || ('보너스 코인 +' + bonus + (G.mode === 'hard' ? ' · 다음 웨이브 자동 시작' : '')));
   G.autoT = 10;
   waveEndHidden();
   if (G.wave % 2 === 0) setTimeout(openCards, 600);
@@ -1162,7 +1236,7 @@ function finish(win){
 
 /* ---------------- cards ---------------- */
 function openCards(){
-  const pool = CARDS.filter(c => !(G.taken[c.id] && ['height', 'interest'].includes(c.id)));
+  const pool = CARDS.filter(c => !(G.taken[c.id] && ['height', 'interest'].includes(c.id)) && !(c.id === 'luck' && G.enhBonus >= 0.24));
   const pick = [];
   while (pick.length < 3 && pool.length) pick.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   const box = $('cardChoices'); box.textContent = '';
@@ -1189,6 +1263,8 @@ function takeCard(c){
   if (c.id === 'height') M.height = 2;
   if (c.id === 'interest') M.interest = true;
   if (c.id === 'discount') M.discount *= 0.85;
+  if (c.id === 'charm') G.charms += 2;
+  if (c.id === 'luck') G.enhBonus = Math.min(0.24, G.enhBonus + 0.08);
   $('cardOv').classList.remove('on'); G.modal = false;
   SFX.merge();
   toast(c.icon + ' ' + c.name, c.desc);
@@ -1626,6 +1702,8 @@ addEventListener('keydown', e => {
   if (code === 'Space' || code === 'Enter'){ e.preventDefault(); startWave(); return; }
   if (code === 'KeyW'){ keyGrab(); return; }
   if (code === 'KeyE'){ sellUnit(hoveredUnit() || G.selUnit); return; }
+  if (code === 'KeyF'){ enhance(hoveredUnit() || G.selUnit); return; }
+  if (code === 'KeyB'){ setBet(BET_STEPS[(BET_STEPS.indexOf(G.betF) + 1) % BET_STEPS.length]); return; }
   const pan = { ArrowLeft:[-1, 0], ArrowRight:[1, 0], ArrowUp:[0, 1], ArrowDown:[0, -1] }[code];
   if (pan){ e.preventDefault(); panBy(pan[0] * 60, pan[1] * 60); }
 });
@@ -1670,7 +1748,57 @@ function selectUnit(u){
   G.selUnit = u; G.selTile = null; G.armed = null;
   buildCards(); showInfo(u);
 }
-function sellValue(u){ return Math.round(TYPES[u.type].cost * (u.level === 1 ? 0.6 : u.level === 2 ? 1.2 : 2.4)); }
+function sellValue(u){ return Math.round(TYPES[u.type].cost * (u.level === 1 ? 0.6 : u.level === 2 ? 1.2 : 2.4) + (u.enhSpent || 0) * 0.4); }
+/* enhancement gamble: +1..+5 on max-level animals. fail can knock a step down, and from +4 it can break */
+const ENH = [ { p:0.9, fail:'keep' }, { p:0.75, fail:'keep' }, { p:0.55, fail:'drop' }, { p:0.4, fail:'drop', boom:0.25 }, { p:0.25, fail:'drop', boom:0.4 } ];
+function canEnhance(u){ return !!u && units.includes(u) && (u.level >= 3 || !!u.awake) && (u.plus || 0) < 5; }
+function enhCost(u){ return Math.round(TYPES[u.type].cost * (0.6 + 0.4 * ((u.plus || 0) + 1))); }
+function enhChance(u){ return Math.min(0.95, ENH[u.plus || 0].p + G.enhBonus); }
+let enhBusy = false;
+function enhance(u){
+  if (enhBusy || G.state === 'over' || G.state === 'win') return;
+  if (!canEnhance(u)){ if (u && units.includes(u)) toast((u.plus || 0) >= 5 ? '이미 +5 최고 강화예요' : '강화는 3레벨(전직)부터 할 수 있어요'); return; }
+  const c = enhCost(u);
+  if (G.coins < c){ toast('코인이 부족해요', '강화 ' + c + '코인 필요'); blip(200, 150, 0.12, 'square', 0.03); return; }
+  G.coins -= c; u.enhSpent = (u.enhSpent || 0) + c;
+  const step = ENH[u.plus || 0], chance = enhChance(u);
+  enhBusy = true; ui(); if (G.selUnit === u) showInfo(u);
+  floatText(u.mesh.position.clone().add(new THREE.Vector3(0, 1.5, 0)), '두근두근…', 'big', 0.9);
+  let k = 0;
+  const roll = setInterval(() => {
+    blip(260 + k * 70, 260 + k * 70, 0.05, 'square', 0.025);
+    if (units.includes(u)){ u.punch = 1; burst(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0)), ['#ffd84d', '#ffffff'], 2, 1); }
+    k++;
+  }, 110);
+  setTimeout(() => {
+    clearInterval(roll); enhBusy = false;
+    if (!units.includes(u)) return;
+    const pos = u.mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0));
+    if (Math.random() < chance){
+      u.plus = (u.plus || 0) + 1; rebuildUnit(u);
+      transformFx(u, u.plus >= 4 ? 3 : 2, '강화 성공! +' + u.plus);
+      SFX.merge();
+      if (u.plus === 5){ toast('+5 달성!', baseName(u) + ' 최고 강화', true); SFX.hidden(); }
+    } else if (step.fail === 'keep'){
+      floatText(pos, '강화 실패… (유지)', 'miss', 1); blip(300, 120, 0.3, 'sawtooth', 0.04);
+    } else if (G.useCharm && G.charms > 0){
+      G.charms--; floatText(pos, '실패! 🧿부적이 막았어요', 'big', 1.1); blip(500, 300, 0.25, 'triangle', 0.04);
+      burst(pos, ['#7ac8ff', '#ffffff'], 10, 1.6);
+    } else if (step.boom && Math.random() < step.boom){
+      const name = unitName(u);
+      burst(u.mesh.position.clone().add(new THREE.Vector3(0, 0.4, 0)), ['#555555', '#ff6b81', '#ffcf3f', '#ffffff'], 30, 3.2);
+      shake = Math.max(shake, 0.5); blip(140, 40, 0.6, 'sawtooth', 0.06);
+      removeUnit(u); if (G.selUnit === u) cancelSel();
+      toast('펑! 강화 실패로 부서졌어요…', name);
+    } else {
+      u.plus--; rebuildUnit(u);
+      floatText(pos, '강화 실패 -1', 'miss', 1.1); blip(300, 100, 0.35, 'sawtooth', 0.045);
+      burst(pos, ['#888888', '#ffffff'], 8, 1.4);
+    }
+    if (G.selUnit === u && units.includes(u)) showInfo(u);
+    buildCards(); ui();
+  }, 950);
+}
 function showInfo(u){
   const s = statsOf(u), el = $('info');
   el.style.display = 'block';
@@ -1692,6 +1820,25 @@ function showInfo(u){
   if (u.hidden && !u.awake) hint.textContent = '숨겨진 각성이 있어요. ' + AWAKE[u.hidden].hint;
   if (u.awake) hint.textContent = '각성 완료! ' + AWAKE[u.hidden].desc;
   el.append(hint);
+  if (u.level >= 3 || u.awake){
+    const ex = document.createElement('div'); ex.className = 'enh';
+    const p = u.plus || 0;
+    if (p < 5){
+      const st = ENH[p];
+      const b = document.createElement('button'); b.className = 'btn pink'; b.disabled = enhBusy;
+      b.textContent = `⚒ 강화 +${p}→+${p + 1} · ${Math.round(enhChance(u) * 100)}% · 🪙${enhCost(u)}`;
+      b.onclick = () => enhance(u);
+      const fr = document.createElement('div'); fr.className = 'sub';
+      fr.textContent = st.fail === 'keep' ? '실패해도 그대로 · 단축키 F' : (st.boom ? `실패 시 -1 · ${Math.round(st.boom * 100)}% 확률로 파괴!` : '실패 시 -1') + ' · 단축키 F';
+      ex.append(b, fr);
+      if (st.fail !== 'keep'){
+        const lb = document.createElement('label'); const cb = document.createElement('input'); cb.type = 'checkbox';
+        cb.checked = G.useCharm; cb.disabled = !G.charms; cb.onchange = () => { G.useCharm = cb.checked; };
+        lb.append(cb, ` 🧿 보호 부적 사용 (보유 ${G.charms})`); ex.append(lb);
+      }
+    } else { const d = document.createElement('div'); d.className = 'sub'; d.textContent = '✨ +5 최고 강화!'; ex.append(d); }
+    el.append(ex);
+  }
   const row = document.createElement('div'); row.className = 'row';
   const sell = document.createElement('button'); sell.className = 'btn ghost'; sell.textContent = `판매 +${sellValue(u)}`;
   sell.onclick = () => { G.coins += sellValue(u); burst(u.mesh.position.clone(), ['#ffcf3f'], 8, 1.5); removeUnit(u); cancelSel(); };
@@ -1718,6 +1865,21 @@ function buildCards(){
   });
 }
 let lastCoins = -1;
+const BET_STEPS = [0, 0.25, 0.5, 1];
+// table limit grows with the wave so doubling can't snowball the whole run
+function betCap(w = G.state === 'wave' ? G.wave : G.wave + 1){ return 50 + 25 * w; }
+function setBet(f){ if (G.state !== 'build') return; G.betF = f; blip(600, 700, 0.04, 'square', 0.02); ui(); }
+document.querySelectorAll('#betBox button').forEach(b => { b.onclick = () => setBet(+b.dataset.f); });
+function updateBet(){
+  const box = $('betBox'); if (!box) return;
+  const wave = G.state === 'wave';
+  box.classList.toggle('live', wave && G.bet > 0 && !G.betLost);
+  box.classList.toggle('lost', wave && G.betLost);
+  box.querySelectorAll('button').forEach(b => { b.classList.toggle('on', +b.dataset.f === G.betF); b.disabled = wave; });
+  const amt = Math.min(betCap(), G.betF >= 1 ? G.coins : Math.floor(G.coins * G.betF));
+  $('betInfo').textContent = wave ? (G.bet ? (G.betLost ? '베팅 실패…' : `${G.bet} → ${G.bet * 2} 도전 중`) : '이번 웨이브 베팅 없음')
+    : G.betF ? `${amt}코인 걸기 · 무피해면 2배` : `무피해면 2배 · 한도 ${betCap()}`;
+}
 function ui(){
   $('hpText').textContent = Math.max(0, G.hp);
   $('hpFill').style.width = clamp(G.hp / G.maxHp, 0, 1) * 100 + '%';
@@ -1726,6 +1888,7 @@ function ui(){
   const wb = $('waveBtn');
   wb.disabled = G.state !== 'build' || G.wave >= WAVES.length;
   wb.textContent = G.state === 'wave' ? `웨이브 ${G.wave} 진행 중` : G.wave >= WAVES.length ? '끝!' : G.mode === 'hard' ? `▶ 지금 시작 (${Math.max(0, Math.ceil(G.autoT))})` : `▶ 웨이브 ${G.wave + 1}`;
+  updateBet();
   if (G.coins !== lastCoins){ lastCoins = G.coins; [...$('cards').children].forEach((b, i) => deck[i] && b.classList.toggle('poor', G.coins < costOf(deck[i]))); }
 }
 let toastT = 0;
@@ -1861,6 +2024,7 @@ function update(dt){
     if (G.drag && G.drag.u === u) continue;
     u.cd -= dt;
     const s = statsOf(u);
+    u.luck = s.luck || 0;
     if (u.type === 'hedgehog'){
       if (u.cd <= 0){
         u.cd = 1 / s.rate;
@@ -1898,6 +2062,7 @@ function leak(e){
   e.dead = true;
   foeRoot.remove(e.mesh);
   G.hp -= e.def.dmg; G.leaks++;
+  if (G.bet && !G.betLost){ G.betLost = true; toast('🎲 베팅 실패…', G.bet + '코인을 잃었어요'); blip(500, 90, 0.4, 'sawtooth', 0.04); ui(); }
   shake = Math.max(shake, e.def.boss ? 0.8 : 0.25);
   SFX.leak();
   burst(baseMesh.position.clone().add(new THREE.Vector3(0, 0.6, 0)), ['#ff6b81', '#ffffff'], 8, 2);
@@ -1937,6 +2102,7 @@ function animate(rdt, dt){
     if (u.mesh.userData.tail) u.mesh.userData.tail.rotation.z = Math.sin(t * 5 + u.x) * 0.4;
     if (u.mesh.userData.wings){ u.mesh.userData.wings[0].rotation.z = 0.2 + Math.sin(t * 6) * 0.2; u.mesh.userData.wings[1].rotation.z = -0.2 - Math.sin(t * 6) * 0.2; }
     if (u.mesh.userData.halo) u.mesh.userData.halo.rotation.z = t * 0.8;
+    if (u.mesh.userData.plusRing){ const pr = u.mesh.userData.plusRing; pr.rotation.z = t * 1.2; pr.material.opacity = 0.6 + Math.sin(t * 4 + u.x) * 0.25; }
     if (u.mesh.userData.orb){ u.mesh.userData.orb.position.y = 0.75 + Math.sin(t * 3) * 0.06; u.mesh.userData.orb.rotation.y = t * 2; }
     if (u.mesh.userData.aura){ u.mesh.userData.aura.rotation.z = t; u.mesh.userData.aura.material.opacity = 0.5 + Math.sin(t * 4) * 0.25; }
     const dr = u.mesh.userData.drop;
@@ -2028,4 +2194,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, setBet, ENH, betWins:() => betWins, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
