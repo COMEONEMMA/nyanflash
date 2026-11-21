@@ -181,7 +181,8 @@ const FOES = {
   boss: { name:'늑대왕', hp:2600, speed:0.42, reward:200, dmg:10, armor:3, boss:true },
 };
 // the challenge comes from the crowd: lots more foes per wave, each lighter, with smaller bounties
-const COUNT_MUL = 1.9, GAP_MUL = 0.7, HP_MUL = 0.64, REWARD_MUL = 0.85;
+const COUNT_MUL = 1.9, GAP_MUL = 0.7, REWARD_MUL = 0.85;
+let HP_MUL = 0.72, HP_GROW = 1.105;
 const WAVES = [
   [{ t:'fox', n:8, gap:1.1 }],
   [{ t:'fox', n:10, gap:0.9 }, { t:'wolf', n:4, gap:1.2, at:4 }],
@@ -223,6 +224,54 @@ const CARDS = [
   { id:'charm', icon:'🧿', name:'보호 부적', desc:'강화 실패 때 단계 하락·파괴를 막는 부적 2장' },
   { id:'luck', icon:'🍀', name:'행운의 동전', desc:'강화 성공 확률 +8%p' },
 ];
+/* synergies: two different animals standing side by side (up/down/left/right, not diagonal) power each other up.
+   each synergy counts once per animal, so the puzzle is who stands next to whom */
+const SYN = [
+  { id:'catdog',   a:'cat',      b:'dog',     icon:'⚡', col:'#ffd84d', name:'냥멍 콤비',   desc:'둘 다 공격속도 +25%' },
+  { id:'hunt',     a:'cat',      b:'rabbit',  icon:'🎯', col:'#ff9f6b', name:'사냥꾼의 눈', desc:'둘 다 사거리 +18% · 공격력 +10%' },
+  { id:'snowball', a:'cat',      b:'penguin', icon:'❄', col:'#9fe8ff', name:'눈뭉치 연사', desc:'고양이 공격이 적을 25% 느리게 · 펭귄 공격력 +40%' },
+  { id:'icepush',  a:'dog',      b:'penguin', icon:'🧊', col:'#5fb8f0', name:'빙판 밀치기', desc:'강아지 넉백 +60%, 느린 적에게 피해 +30% · 펭귄 둔화 +10%p' },
+  { id:'guard',    a:'dog',      b:'rabbit',  icon:'🛡', col:'#ff8fb8', name:'경호견',     desc:'토끼 공격력 +30% · 강아지 공격 범위 +30%' },
+  { id:'icesnipe', a:'rabbit',   b:'penguin', icon:'💎', col:'#c9b6f2', name:'얼음 저격',   desc:'토끼: 느려지거나 얼어붙은 적에게 피해 +60% · 펭귄 사거리 +15%' },
+  { id:'beast',    a:'bear',     b:'dog',     icon:'💢', col:'#ff8a5c', name:'맹수 듀오',   desc:'둘 다 공격력 +20% · 기절 1.5배' },
+  { id:'icebear',  a:'bear',     b:'penguin', icon:'🏔', col:'#bfe6ff', name:'빙하 강타',   desc:'곰 내려찍기 범위 +30%, 맞은 적 40% 둔화 · 펭귄 공격력 +30%' },
+  { id:'honey',    a:'hamster',  b:'bear',    icon:'🍯', col:'#ffcf3f', name:'꿀단지',     desc:'햄스터 수입 +40% · 곰 공격력 +15%' },
+  { id:'dirty',    a:'hamster',  b:'raccoon', icon:'💰', col:'#ffe14d', name:'검은 돈',     desc:'햄스터 수입 +50% · 너구리 행운 오라 +5%p' },
+  { id:'spike',    a:'hedgehog', b:'penguin', icon:'🌵', col:'#7af0a0', name:'가시 빙판',   desc:'고슴도치: 느린 적에게 피해 +60% · 펭귄 둔화 +5%p' },
+  { id:'night',    a:'owl',      b:'rabbit',  icon:'🌙', col:'#b6a8ff', name:'밤의 사냥',   desc:'토끼 15% 확률 치명타(2배) · 부엉이 공격력 +30%' },
+  { id:'shell',    a:'raccoon',  b:'cat',     icon:'🃏', col:'#ff6b9a', name:'야바위',     desc:'고양이 치명타 +12%p(2배) · 너구리 공격력 +30%' },
+];
+const SYN_BY = {}; SYN.forEach(s => { SYN_BY[s.a + '|' + s.b] = s; SYN_BY[s.b + '|' + s.a] = s; });
+const NB4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const synPair = (t1, t2) => SYN_BY[t1 + '|' + t2] || null;
+// which synergies a unit of `type` standing on (x, z) gets from its four neighbours
+function synAt(type, x, z, self){
+  const out = [];
+  for (const [dx, dz] of NB4){
+    const o = units.find(q => q.x === x + dx && q.z === z + dz);
+    if (!o || o === self) continue;
+    const sy = synPair(type, o.type);
+    if (sy && !out.includes(sy)) out.push(sy);
+  }
+  return out;
+}
+function applySyn(s, type, sy){
+  switch (sy.id){
+    case 'catdog': s.rate *= 1.25; break;
+    case 'hunt': s.range *= 1.18; s.dmg *= 1.1; break;
+    case 'snowball': if (type === 'cat') s.chill = Math.max(s.chill || 0, 0.25); else s.dmg *= 1.4; break;
+    case 'icepush': if (type === 'dog'){ s.kb = (s.kb || 0) * 1.6; s.vsSlow = Math.max(s.vsSlow || 1, 1.3); } else s.slow = Math.min(0.85, (s.slow || 0) + 0.1); break;
+    case 'guard': if (type === 'rabbit') s.dmg *= 1.3; else if (s.splash) s.splash *= 1.3; break;
+    case 'icesnipe': if (type === 'rabbit') s.vsSlow = Math.max(s.vsSlow || 1, 1.6); else s.range *= 1.15; break;
+    case 'beast': s.dmg *= 1.2; if (s.stun) s.stun *= 1.5; break;
+    case 'icebear': if (type === 'bear'){ s.aoe *= 1.3; s.chill = Math.max(s.chill || 0, 0.4); } else s.dmg *= 1.3; break;
+    case 'honey': if (type === 'hamster') s.income = Math.round(s.income * 1.4); else s.dmg *= 1.15; break;
+    case 'dirty': if (type === 'hamster') s.income = Math.round(s.income * 1.5); break;
+    case 'spike': if (type === 'hedgehog') s.vsSlow = Math.max(s.vsSlow || 1, 1.6); else s.slow = Math.min(0.85, (s.slow || 0) + 0.05); break;
+    case 'night': if (type === 'rabbit') s.crit2 = (s.crit2 || 0) + 0.15; else s.dmg *= 1.3; break;
+    case 'shell': if (type === 'cat') s.crit2 = (s.crit2 || 0) + 0.12; else s.dmg *= 1.3; break;
+  }
+}
 
 /* ---------------- state ---------------- */
 const G = {};
@@ -231,7 +280,7 @@ function resetState(){
   Object.assign(G, { mode, coins: mode === 'hard' ? 130 : 140, hp:20, maxHp:20, wave:0, state:'build', kills:0, speed:1, paused:false, modal:false, autoT: 15,
     mods:{ catspd:1, rabrng:1, dogkb:1, dogdmg:1, pengslow:0, pengaoe:1, alldmg:1, coin:1, height:1, interest:false, discount:1 },
     taken:{}, spawnQ:[], waveT:0, leaks:0, armed:null, selTile:null, selUnit:null, hover:null, drag:null,
-    spun:false, buffWave:0, curseWave:0, charms:1, useCharm:true, enhBonus:0, group:[] });
+    spun:false, streak:0, leaks0:0, buffWave:0, curseWave:0, charms:1, useCharm:true, enhBonus:0, group:[] });
 }
 resetState();
 const store = {
@@ -1040,8 +1089,10 @@ function statsOf(u){
   // raccoon dealers share luck: neighbours get a chance at a triple-damage jackpot hit
   for (const o of units){
     if (o === u || o.type !== 'raccoon' || Math.max(Math.abs(o.x - u.x), Math.abs(o.z - u.z)) !== 1) continue;
-    s.luck = (s.luck || 0) + TYPES.raccoon.lv[o.level - 1].luck;
+    s.luck = (s.luck || 0) + TYPES.raccoon.lv[o.level - 1].luck + (synAt('raccoon', o.x, o.z, o).some(q => q.id === 'dirty') ? 0.05 : 0);
   }
+  s.syn = synAt(u.type, u.x, u.z, u.ref || u);
+  for (const sy of s.syn) applySyn(s, u.type, sy);
   // owls buff neighbours (not themselves)
   for (const o of units){
     if (o === u || o.type !== 'owl' || Math.max(Math.abs(o.x - u.x), Math.abs(o.z - u.z)) !== 1) continue;
@@ -1106,16 +1157,27 @@ function rebuildUnit(u){
 function removeUnit(u){ unitRoot.remove(u.mesh); units.splice(units.indexOf(u), 1); }
 function dropIn(m){ m.userData.drop = 0.35; }
 
-function spawnFoe(type){
+function spawnFoe(type, elite){
   const def = FOES[type];
   const w = G.wave - 1, wq = Math.min(w, 9);
-  const scale = (1 + 0.5 * wq + 0.07 * wq * wq) * Math.pow(1.078, Math.max(0, w - 9)) * 1.06 * (G.mode === 'hard' ? 1.05 + 0.025 * wq + 0.006 * Math.max(0, w - 9) : 1)
-    * (def.boss && w >= 19 ? 0.5 : 1);
+  const scale = (1 + 0.5 * wq + 0.07 * wq * wq) * Math.pow(HP_GROW, Math.max(0, w - 9)) * 1.06 * (G.mode === 'hard' ? 1.05 + 0.025 * wq + 0.006 * Math.max(0, w - 9) : 1)
+    * (def.boss ? (w >= 39 ? 0.3 : w >= 19 ? 0.45 : 1) : 1);
   const hpm = def.boss ? 1 : HP_MUL;
   const e = { type, def, hp:def.hp * scale * hpm, maxHp:def.hp * scale * hpm, s:0, u:0, spd: G.mode === 'hard' ? 1.07 : 1, curseT:0, curseP:0, slowT:0, slowP:0, freezeT:0, stunT:0, dead:false, summonT:5, walk:Math.random() * TAU };
   if (G.curseWave && G.curseWave === G.wave) e.spd *= 1.15;
   e.mesh = makeFoe(type);
+  if (elite){
+    // elite: gold, bigger, 4.5x hp, pays 5x, and takes 3 hearts if it gets through
+    e.elite = true; e.hp *= 4.5; e.maxHp = e.hp; e.spd *= 0.92;
+    e.mesh.scale.multiplyScalar(1.3);
+    e.mesh.userData.body.traverse(o => { if (o.isMesh && o.material && o.material.color){ const m = o.material.clone(); m.color.lerp(new THREE.Color('#ffd84d'), 0.35); m.emissive = new THREE.Color('#ff9a00').multiplyScalar(0.28); o.material = m; } });
+    const cr = new THREE.Group(); [-0.12, 0, 0.12].forEach((x, i) => vox(cr, 0.07, i === 1 ? 0.16 : 0.11, 0.07, '#ffd84d', x, 0.06, 0, '#a86a00')); vox(cr, 0.34, 0.06, 0.12, '#ffd84d', 0, 0, 0, '#a86a00');
+    cr.position.y = def.fly ? 0.5 : 0.95; e.mesh.add(cr);
+    floatText(e.mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0)), '👑 정예 ' + def.name + '!', 'crit', 1.1);
+    blip(220, 440, 0.25, 'sawtooth', 0.04);
+  }
   e.bar = makeBar(def.boss ? 1.6 : 0.7);
+  if (elite) e.bar.userData.fg.material.color.set('#ffcf3f');
   e.mesh.add(e.bar);
   e.bar.position.y = def.boss ? 1.75 : def.fly ? 0.55 : 0.95;
   foeRoot.add(e.mesh);
@@ -1254,7 +1316,9 @@ function hurt(e, dmg, u, opts = {}){
   let d = Math.max(1, dmg - (e.def.armor || 0)) * (e.curseT > 0 ? 1 + e.curseP : 1);
   if (opts.air && e.def.fly) d *= opts.air;
   let cls = '';
+  if (u && u.vsSlow > 1 && (e.slowT > 0 || e.freezeT > 0)) d *= u.vsSlow;
   if (opts.crit || (u && u.luck && Math.random() < u.luck)){ d *= 3; cls = 'crit'; }
+  else if (u && u.critX && Math.random() < u.critX){ d *= 2; cls = 'crit'; }
   e.hp -= d;
   if (cls || d >= 150) floatText(e.mesh.position.clone().add(new THREE.Vector3(0, 1.1, 0)), Math.round(d).toString(), cls || 'big', 0.6);
   e.mesh.userData.flash = 0.08;
@@ -1263,7 +1327,7 @@ function hurt(e, dmg, u, opts = {}){
 function killFoe(e, u){
   e.dead = true;
   G.kills++;
-  const coins = Math.max(1, Math.round(e.def.reward * (e.def.boss ? 1 : REWARD_MUL) * G.mods.coin));
+  const coins = Math.max(1, Math.round(e.def.reward * (e.def.boss ? 1 : REWARD_MUL) * G.mods.coin * (e.elite ? 3 : 1)));
   G.coins += coins;
   floatText(e.mesh.position.clone().add(new THREE.Vector3(0, 0.8, 0)), '+' + coins, 'coin', 0.55);
   burst(e.mesh.position.clone().add(new THREE.Vector3(0, 0.3, 0)), FOE_COLS[e.type], e.def.boss ? 40 : 10, e.def.boss ? 4 : 2.2);
@@ -1298,7 +1362,7 @@ function fire(u, s, e){
   const from = u.mesh.position.clone().add(new THREE.Vector3(0, 0.55 * u.mesh.scale.y, 0));
   if (u.type === 'bear'){
     const at = e.mesh.position.clone();
-    for (const o of foes){ if (!o.dead && !o.def.fly && o.mesh.position.distanceTo(at) < s.aoe){ o.stunT = Math.max(o.stunT, s.stun); hurt(o, s.dmg, u, { sure:true }); } }
+    for (const o of foes){ if (!o.dead && !o.def.fly && o.mesh.position.distanceTo(at) < s.aoe){ o.stunT = Math.max(o.stunT, s.stun); if (s.chill){ o.slowP = Math.max(o.slowT > 0 ? o.slowP : 0, s.chill); o.slowT = Math.max(o.slowT, 1.5); } hurt(o, s.dmg, u, { sure:true }); } }
     burst(at.clone().add(new THREE.Vector3(0, 0.1, 0)), ['#8a5a3a', '#e6c79c', '#ffffff'], 12, 2.4);
     popRing(at.clone().add(new THREE.Vector3(0, 0.05, 0)), '#ffcf8a', s.aoe * 1.3);
     shake = Math.max(shake, 0.12); blip(120, 50, 0.18, 'square', 0.05);
@@ -1500,6 +1564,7 @@ function impact(p, at){
   if (!p.e.dead){
     if (s.stun) p.e.stunT = Math.max(p.e.stunT, s.stun);
     if (s.curse){ p.e.curseT = 3; p.e.curseP = Math.max(p.e.curseP, s.curse); }
+    if (s.chill && !p.e.def.boss){ p.e.slowP = Math.max(p.e.slowT > 0 ? p.e.slowP : 0, s.chill); p.e.slowT = Math.max(p.e.slowT, 1); }
     hurt(p.e, s.dmg, p.u, { crit:p.crit, air:s.airMult });
     SFX.hit();
   }
@@ -1568,6 +1633,12 @@ function startWave(auto){
     for (let i = 0; i < n; i++) G.spawnQ.push({ t:(grp.at || 0) + i * gap, type:grp.t });
   }
   G.spawnQ.sort((a, b) => a.t - b.t);
+  // elites appear from wave 3, in the back half of the wave: 1, then 2 from wave 15, 3 from wave 30
+  if (G.wave >= 3){
+    const pool = G.spawnQ.filter((q, i) => !FOES[q.type].boss && i > G.spawnQ.length * 0.35);
+    for (let k = 0, n = 1 + (G.wave >= 15) + (G.wave >= 30); k < n && pool.length; k++) pool.splice(Math.floor(Math.random() * pool.length), 1)[0].elite = true;
+  }
+  G.leaks0 = G.leaks;
   SFX.wave();
   playBgm(isBossWave(G.wave));
   if (isBossWave(G.wave)) toast(G.wave === MAX_WAVE ? '최후의 늑대왕 무리!' : '늑대왕이 나타났다!', `웨이브 ${G.wave} · 부하 늑대를 불러내요. 꼭대기를 지켜 주세요!`);
@@ -1577,12 +1648,15 @@ function endWave(){
   G.state = 'build';
   const bonus = 18 + G.wave * 4;
   G.coins += bonus;
+  let perfect = '';
+  if (G.leaks === G.leaks0){ G.streak = (G.streak || 0) + 1; const pb = Math.round((8 + G.wave * 2) * (1 + 0.15 * Math.min(G.streak - 1, 4))); G.coins += pb; perfect = ` · 무실점 +${pb}` + (G.streak > 1 ? ` (${G.streak}연속)` : ''); }
+  else G.streak = 0;
   for (const u of units){
     u.spent = 0;
     if (u.type === 'hamster'){ const inc = statsOf(u).income; G.coins += inc; floatText(u.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)), '+' + inc, 'coin', 1.1); u.punch = 1; }
   }
   if (G.wave >= WAVES.length){ finish(true); return; }
-  toast('웨이브 ' + G.wave + ' 클리어!', '보너스 코인 +' + bonus + (G.mode === 'hard' ? ' · 다음 웨이브 자동 시작' : ''));
+  toast('웨이브 ' + G.wave + ' 클리어!', '보너스 코인 +' + bonus + perfect + (G.mode === 'hard' ? ' · 다음 웨이브 자동 시작' : ''));
   G.autoT = 10;
   waveEndHidden();
   if (G.wave % 2 === 0) setTimeout(openCards, 600);
@@ -1830,7 +1904,7 @@ function updateOcclusion(rdt){
 const markGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.5, -0.5); sh.lineTo(0.5, -0.5); sh.lineTo(0.5, 0.5); sh.lineTo(-0.5, 0.5); sh.lineTo(-0.5, -0.5);
   const hole = new THREE.Path(); hole.moveTo(-0.38, -0.38); hole.lineTo(-0.38, 0.38); hole.lineTo(0.38, 0.38); hole.lineTo(0.38, -0.38); hole.lineTo(-0.38, -0.38); sh.holes.push(hole);
   const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; })();
-const markMats = { sel: new THREE.MeshBasicMaterial({ color:'#3cf08a', depthTest:false, transparent:true }), dst: new THREE.MeshBasicMaterial({ color:'#ffd84d', depthTest:false, transparent:true, opacity:0.9 }) };
+const markMats = { sel: new THREE.MeshBasicMaterial({ color:'#3cf08a', transparent:true }), dst: new THREE.MeshBasicMaterial({ color:'#ffd84d', depthTest:false, transparent:true, opacity:0.9 }) };
 const markPool = [];
 function setMarks(list){
   while (markPool.length < list.length){ const m = new THREE.Mesh(markGeo, markMats.sel); m.renderOrder = 11; scene.add(m); markPool.push(m); }
@@ -1841,6 +1915,115 @@ function setMarks(list){
     m.position.set(wx(it.x), TILE[it.z][it.x].h + 0.04, wz(it.z));
     m.scale.setScalar(it.kind === 'dst' ? 0.86 + Math.sin(performance.now() / 160) * 0.05 : 1.02);
   });
+}
+/* ---- synergy links: a glowing plank between partners with the synergy's icon floating over it ---- */
+const synRoot = new THREE.Group(); scene.add(synRoot);
+const synTex = {};
+function synIconTex(sy){
+  if (synTex[sy.id]) return synTex[sy.id];
+  const c = document.createElement('canvas'); c.width = c.height = 48;
+  const x = c.getContext('2d');
+  x.fillStyle = '#2b2147'; x.beginPath(); x.arc(24, 24, 21, 0, TAU); x.fill();
+  x.strokeStyle = sy.col; x.lineWidth = 4; x.stroke();
+  x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(sy.icon, 24, 26);
+  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
+  return synTex[sy.id] = t;
+}
+const synMats = {};
+const synMat = sy => synMats[sy.id] || (synMats[sy.id] = new THREE.MeshBasicMaterial({ color:sy.col, transparent:true, opacity:0.9, depthWrite:false }));
+let synKey = null, synPairs = new Map(), synLinks = [];
+function pairsNow(){
+  const m = new Map();
+  for (const u of units){
+    if (G.drag && G.drag.u === u) continue;
+    for (const [dx, dz] of [[1, 0], [0, 1]]){
+      const o = unitAt(u.x + dx, u.z + dz);
+      if (!o || (G.drag && G.drag.u === o)) continue;
+      const sy = synPair(u.type, o.type);
+      if (sy) m.set(u.x + ',' + u.z + '-' + o.x + ',' + o.z + ':' + sy.id, { a:u, b:o, sy });
+    }
+  }
+  return m;
+}
+function updateSynLinks(t){
+  const key = units.map(u => u.type + u.x + ',' + u.z + (G.drag && G.drag.u === u ? 'd' : '')).join('|');
+  if (key !== synKey){
+    const first = synKey === null;
+    synKey = key;
+    const now = pairsNow();
+    for (const l of synLinks) synRoot.remove(l.g);
+    synLinks = [];
+    for (const [k, p] of now){
+      const g = new THREE.Group();
+      const A = new THREE.Vector3(wx(p.a.x), TILE[p.a.z][p.a.x].h + 0.1, wz(p.a.z));
+      const B = new THREE.Vector3(wx(p.b.x), TILE[p.b.z][p.b.x].h + 0.1, wz(p.b.z));
+      const mid = A.clone().add(B).multiplyScalar(0.5);
+      const plank = new THREE.Mesh(boxGeo, synMat(p.sy));
+      plank.position.copy(mid); plank.lookAt(B); plank.scale.set(0.09, 0.05, A.distanceTo(B) * 0.62);
+      const ic = new THREE.Sprite(new THREE.SpriteMaterial({ map:synIconTex(p.sy), depthTest:false, transparent:true }));
+      ic.scale.setScalar(0.42); ic.position.copy(mid).add(new THREE.Vector3(0, 0.32, 0)); ic.renderOrder = 12;
+      g.add(plank, ic); synRoot.add(g);
+      synLinks.push({ g, ic, plank, mid, ph:Math.random() * TAU });
+      if (!first && !synPairs.has(k)){
+        floatText(mid.clone().add(new THREE.Vector3(0, 1.3, 0)), p.sy.icon + ' ' + p.sy.name + '!', 'syn', 1.1);
+        burst(mid.clone().add(new THREE.Vector3(0, 0.3, 0)), [p.sy.col, '#ffffff'], 8, 1.4);
+        [880, 1320].forEach((f, i) => setTimeout(() => blip(f, f * 1.01, 0.08, 'triangle', 0.035), i * 70));
+      }
+    }
+    synPairs = now;
+    renderSynPanel();
+    if (G.selUnit && units.includes(G.selUnit) && !G.group.length) showInfo(G.selUnit);
+  }
+  for (const l of synLinks){
+    l.ic.position.y = l.mid.y + 0.32 + Math.sin(t * 3 + l.ph) * 0.04;
+    l.plank.material.opacity = 0.65 + Math.sin(t * 4 + l.ph) * 0.25;
+  }
+}
+// left panel: every synergy your deck can make, lit up when it's on the board
+function renderSynPanel(){
+  const el = $('synPanel'); if (!el) return;
+  const list = SYN.filter(sy => deck.includes(sy.a) && deck.includes(sy.b));
+  const cnt = {}; for (const p of synPairs.values()) cnt[p.sy.id] = (cnt[p.sy.id] || 0) + 1;
+  el.textContent = '';
+  const h = document.createElement('div'); h.className = 'sh'; h.textContent = '시너지 (상하좌우로 붙이기)'; el.append(h);
+  for (const sy of list){
+    const r = document.createElement('div'); r.className = 'sr' + (cnt[sy.id] ? ' on' : ''); r.style.setProperty('--c', sy.col);
+    const i = document.createElement('i'); i.textContent = sy.icon;
+    const b = document.createElement('b'); b.textContent = sy.name;
+    const who = document.createElement('span'); who.className = 'who'; who.textContent = TYPES[sy.a].name + '+' + TYPES[sy.b].name;
+    const n = document.createElement('em'); n.textContent = cnt[sy.id] ? '×' + cnt[sy.id] : '';
+    const d = document.createElement('small'); d.textContent = sy.desc;
+    r.append(i, b, n, who, d); el.append(r);
+  }
+  el.hidden = !list.length;
+  el.classList.toggle('empty', !Object.keys(cnt).length);
+}
+
+/* ---- selection: a bright outline (inverted hull per voxel) and the animal floats up a little ---- */
+const outlineMat = new THREE.MeshBasicMaterial({ color:'#59ff8a', side:THREE.BackSide });
+const noRay = () => {};
+function addOutline(u){
+  const hulls = [], T = 0.06;
+  const list = [];
+  u.mesh.userData.body.traverse(o => { if (o.isMesh && o.geometry === boxGeo && !o.material.transparent && Math.min(o.scale.x, o.scale.y, o.scale.z) >= 0.05) list.push(o); });
+  for (const o of list){
+    const h = new THREE.Mesh(boxGeo, outlineMat);
+    h.scale.set(o.scale.x + T * 2, o.scale.y + T * 2, o.scale.z + T * 2);
+    h.position.copy(o.position); h.rotation.copy(o.rotation);
+    h.raycast = noRay; h.userData.hull = true;
+    o.parent.add(h); hulls.push(h);
+  }
+  u.hulls = hulls; u.hullMesh = u.mesh;
+}
+function removeOutline(u){ (u.hulls || []).forEach(h => h.parent && h.parent.remove(h)); u.hulls = null; u.hullMesh = null; }
+const outlined = new Set();
+function updateOutlines(t){
+  const want = new Set(G.modal ? [] : selList());
+  if (G.drag) want.add(G.drag.u);
+  for (const u of outlined){ if (!want.has(u) || !units.includes(u) || u.hullMesh !== u.mesh){ removeOutline(u); outlined.delete(u); } }
+  for (const u of want){ if (!outlined.has(u) && units.includes(u)){ addOutline(u); outlined.add(u); } }
+  const k = 0.5 + Math.sin(t * 7) * 0.5;
+  outlineMat.color.setRGB(0.35 + k * 0.65, 1, 0.54 + k * 0.46);
 }
 const ringMat = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.35, depthWrite:false, side:THREE.DoubleSide });
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.94, 1, 48), ringMat);
@@ -2209,6 +2392,11 @@ function showInfo(u){
   if (s.kb) rows.splice(3, 0, ['넉백', s.kb.toFixed(2) + '칸']);
   rows.forEach(([a, b]) => { const tr = document.createElement('tr'); const t1 = document.createElement('td'); t1.textContent = a; const t2 = document.createElement('td'); t2.textContent = b; tr.append(t1, t2); tb.append(tr); });
   el.append(h, sub, tb);
+  const sl = document.createElement('div'); sl.className = 'syns';
+  if (s.syn.length) s.syn.forEach(sy => { const d = document.createElement('div'); d.style.setProperty('--c', sy.col); d.textContent = sy.icon + ' ' + sy.name + ' — ' + sy.desc; sl.append(d); });
+  else { const partners = SYN.filter(sy => (sy.a === u.type || sy.b === u.type) && deck.includes(sy.a === u.type ? sy.b : sy.a)).map(sy => TYPES[sy.a === u.type ? sy.b : sy.a].name);
+    sl.textContent = partners.length ? '시너지 없음 · 옆에 붙일 짝꿍: ' + partners.join(', ') : '시너지 없음'; sl.classList.add('none'); }
+  el.append(sl);
   const hint = document.createElement('div'); hint.className = 'hint';
   if (u.level < 3) hint.textContent = `우클릭한 블록으로 이동 · 같은 ${TYPES[u.type].name} ${u.level}레벨 위에 우클릭하면 ${u.level + 1}레벨!` + (u.level === 2 ? ' 3레벨에서 전직해요.' : '');
   else hint.textContent = '최고 레벨이에요.';
@@ -2318,7 +2506,7 @@ function renderDeck(){
   });
   $('deckCount').textContent = deck.length + ' / 5';
 }
-function begin(mode){ audio(); G.mode = mode; resetState(); $('introOv').classList.remove('on'); G.modal = false; buildCards(); ui(); czPending = performance.now() + 1500;
+function begin(mode){ audio(); G.mode = mode; resetState(); synKey = null; $('introOv').classList.remove('on'); G.modal = false; buildCards(); ui(); czPending = performance.now() + 1500;
   if (mode === 'hard') toast('하드 모드', '웨이브가 자동으로 시작돼요. 15초 안에 배치하세요!'); }
 $('startBtn').onclick = () => begin('normal');
 $('startHard').onclick = () => begin('hard');
@@ -2365,15 +2553,15 @@ function update(dt){
   }
   if (G.state === 'wave'){
     G.waveT += dt;
-    while (G.spawnQ.length && G.spawnQ[0].t <= G.waveT) spawnFoe(G.spawnQ.shift().type);
+    while (G.spawnQ.length && G.spawnQ[0].t <= G.waveT){ const q = G.spawnQ.shift(); spawnFoe(q.type, q.elite); }
   }
   // foes
   for (const e of foes){
     if (e.dead) continue;
     e.slowT -= dt; e.freezeT -= dt; e.stunT -= dt; e.curseT -= dt;
     let sp = e.def.speed * e.spd;
-    if (e.slowT > 0) sp *= 1 - e.slowP; else e.slowP = 0;
-    if (e.freezeT > 0 || e.stunT > 0) sp = 0;
+    if (e.slowT > 0) sp *= 1 - (e.def.boss ? Math.min(0.4, e.slowP) : e.slowP); else e.slowP = 0;
+    if (e.freezeT > 0 || e.stunT > 0) sp = e.def.boss ? sp * 0.5 : 0;   // the wolf king can't be stun-locked, only slowed
     if (e.def.pack && foes.some(o => o !== e && !o.dead && o.type === 'wolf' && Math.abs(o.s - e.s) < 1.2)) sp *= 1.25;
     e.walk += dt * sp * 9;
     if (e.def.fly){ e.u += sp * dt / FLY_LEN; if (e.u >= 1) leak(e); }
@@ -2395,7 +2583,7 @@ function update(dt){
     if (G.drag && G.drag.u === u) continue;
     u.cd -= dt;
     const s = statsOf(u);
-    u.luck = s.luck || 0;
+    u.luck = s.luck || 0; u.critX = s.crit2 || 0; u.vsSlow = s.vsSlow || 0;
     if (u.type === 'hedgehog'){
       if (u.cd <= 0){
         u.cd = 1 / s.rate;
@@ -2429,14 +2617,25 @@ function update(dt){
   updateShots(dt);
   if (G.state === 'wave' && !G.spawnQ.length && !foes.length) endWave();
 }
+let dangerA = 0, beatT = 0;
+function updateDanger(rdt){
+  let p = 0;
+  for (const e of foes){ if (e.dead) continue; const q = (e.def.fly ? e.u : e.s / PATH_LEN) + (e.elite || e.def.boss ? 0.08 : 0); if (q > p) p = q; }
+  const goal = G.state === 'wave' ? clamp((p - 0.68) / 0.27, 0, 1) : 0;
+  dangerA += (goal - dangerA) * Math.min(1, rdt * 5);
+  const el = $('danger');
+  if (el) el.style.opacity = dangerA < 0.01 ? '0' : (dangerA * (0.7 + Math.sin(performance.now() / 1000 * (5 + dangerA * 5)) * 0.3)).toFixed(3);
+  if (dangerA > 0.25 && !G.paused && !G.modal){ beatT -= rdt; if (beatT <= 0){ beatT = 1.05 - dangerA * 0.5; blip(80, 40, 0.12, 'sine', 0.12); setTimeout(() => blip(70, 36, 0.1, 'sine', 0.09), 150); } }
+}
 function leak(e){
   e.dead = true;
   foeRoot.remove(e.mesh);
-  G.hp -= e.def.dmg; G.leaks++;
+  const dmg = e.def.dmg * (e.elite ? 3 : 1);
+  G.hp -= dmg; G.leaks++;
   shake = Math.max(shake, e.def.boss ? 0.8 : 0.25);
   SFX.leak();
   burst(baseMesh.position.clone().add(new THREE.Vector3(0, 0.6, 0)), ['#ff6b81', '#ffffff'], 8, 2);
-  floatText(baseMesh.position.clone().add(new THREE.Vector3(0, 1.4, 0)), '-' + e.def.dmg + ' ❤', 'big', 0.9);
+  floatText(baseMesh.position.clone().add(new THREE.Vector3(0, 1.4, 0)), '-' + dmg + ' ❤', 'big', 0.9); screenFlash('#ff3050');
   ui();
   if (G.hp <= 0 && G.state === 'wave'){ baseMesh.visible = false; burst(baseMesh.position.clone().add(new THREE.Vector3(0, 0.5, 0)), ['#a8d8f7', '#ff6b81', '#ffcf3f'], 40, 4); finish(false); }
 }
@@ -2457,7 +2656,7 @@ function animate(rdt, dt){
     if (u.yawT != null){ let d = u.yawT - u.mesh.rotation.y; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU; u.mesh.rotation.y += d * Math.min(1, rdt * 10); }
     u.punch = Math.max(0, u.punch - rdt * 6);
     const bob = Math.abs(Math.sin(t * 2.4 + u.x + u.z)) * 0.03;
-    b.position.y = bob; b.position.z = u.punch * 0.12;
+    b.position.y = bob + (outlined.has(u) ? 0.17 + Math.sin(t * 5) * 0.03 : 0); b.position.z = u.punch * 0.12;
     b.scale.set(1 + u.punch * 0.08, 1 - u.punch * 0.08, 1 + u.punch * 0.08);
     b.rotation.x = 0; b.rotation.z = 0;
     if (u.atkT > 0){
@@ -2529,9 +2728,12 @@ function animate(rdt, dt){
   updateBits(dt > 0 ? dt : rdt * 0.25);
   updateTfx(rdt);
   updateOcclusion(rdt);
+  updateSynLinks(t);
+  updateOutlines(t);
+  updateDanger(rdt);
   {
     const list = G.modal ? [] : selList();
-    const marks = (G.group.length ? list : []).map(u => ({ kind:'sel', x:u.x, z:u.z }));
+    const marks = list.map(u => ({ kind:'sel', x:u.x, z:u.z }));
     if (list.length && G.hover && !G.drag && !down){
       const hu = unitAt(G.hover.x, G.hover.z);
       if (!(hu && list.includes(hu))) planMove(list, G.hover).forEach(p => { if (p.u.x !== p.x || p.u.z !== p.z) marks.push({ kind:'dst', x:p.x, z:p.z }); });
@@ -2540,7 +2742,7 @@ function animate(rdt, dt){
   }
   // hover / range + coverage preview
   hoverBox.visible = false; rangeViz.visible = false;
-  let cover = -1, coverRange = 0, cx = 0, cz = 0, tipElev = 0;
+  let cover = -1, coverRange = 0, cx = 0, cz = 0, tipElev = 0, tipSyn = [];
   const tile = G.drag ? G.hover : (G.selTile || G.hover);
   const ptype = G.drag ? G.drag.u.type : G.armed;
   if (G.selUnit && !G.drag && !G.group.length){ const s = statsOf(G.selUnit); showRange(G.selUnit.x, G.selUnit.z, s.range); cx = G.selUnit.x; cz = G.selUnit.z; coverRange = s.range; }
@@ -2553,8 +2755,8 @@ function animate(rdt, dt){
       hoverBox.material.color.set(ok ? 0xffffff : 0xffcf3f);
       if (ptype && ok){
         const u0 = G.drag ? G.drag.u : null;
-        const fake = { type:ptype, level: u0 ? u0.level : 1, branch: u0 ? u0.branch : null, hidden: u0 ? u0.hidden : null, awake: u0 ? u0.awake : false, x:tile.x, z:tile.z };
-        const r = statsOf(fake).range;
+        const fake = { type:ptype, level: u0 ? u0.level : 1, branch: u0 ? u0.branch : null, hidden: u0 ? u0.hidden : null, awake: u0 ? u0.awake : false, x:tile.x, z:tile.z, ref:u0 };
+        const fs = statsOf(fake), r = fs.range; tipSyn = fs.syn;
         showRange(tile.x, tile.z, r, G.drag || G.coins >= costOf(ptype));
         cx = tile.x; cz = tile.z; coverRange = r; tipElev = TYPES[ptype].onPath ? 0 : Math.max(0, t2.elev);
       }
@@ -2565,7 +2767,8 @@ function animate(rdt, dt){
   const tip = $('coverTip');
   if (cover >= 0 && lastPtr && !G.selUnit){
     tip.style.display = 'block';
-    tip.textContent = `계단 ${cover}칸 커버` + (tipElev > 0 ? ` · 높이 +${Math.min(3, tipElev)}` : '');
+    tip.textContent = `계단 ${cover}칸 커버` + (tipElev > 0 ? ` · 높이 +${Math.min(3, tipElev)}` : '') + (tipSyn.length ? ' · ' + tipSyn.map(q => q.icon + q.name).join(' ') : '');
+    tip.classList.toggle('syn', tipSyn.length > 0);
     tip.style.transform = `translate(${lastPtr.clientX + 16}px, ${lastPtr.clientY + 14}px)`;
   } else tip.style.display = 'none';
   updateBadges(placing() && !G.modal, ptype || (G.topView ? 'cat' : null));
@@ -2591,4 +2794,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { MAX_WAVE, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { MAX_WAVE, synAt, SYN, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
