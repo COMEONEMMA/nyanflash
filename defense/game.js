@@ -181,7 +181,7 @@ const FOES = {
   boss: { name:'늑대왕', hp:2600, speed:0.42, reward:200, dmg:10, armor:3, boss:true },
 };
 // the challenge comes from the crowd: lots more foes per wave, each lighter, with smaller bounties
-const COUNT_MUL = 1.9, GAP_MUL = 0.7, HP_MUL = 0.56, REWARD_MUL = 0.6;
+const COUNT_MUL = 1.9, GAP_MUL = 0.7, HP_MUL = 0.64, REWARD_MUL = 0.85;
 const WAVES = [
   [{ t:'fox', n:8, gap:1.1 }],
   [{ t:'fox', n:10, gap:0.9 }, { t:'wolf', n:4, gap:1.2, at:4 }],
@@ -194,6 +194,21 @@ const WAVES = [
   [{ t:'wolf', n:12, gap:0.45 }, { t:'hawk', n:8, gap:0.9, at:2 }, { t:'croc', n:4, gap:2, at:5 }],
   [{ t:'boss', n:1, gap:1 }, { t:'fox', n:12, gap:0.7, at:3 }, { t:'hawk', n:6, gap:1, at:8 }],
 ];
+const MAX_WAVE = 50;
+function genWave(w){            // w is 1-based, 11..50
+  const tier = Math.floor((w - 1) / 10), grow = 1 + 0.03 * (w - 10);
+  const N = n => Math.round(n * grow);
+  if (w % 10 === 0) return [{ t:'boss', n:1 + Math.floor(tier / 2), gap:7 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'hawk', n:N(6), gap:0.9, at:6 }, { t:'croc', n:N(2 + tier), gap:2.5, at:10 }];
+  switch (w % 5){
+    case 1: return [{ t:'fox', n:N(16), gap:0.5 }, { t:'croc', n:N(3), gap:2.2, at:3 }];
+    case 2: return [{ t:'wolf', n:N(14), gap:0.45 }, { t:'hawk', n:N(7), gap:0.9, at:3 }];
+    case 3: return [{ t:'croc', n:N(6), gap:1.6 }, { t:'fox', n:N(14), gap:0.5, at:1 }];
+    case 4: return [{ t:'hawk', n:N(10), gap:0.8 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'croc', n:N(3), gap:2, at:5 }];
+    default: return [{ t:'fox', n:N(10), gap:0.5 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'hawk', n:N(6), gap:0.9, at:4 }, { t:'croc', n:N(4), gap:2, at:6 }];
+  }
+}
+for (let w = WAVES.length + 1; w <= MAX_WAVE; w++) WAVES.push(genWave(w));
+const isBossWave = w => w % 10 === 0;
 const CARDS = [
   { id:'catspd', icon:'🐱', name:'발톱 갈기', desc:'고양이 공격속도 +25%' },
   { id:'rabrng', icon:'🐰', name:'망원 당근', desc:'토끼 사거리 +20%' },
@@ -799,7 +814,7 @@ const gate = makeGate(); gate.position.copy(PATH_PTS[0]).add(new THREE.Vector3(0
 }
 /* floating voxel clouds */
 const clouds = [];
-for (let i = 0; i < 9; i++){
+for (let i = 0; i < 0; i++){   // plain black backdrop now (focus); clouds switched off
   const c = new THREE.Group();
   const n = 3 + Math.floor(Math.random() * 3);
   for (let j = 0; j < n; j++) vox(c, rnd(0.8, 1.6), rnd(0.4, 0.7), rnd(0.8, 1.4), '#ffffff', j * 0.8 - n * 0.4, rnd(-0.1, 0.2), rnd(-0.3, 0.3)).castShadow = false;
@@ -871,7 +886,10 @@ const ROUL = [
   { id:'curse', name:'저주: 적 +15% 속도', w:5, col:'#1f9e5a' }, { id:'unit2', name:'2레벨 동물', w:5, col:'#e8a800' },
   { id:'x2', name:'코인 2배', w:10, col:'#241830' },
 ];
-{ let a = -Math.PI / 2; for (const r of ROUL){ r.a0 = a; a += r.w / 100 * TAU; r.a1 = a; } }
+// equal slices so every prize picture is big enough to read; the real odds are printed on each slice
+{ let a = -Math.PI / 2; for (const r of ROUL){ r.a0 = a; a += TAU / ROUL.length; r.a1 = a; } }
+const ROUL_SHORT = { x2:'2배', miss:'꽝', unit1:'동물', charm:'부적', x5:'잭팟', buff:'공격↑', heart:'체력', curse:'저주', unit2:'2레벨' };
+const ROUL_ODDS = {}; ROUL.forEach(r => { ROUL_ODDS[r.id] = (ROUL_ODDS[r.id] || 0) + r.w; });
 const czCost = () => 25 + 10 * (G.wave + 1);
 let czOpenNow = false, czSpinning = false, czPending = 0, czRot = 0;
 const prizeImg = {};
@@ -880,25 +898,28 @@ function drawWheel(){
   const g = cv.getContext('2d'), W = cv.width, R = W / 2;
   g.imageSmoothingEnabled = false;
   g.clearRect(0, 0, W, W);
-  // gold rim with bulbs
-  g.fillStyle = '#7a4a00'; g.beginPath(); g.arc(R, R, R - 1, 0, TAU); g.fill();
-  g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(R, R, R - 4, 0, TAU); g.fill();
-  for (let i = 0; i < 24; i++){ const a = i / 24 * TAU; g.fillStyle = i % 2 ? '#fff6c8' : '#ff5c8a'; g.fillRect(Math.round(R + Math.cos(a) * (R - 8)) - 2, Math.round(R + Math.sin(a) * (R - 8)) - 2, 4, 4); }
-  const rr = R - 13;
+  g.fillStyle = '#7a4a00'; g.beginPath(); g.arc(R, R, R - 2, 0, TAU); g.fill();
+  g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(R, R, R - 8, 0, TAU); g.fill();
+  for (let i = 0; i < 28; i++){ const a = i / 28 * TAU; g.fillStyle = i % 2 ? '#fff6c8' : '#ff5c8a'; g.fillRect(Math.round(R + Math.cos(a) * (R - 15)) - 4, Math.round(R + Math.sin(a) * (R - 15)) - 4, 8, 8); }
+  const rr = R - 24;
   for (const s of ROUL){
     g.fillStyle = s.col; g.beginPath(); g.moveTo(R, R); g.arc(R, R, rr, s.a0, s.a1); g.closePath(); g.fill();
-    g.strokeStyle = '#ffcf3f'; g.lineWidth = 2; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(s.a0) * rr, R + Math.sin(s.a0) * rr); g.stroke();
+    g.strokeStyle = '#ffcf3f'; g.lineWidth = 3; g.beginPath(); g.moveTo(R, R); g.lineTo(R + Math.cos(s.a0) * rr, R + Math.sin(s.a0) * rr); g.stroke();
+    const mid = (s.a0 + s.a1) / 2;
+    g.save(); g.translate(R + Math.cos(mid) * rr * 0.56, R + Math.sin(mid) * rr * 0.56); g.rotate(mid + Math.PI / 2);
+    // white badge behind the picture so it pops off red/black; the name sits on the outer rim
+    g.fillStyle = 'rgba(255,246,220,.92)'; g.beginPath(); g.arc(0, 0, 25, 0, TAU); g.fill();
     const img = prizeImg[s.id];
-    if (img && img.complete){
-      const mid = (s.a0 + s.a1) / 2, sz = s.w <= 5 ? 20 : 28, d = rr * 0.64;
-      g.save(); g.translate(R + Math.cos(mid) * d, R + Math.sin(mid) * d); g.rotate(mid + Math.PI / 2);
-      g.drawImage(img, -sz / 2, -sz / 2, sz, sz); g.restore();
-    }
+    if (img && img.complete) g.drawImage(img, -24, -24, 48, 48);
+    g.font = 'bold 14px Galmuri11, Galmuri, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 4; g.strokeStyle = '#1a0f2c'; g.fillStyle = s.id === 'x5' || s.id === 'unit2' ? '#ffe14d' : s.id === 'curse' ? '#9dffb8' : '#ffffff';
+    const lab = ROUL_SHORT[s.id];
+    g.strokeText(lab, 0, -40); g.fillText(lab, 0, -40);
+    g.restore();
   }
-  // hub
-  g.fillStyle = '#7a4a00'; g.beginPath(); g.arc(R, R, 17, 0, TAU); g.fill();
-  g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(R, R, 14, 0, TAU); g.fill();
-  g.fillStyle = '#ff3d6e'; g.fillRect(R - 6, R - 6, 12, 12); g.fillStyle = '#fff6c8'; g.fillRect(R - 3, R - 3, 6, 6);
+  g.fillStyle = '#7a4a00'; g.beginPath(); g.arc(R, R, 30, 0, TAU); g.fill();
+  g.fillStyle = '#ffcf3f'; g.beginPath(); g.arc(R, R, 25, 0, TAU); g.fill();
+  g.fillStyle = '#ff3d6e'; g.fillRect(R - 11, R - 11, 22, 22); g.fillStyle = '#fff6c8'; g.fillRect(R - 5, R - 5, 10, 10);
 }
 function buildCasino(){
   ROUL.forEach(s => { if (!prizeImg[s.id]){ const im = new Image(); im.onload = drawWheel; im.src = renderIcon('prize-' + s.id, prizeModel(s.id)); prizeImg[s.id] = im; } });
@@ -1087,7 +1108,9 @@ function dropIn(m){ m.userData.drop = 0.35; }
 
 function spawnFoe(type){
   const def = FOES[type];
-  const w = G.wave - 1, scale = (1 + 0.5 * w + 0.07 * w * w) * 1.06 * (G.mode === 'hard' ? 1.12 + 0.045 * w : 1);
+  const w = G.wave - 1, wq = Math.min(w, 9);
+  const scale = (1 + 0.5 * wq + 0.07 * wq * wq) * Math.pow(1.078, Math.max(0, w - 9)) * 1.06 * (G.mode === 'hard' ? 1.05 + 0.025 * wq + 0.006 * Math.max(0, w - 9) : 1)
+    * (def.boss && w >= 19 ? 0.5 : 1);
   const hpm = def.boss ? 1 : HP_MUL;
   const e = { type, def, hp:def.hp * scale * hpm, maxHp:def.hp * scale * hpm, s:0, u:0, spd: G.mode === 'hard' ? 1.07 : 1, curseT:0, curseP:0, slowT:0, slowP:0, freezeT:0, stunT:0, dead:false, summonT:5, walk:Math.random() * TAU };
   if (G.curseWave && G.curseWave === G.wave) e.spd *= 1.15;
@@ -1254,8 +1277,24 @@ function killFoe(e, u){
   if (e.def.boss){ shake = 0.6; toast('늑대왕 격파!', '계단 꼭대기를 지켜냈어요'); }
   ui();
 }
+function fancy(u){ return u.level >= 3 || (u.plus || 0) > 0 || !!u.hidden; }
+function atkStyle(u){
+  if (u.awake) return 'hero';
+  if (u.type === 'bear') return 'slam';
+  if (u.type === 'dog' && u.hidden !== 'catdog') return 'bite';
+  if (u.type === 'penguin' || u.type === 'raccoon') return 'lob';
+  if (u.type === 'rabbit' && u.branch === 'a' && u.level >= 3) return 'snipe';
+  if (u.type === 'cat' && u.branch === 'b' && u.level >= 3 && !u.hidden) return 'spin';
+  if (u.type === 'owl') return 'flap';
+  return 'throw';
+}
+const MOTION_COL = { hero:'#ffe14d', slam:'#ffcf8a', bite:'#ffe58a', lob:'#bfe6ff', snipe:'#fff3a0', spin:'#c9d1e0', flap:'#e6d2ff', throw:'#ffffff' };
 function fire(u, s, e){
   u.punch = 1;
+  if (fancy(u)){
+    u.atkDur = Math.min(0.42, 0.85 / Math.max(0.5, s.rate)); u.atkT = u.atkDur; u.atkStyle = atkStyle(u);
+    if (sfxBudget < 6 && (u.plus >= 3 || u.hidden)) burst(u.mesh.position.clone().add(new THREE.Vector3(0, 0.6, 0)), [u.plus ? PLUS_COLS[u.plus] : MOTION_COL[u.atkStyle], '#ffffff'], 3, 1.2);
+  }
   const from = u.mesh.position.clone().add(new THREE.Vector3(0, 0.55 * u.mesh.scale.y, 0));
   if (u.type === 'bear'){
     const at = e.mesh.position.clone();
@@ -1525,13 +1564,13 @@ function startWave(auto){
   for (const grp of WAVES[G.wave - 1]){
     const boss = FOES[grp.t].boss;
     const n0 = boss ? grp.n : Math.round(grp.n * COUNT_MUL);
-    const n = G.mode === 'hard' && !boss ? Math.ceil(n0 * 1.05) : n0, gap = grp.gap * (boss ? 1 : GAP_MUL) * (G.mode === 'hard' ? 0.85 : 1);
+    const n = G.mode === 'hard' && !boss ? Math.ceil(n0 * 1.05) : n0, gap = grp.gap * (boss ? 1 : GAP_MUL) * (G.mode === 'hard' ? 0.92 : 1);
     for (let i = 0; i < n; i++) G.spawnQ.push({ t:(grp.at || 0) + i * gap, type:grp.t });
   }
   G.spawnQ.sort((a, b) => a.t - b.t);
   SFX.wave();
-  playBgm(G.wave === WAVES.length);
-  if (G.wave === WAVES.length) toast('늑대왕이 나타났다!', '부하 늑대를 불러내요. 계단 꼭대기를 지켜 주세요!');
+  playBgm(isBossWave(G.wave));
+  if (isBossWave(G.wave)) toast(G.wave === MAX_WAVE ? '최후의 늑대왕 무리!' : '늑대왕이 나타났다!', `웨이브 ${G.wave} · 부하 늑대를 불러내요. 꼭대기를 지켜 주세요!`);
   ui();
 }
 function endWave(){
@@ -1554,7 +1593,7 @@ function finish(win){
   G.state = win ? 'win' : 'over';
   stopBgm();
   checkUnlocks(win);
-  const score = Math.round((win ? 10000 + G.hp * 500 + G.kills * 20 + G.coins : G.wave * 800 + G.kills * 20) * (G.mode === 'hard' ? 1.5 : 1));
+  const score = Math.round((win ? G.wave * 800 + 10000 + G.hp * 500 + G.kills * 20 + G.coins : G.wave * 800 + G.kills * 20) * (G.mode === 'hard' ? 1.5 : 1));
   const bestKey = 'nyandef-best-' + G.mode, best = store.get(bestKey, 0);
   if (score > best) store.set(bestKey, score);
   $('endTitle').textContent = (G.mode === 'hard' ? '[하드] ' : '') + (win ? '🎉 생선 창고를 지켜냈어요!' : '창고가 털렸어요…');
@@ -2111,7 +2150,7 @@ function canEnhance(u){ return !!u && units.includes(u) && (u.level >= 3 || !!u.
 function enhCost(u){ return Math.round(TYPES[u.type].cost * (0.6 + 0.4 * ((u.plus || 0) + 1))); }
 function enhChance(u){ return Math.min(0.95, ENH[u.plus || 0].p + G.enhBonus); }
 let enhBusy = false;
-function enhance(u){
+function enhance(u, instant){
   if (enhBusy || G.state === 'over' || G.state === 'win') return;
   if (!canEnhance(u)){ if (u && units.includes(u)) toast((u.plus || 0) >= 5 ? '이미 +5 최고 강화예요' : '강화는 3레벨(전직)부터 할 수 있어요'); return; }
   const c = enhCost(u);
@@ -2127,7 +2166,7 @@ function enhance(u){
     if (units.includes(u)){ u.punch = 1; burst(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0)), ['#ffd84d', '#ffffff'], 2, 1); }
     k++;
   }, 110);
-  setTimeout(() => {
+  const resolve = () => {
     clearInterval(roll); enhBusy = false; $('enhBar').classList.remove('rolling');
     if (!units.includes(u)) return;
     const pos = u.mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0));
@@ -2154,7 +2193,8 @@ function enhance(u){
     }
     if (G.selUnit === u && units.includes(u)) showInfo(u);
     buildCards(); ui();
-  }, 950);
+  };
+  if (instant) resolve(); else setTimeout(resolve, 950);
 }
 function showInfo(u){
   const s = statsOf(u), el = $('info');
@@ -2254,7 +2294,7 @@ $('rotL').onclick = () => rotate(-1);
 $('rotR').onclick = () => rotate(1);
 $('codexBtn').onclick = openCodex;
 $('codexClose').onclick = () => { $('codexOv').classList.remove('on'); G.modal = false; };
-$('muteBtn').onclick = () => { muted = !muted; store.set('nyandef-mute', muted); $('muteBtn').textContent = muted ? '✕' : '♪'; if (muted) stopBgm(); else if (G.state === 'wave') playBgm(G.wave === WAVES.length); };
+$('muteBtn').onclick = () => { muted = !muted; store.set('nyandef-mute', muted); $('muteBtn').textContent = muted ? '✕' : '♪'; if (muted) stopBgm(); else if (G.state === 'wave') playBgm(isBossWave(G.wave)); };
 $('muteBtn').textContent = muted ? '✕' : '♪';
 function renderDeck(){
   const box = $('deckGrid'); if (!box) return;
@@ -2294,14 +2334,21 @@ $('rotSpd').oninput = e => { rotSpeed = +e.target.value; $('rotSpdVal').textCont
 renderDeck();
 G.modal = true;
 
+function goHome(){
+  if (G.state === 'wave' || G.wave > 0 || units.length){ G.paused = true; $('quitOv').classList.add('on'); G.modal = true; return; }
+  restart();
+}
+$('homeBtn').onclick = () => goHome();
+$('quitYes').onclick = () => { $('quitOv').classList.remove('on'); G.paused = false; stopBgm(); closeCasino(true); restart(); };
+$('quitNo').onclick = () => { $('quitOv').classList.remove('on'); G.modal = false; G.paused = false; };
 function restart(){
   for (const u of [...units]) removeUnit(u);
   for (const e of foes) foeRoot.remove(e.mesh);
   foes.length = 0;
   for (const s of shots) fxRoot.remove(s.m);
   shots.length = 0;
-  resetState();
-  $('endOv').classList.remove('on');
+  resetState(); setTopView(false);
+  $('endOv').classList.remove('on'); $('enhBar').hidden = true; $('info').style.display = 'none';
   G.modal = true; renderDeck(); $('introOv').classList.add('on');
   baseMesh.visible = true;
   buildCards(); ui();
@@ -2412,6 +2459,24 @@ function animate(rdt, dt){
     const bob = Math.abs(Math.sin(t * 2.4 + u.x + u.z)) * 0.03;
     b.position.y = bob; b.position.z = u.punch * 0.12;
     b.scale.set(1 + u.punch * 0.08, 1 - u.punch * 0.08, 1 + u.punch * 0.08);
+    b.rotation.x = 0; b.rotation.z = 0;
+    if (u.atkT > 0){
+      // promoted / enhanced / hidden animals get a proper move for their attack style
+      u.atkT = Math.max(0, u.atkT - rdt);
+      const k = 1 - u.atkT / u.atkDur, sn = Math.sin(k * Math.PI);
+      switch (u.atkStyle){
+        case 'throw': b.rotation.x = k < 0.35 ? -0.55 * (k / 0.35) : -0.55 + 1.25 * Math.sin(((k - 0.35) / 0.65) * Math.PI); b.position.y += sn * 0.08; break;
+        case 'lob': b.position.y += sn * 0.45; if (!u.tf) b.rotation.y = k * TAU; b.scale.set(1 - sn * 0.1, 1 + sn * 0.15, 1 - sn * 0.1); break;
+        case 'bite': b.position.z = sn * 0.5; b.rotation.x = sn * 0.4; b.scale.set(1 - sn * 0.08, 1 - sn * 0.05, 1 + sn * 0.25); break;
+        case 'slam': if (k < 0.55){ const q = k / 0.55; b.position.y += Math.sin(q * Math.PI / 2) * 0.75; b.rotation.x = -0.35 * q; }
+                     else { const q = (k - 0.55) / 0.45; b.position.y += (1 - q * 3 > 0 ? (1 - q * 3) * 0.75 : 0); b.rotation.x = 0.3 * (1 - q); const sq = q < 0.5 ? q * 2 : 2 - q * 2; b.scale.set(1 + sq * 0.25, 1 - sq * 0.25, 1 + sq * 0.25); } break;
+        case 'snipe': b.position.z = -sn * 0.3; b.rotation.x = -sn * 0.3; break;
+        case 'spin': if (!u.tf) b.rotation.y = k * TAU * 2; b.position.y += sn * 0.15; break;
+        case 'flap': b.position.y += sn * 0.4; b.rotation.z = Math.sin(k * TAU * 2) * 0.15; break;
+        case 'hero': b.position.y += sn * 0.6; if (!u.tf) b.rotation.y = k * TAU; b.scale.setScalar(1 + sn * 0.18); break;
+      }
+      if (u.atkT === 0 && !u.tf) b.rotation.y = 0;
+    }
     if (u.tf){
       u.tf.t += rdt;
       const k = Math.min(1, u.tf.t / u.tf.dur);
@@ -2526,4 +2591,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { MAX_WAVE, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
