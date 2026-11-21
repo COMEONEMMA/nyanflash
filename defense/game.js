@@ -176,15 +176,23 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
-let camAngle = Math.PI / 4, camAngleTarget = camAngle, zoom = 1.05, camPitch = 0.69, camPitchTarget = 0.69;
+const PITCH0 = 0.78;
+let camAngle = Math.PI / 4, camAngleTarget = camAngle, zoom = 1.05, camPitch = PITCH0, camPitchTarget = PITCH0;
 const camTarget = new THREE.Vector3(0, MAX_H * 0.36, 0.5);
 let PIX = 2;
+// dot size in CSS px (1 sharp · 2 normal · 3 retro). Each render pixel always covers a whole number of
+// device pixels, so dots stay perfectly square and crisp at any window size instead of smearing.
+let pixLevel = 2;
+try { const v = +localStorage.getItem('nyandef-pix'); if (v >= 1 && v <= 3) pixLevel = v; } catch(e){}
 function resize(){
-  const w = innerWidth, h = innerHeight;
-  PIX = w < 700 ? 1.6 : 2.2;
-  renderer.setPixelRatio(1 / PIX * Math.min(2, devicePixelRatio || 1));
-  renderer.setSize(w, h, false);
-  const aspect = w / h;
+  const w = innerWidth, h = innerHeight, dpr = devicePixelRatio || 1;
+  const s = Math.max(1, Math.round(pixLevel * (w < 700 ? 0.75 : 1) * dpr));
+  PIX = s / dpr;
+  const bw = Math.ceil(w * dpr / s), bh = Math.ceil(h * dpr / s);
+  renderer.setPixelRatio(1);
+  renderer.setSize(bw, bh, false);
+  canvas.style.width = (bw * s / dpr) + 'px'; canvas.style.height = (bh * s / dpr) + 'px';
+  const aspect = bw / bh;
   const viewH = (aspect < 0.9 ? 32 : 25) / zoom;
   camera.left = -viewH * aspect / 2; camera.right = viewH * aspect / 2;
   camera.top = viewH / 2; camera.bottom = -viewH / 2;
@@ -209,7 +217,7 @@ sun.shadow.bias = -0.0015;
 scene.add(sun, sun.target);
 
 /* pixel noise texture: gives every block a hand-placed "block game" grain */
-function blockTexture(edge = 0.78, noise = 0.12, stripes = false){
+function blockTexture(edge = 0.8, noise = 0.05, stripes = false){
   const c = document.createElement('canvas'); c.width = c.height = 16;
   const g = c.getContext('2d');
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++){
@@ -231,15 +239,36 @@ const TOP_COLS = ['#fffaf2', '#f7f0e6', '#f1ecf7', '#eef6f1'];
 const WALL_A = new THREE.Color('#f4e7d4'), WALL_B = new THREE.Color('#ead9c1');
 const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 const blockMat = new THREE.MeshLambertMaterial({ map: blockTexture() });
-const stepMat = new THREE.MeshLambertMaterial({ map: blockTexture(0.7, 0.08, true) });
+const stepMat = new THREE.MeshLambertMaterial({ map: blockTexture(0.72, 0.04, true) });
+/* screen-door see-through: blocks standing between the camera and the stairs/animals get dithered away
+   (pixel checkerboard, no sorting needed) so nothing important is ever hidden behind a tall column */
+function ditherable(m){
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float aFade;\nvarying float vFade;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFade = aFade;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying float vFade;
+float bayer4(vec2 q){ q = mod(floor(q), 4.0); int i = int(q.x) + int(q.y) * 4;
+  float m[16] = float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.); return (m[i] + 0.5) / 16.0; }`)
+      .replace('void main() {', 'void main() {\n  if (vFade > 0.01 && bayer4(gl_FragCoord.xy) < vFade * 0.78) discard;');
+  };
+}
+ditherable(blockMat); ditherable(stepMat);
 let wallCount = 0, stepCount = 0;
 for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
   const t = TILE[z][x]; if (t.type === 'void') continue;
   wallCount += t.h - (t.type === 'path' ? 1 : 0);
   if (t.type === 'path') stepCount++;
 }
-const walls = new THREE.InstancedMesh(boxGeo, blockMat, wallCount);
-const steps = new THREE.InstancedMesh(boxGeo, stepMat, stepCount);
+const walls = new THREE.InstancedMesh(boxGeo.clone(), blockMat, wallCount);
+const steps = new THREE.InstancedMesh(boxGeo.clone(), stepMat, stepCount);
+const fadeAttr = { w: new THREE.InstancedBufferAttribute(new Float32Array(wallCount), 1), s: new THREE.InstancedBufferAttribute(new Float32Array(stepCount), 1) };
+walls.geometry.setAttribute('aFade', fadeAttr.w); steps.geometry.setAttribute('aFade', fadeAttr.s);
+const fadeGoal = { w: new Float32Array(wallCount), s: new Float32Array(stepCount) };
+const colBlocks = [];   // per column (z*MAP_W+x): [[kind 'w'|'s', instance, y], ...]
+const instY = { w: new Int16Array(wallCount), s: new Int16Array(stepCount) };
 walls.castShadow = walls.receiveShadow = steps.castShadow = steps.receiveShadow = true;
 const instTile = { walls:[], steps:[] };
 {
@@ -252,11 +281,13 @@ const instTile = { walls:[], steps:[] };
       m.makeTranslation(wx(x), y + 0.5, wz(z));
       if (t.type === 'path' && y === top){
         col.set(STEP_COLS[Math.floor(t.step / 3) % STEP_COLS.length]);
-        steps.setMatrixAt(si, m); steps.setColorAt(si, col); instTile.steps[si] = [x, z]; si++;
+        steps.setMatrixAt(si, m); steps.setColorAt(si, col); instTile.steps[si] = [x, z];
+        (colBlocks[z * MAP_W + x] ||= []).push(['s', si, y]); instY.s[si] = y; si++;
       } else {
         if (y === top) col.set(t.type === 'base' ? '#ffe58a' : TOP_COLS[Math.floor(hash(x * 3, z * 5) * TOP_COLS.length)]);
         else col.copy(y % 2 ? WALL_A : WALL_B);
-        walls.setMatrixAt(wi, m); walls.setColorAt(wi, col); instTile.walls[wi] = [x, z]; wi++;
+        walls.setMatrixAt(wi, m); walls.setColorAt(wi, col); instTile.walls[wi] = [x, z];
+        (colBlocks[z * MAP_W + x] ||= []).push(['w', wi, y]); instY.w[wi] = y; wi++;
       }
     }
   }
@@ -1286,8 +1317,11 @@ function pointerRay(e){
 function pickTile(){
   const hits = ray.intersectObjects([walls, steps], false);
   for (const h of hits){
-    const t = h.object === walls ? instTile.walls[h.instanceId] : instTile.steps[h.instanceId];
-    if (t) return { x:t[0], z:t[1] };
+    const k = h.object === walls ? 'w' : 's';
+    const t = k === 'w' ? instTile.walls[h.instanceId] : instTile.steps[h.instanceId];
+    if (!t) continue;
+    if (fadeAttr[k].array[h.instanceId] > 0.35 && !(h.face && h.face.normal.y > 0.5 && instY[k][h.instanceId] === TILE[t[1]][t[0]].h - 1)) continue;
+    return { x:t[0], z:t[1] };
   }
   return null;
 }
@@ -1295,8 +1329,72 @@ function pickUnit(){
   const hits = ray.intersectObjects(unitRoot.children, true);
   return hits.length ? hits[0].object.userData.unit : null;
 }
-const hoverBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.04, 1.04, 1.04)), new THREE.LineBasicMaterial({ color:0xffffff }));
-hoverBox.visible = false; scene.add(hoverBox);
+const hoverBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.04, 1.04, 1.04)), new THREE.LineBasicMaterial({ color:0xffffff, depthTest:false }));
+hoverBox.visible = false; hoverBox.renderOrder = 10; scene.add(hoverBox);
+
+/* ---- occlusion: which blocks hide a stair top or an animal from the camera? ---- */
+let occKey = '', occWait = 0;
+const occDir = new THREE.Vector3();
+function updateOcclusion(rdt){
+  occWait -= rdt;
+  const key = camAngle.toFixed(2) + camPitch.toFixed(2) + camTarget.x.toFixed(1) + camTarget.y.toFixed(1) + camTarget.z.toFixed(1) + '|' + units.map(u => u.x + u.z * MAP_W).join(',');
+  if (key !== occKey && occWait <= 0){
+    occKey = key; occWait = 0.08;
+    fadeGoal.w.fill(0); fadeGoal.s.fill(0);
+    camera.getWorldDirection(occDir).negate();
+    const STEP = 0.18;
+    // stair tops never fade (they ARE the route); everything else in the way of a stair or an animal does,
+    // and plain platforms only clear away for really tall pillars so the map doesn't turn to static
+    const mark = (tx, tz, y0) => {
+      const list = colBlocks[tz * MAP_W + tx]; if (!list) return;
+      for (const [k, i, y] of list) if (y >= y0 && k === 'w') fadeGoal[k][i] = 1;
+    };
+    const cast = (x, z, y, minRise = 0) => {
+      let qx = wx(x), qy = y, qz = wz(z);
+      for (let n = 0; n < 160; n++){
+        qx += occDir.x * STEP; qy += occDir.y * STEP; qz += occDir.z * STEP;
+        if (qy > MAX_H + 0.5) return;
+        const tx = Math.round(qx + CX), tz = Math.round(qz + CZ);
+        if (tx < 0 || tz < 0 || tx >= MAP_W || tz >= MAP_D) return;
+        if (tx === x && tz === z) continue;
+        const c = TILE[tz][tx];
+        if (c.type !== 'void' && qy < c.h - 0.02 && c.h - y >= minRise) mark(tx, tz, Math.floor(qy));
+      }
+    };
+    for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+      const t = TILE[z][x]; if (t.type === 'void') continue;
+      const key = t.type === 'path' || t.type === 'base' || unitAt(x, z);
+      cast(x, z, t.h + 0.05, key ? 0 : 2);
+      if (key) cast(x, z, t.h + 0.8);
+    }
+  }
+  let dirty = false;
+  for (const k of ['w', 's']){
+    const a = fadeAttr[k].array, g = fadeGoal[k], sp = Math.min(1, rdt * 9);
+    for (let i = 0; i < a.length; i++){
+      const d = g[i] - a[i];
+      if (d > 0.002 || d < -0.002){ a[i] += d * sp; dirty = true; } else if (d !== 0){ a[i] = g[i]; dirty = true; }
+    }
+    if (dirty) fadeAttr[k].needsUpdate = true;
+  }
+}
+
+/* ---- selection markers (always on top): green = selected, yellow = where right-click will send them ---- */
+const markGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.5, -0.5); sh.lineTo(0.5, -0.5); sh.lineTo(0.5, 0.5); sh.lineTo(-0.5, 0.5); sh.lineTo(-0.5, -0.5);
+  const hole = new THREE.Path(); hole.moveTo(-0.38, -0.38); hole.lineTo(-0.38, 0.38); hole.lineTo(0.38, 0.38); hole.lineTo(0.38, -0.38); hole.lineTo(-0.38, -0.38); sh.holes.push(hole);
+  const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); return g; })();
+const markMats = { sel: new THREE.MeshBasicMaterial({ color:'#3cf08a', depthTest:false, transparent:true }), dst: new THREE.MeshBasicMaterial({ color:'#ffd84d', depthTest:false, transparent:true, opacity:0.9 }) };
+const markPool = [];
+function setMarks(list){
+  while (markPool.length < list.length){ const m = new THREE.Mesh(markGeo, markMats.sel); m.renderOrder = 11; scene.add(m); markPool.push(m); }
+  markPool.forEach((m, i) => {
+    const it = list[i];
+    m.visible = !!it; if (!it) return;
+    m.material = markMats[it.kind];
+    m.position.set(wx(it.x), TILE[it.z][it.x].h + 0.04, wz(it.z));
+    m.scale.setScalar(it.kind === 'dst' ? 0.86 + Math.sin(performance.now() / 160) * 0.05 : 1.02);
+  });
+}
 const ringMat = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.35, depthWrite:false, side:THREE.DoubleSide });
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.94, 1, 48), ringMat);
 const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.12, depthWrite:false }));
@@ -1309,19 +1407,89 @@ function showRange(x, z, range, ok = true){
   ringMat.color.set(ok ? 0xffffff : 0xff6b81);
 }
 function canBuild(x, z){ const t = TILE[z][x]; return t.type === 'build' && !unitAt(x, z); }
-function canPlace(type, x, z){
+function tileFits(type, x, z){
   const t = TILE[z][x];
-  if (unitAt(x, z)) return false;
   if (TYPES[type].onPath) return t.type === 'path' && t.step >= 2 && t.step <= PATH.length - 3;
   return t.type === 'build';
 }
+function canPlace(type, x, z){ return !unitAt(x, z) && tileFits(type, x, z); }
+
+/* group orders: everyone heads for the clicked block and fans out to the nearest free blocks around it */
+G.group = [];
+function selList(){ G.group = G.group.filter(u => units.includes(u)); return G.group.length ? G.group : (G.selUnit && units.includes(G.selUnit) ? [G.selUnit] : []); }
+function planMove(list, t){
+  const moving = new Set(list), taken = new Set(), plan = [];
+  const order = list.slice().sort((a, b) => Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z));
+  for (const u of order){
+    let best = null, bd = 1e9;
+    for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+      if (!tileFits(u.type, x, z) || taken.has(x + z * MAP_W)) continue;
+      const o = unitAt(x, z); if (o && !moving.has(o)) continue;
+      const d = Math.hypot(x - t.x, z - t.z) - (TYPES[u.type].onPath ? 0 : Math.max(0, TILE[z][x].elev) * 0.01);
+      if (d < bd){ bd = d; best = { x, z }; }
+    }
+    if (best && bd <= 5){ taken.add(best.x + best.z * MAP_W); plan.push({ u, x:best.x, z:best.z }); }
+  }
+  return plan;
+}
+function moveGroup(list, t){
+  list = list.filter(u => units.includes(u));
+  if (!t || !list.length) return;
+  const target = unitAt(t.x, t.z);
+  if (target && !list.includes(target)){
+    // right-click on an animal: whoever matches merges into it, the rest gather around
+    const m = list.find(u => tryMerge(u, target));
+    if (m){ list = list.filter(u => u !== m && units.includes(u)); G.group = G.group.filter(u => units.includes(u)); ui(); if (!list.length) return; }
+    else if (list.length === 1){ toast('합성은 같은 동물·같은 레벨끼리만!'); return; }
+  }
+  const plan = planMove(list, t);
+  let moved = 0;
+  for (const p of plan){
+    if (p.u.x === p.x && p.u.z === p.z) continue;
+    p.u.x = p.x; p.u.z = p.z;
+    p.u.mesh.position.set(wx(p.x), TILE[p.z][p.x].h, wz(p.z)); dropIn(p.u.mesh); moved++;
+  }
+  if (moved) SFX.place(); else if (!plan.length) toast('근처에 놓을 자리가 없어요');
+  if (G.selUnit && list.length === 1) showInfo(G.selUnit);
+  ui();
+}
+function setGroup(list, add){
+  const s = new Set(add ? selList() : []);
+  list.forEach(u => s.add(u));
+  const arr = [...s];
+  if (arr.length === 1){ G.group = []; selectUnit(arr[0]); return; }
+  G.armed = null; G.selTile = null; G.selUnit = null; $('info').style.display = 'none';
+  G.group = arr; buildCards(); ui();
+  if (arr.length) toast(arr.length + '마리 선택', '우클릭한 곳으로 모여요 · 같은 동물 위면 합성');
+}
+function screenXY(pos){
+  const v = pos.clone().project(camera), r = canvas.getBoundingClientRect();
+  return [r.left + (v.x * 0.5 + 0.5) * r.width, r.top + (-v.y * 0.5 + 0.5) * r.height];
+}
+function boxSelect(x0, y0, x1, y1, add){
+  const l = Math.min(x0, x1), rr = Math.max(x0, x1), tp = Math.min(y0, y1), bt = Math.max(y0, y1);
+  const hit = units.filter(u => { const [sx, sy] = screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.45, 0))); return sx >= l && sx <= rr && sy >= tp && sy <= bt; });
+  setGroup(hit, add);
+}
+function rightClick(e){
+  pointerRay(e);
+  const tu = pickUnit(), tl = pickTile();
+  const t = tu ? { x:tu.x, z:tu.z } : tl;
+  if (G.drag){ dropDrag(t); return; }
+  const list = selList();
+  if (list.length){ moveGroup(list, t); return; }
+  if (G.armed && t){ build(G.armed, t.x, t.z); return; }
+  cancelSel();
+}
+let lastClick = { u:null, t:0 };
+const selBoxEl = $('selBox');
 
 let down = null;
 canvas.addEventListener('pointerdown', e => {
   audio();
   if (G.modal || G.state === 'over' || G.state === 'win') return;
-  if (e.button === 2){ cancelSel(); return; }
-  if (G.drag && G.drag.key){ pointerRay(e); dropDrag(pickTile()); return; }
+  if (e.button === 2){ rightClick(e); return; }
+  if (G.drag && G.drag.key){ pointerRay(e); const tu = pickUnit(); dropDrag(tu ? { x:tu.x, z:tu.z } : pickTile()); return; }
   if (e.button === 1){
     // wheel-button drag: slide the view north/south/east/west
     e.preventDefault();
@@ -1332,7 +1500,7 @@ canvas.addEventListener('pointerdown', e => {
   }
   pointerRay(e);
   const u = pickUnit();
-  down = { x:e.clientX, y:e.clientY, px:e.clientX, py:e.clientY, u, moved:false, id:e.pointerId, touch: e.pointerType !== 'mouse' };
+  down = { x:e.clientX, y:e.clientY, px:e.clientX, py:e.clientY, u, moved:false, id:e.pointerId, touch: e.pointerType !== 'mouse', shift:e.shiftKey };
   try { canvas.setPointerCapture(e.pointerId); } catch(err){}
 });
 canvas.addEventListener('pointermove', e => {
@@ -1347,6 +1515,14 @@ canvas.addEventListener('pointermove', e => {
   if (down && down.orbit){
     panBy(-(e.clientX - down.px), e.clientY - down.py);
     down.px = e.clientX; down.py = e.clientY;
+    return;
+  }
+  if (down && !down.touch && !down.u && !G.drag && (down.box || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6)){
+    // left-drag on empty ground: rubber-band box to grab a whole group
+    down.box = true; down.moved = true;
+    const st = selBoxEl.style; st.display = 'block';
+    st.left = Math.min(down.x, e.clientX) + 'px'; st.top = Math.min(down.y, e.clientY) + 'px';
+    st.width = Math.abs(e.clientX - down.x) + 'px'; st.height = Math.abs(e.clientY - down.y) + 'px';
     return;
   }
   if (down && down.touch && !down.u && !G.drag && (down.pan || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8)){
@@ -1368,10 +1544,22 @@ canvas.addEventListener('pointerup', e => {
   const d = down; down = null;
   if (d.orbit){ canvas.style.cursor = ''; return; }
   if (d.pan) return;
+  if (d.box){ selBoxEl.style.display = 'none'; boxSelect(d.x, d.y, e.clientX, e.clientY, d.shift || e.shiftKey); return; }
   pointerRay(e);
   const t = pickTile();
-  if (G.drag && !G.drag.key){ dropDrag(t); return; }
-  if (d.u){ selectUnit(d.u); return; }
+  if (G.drag && !G.drag.key){ const tu = pickUnit(); dropDrag(tu && tu !== G.drag.u ? { x:tu.x, z:tu.z } : t); return; }
+  if (d.u){
+    const now = performance.now();
+    if (lastClick.u === d.u && now - lastClick.t < 320){
+      // double-click: grab every animal of the same kind and level (handy for merging)
+      setGroup(units.filter(o => o.type === d.u.type && o.level === d.u.level && !!o.hidden === !!d.u.hidden), false);
+      lastClick.u = null; return;
+    }
+    lastClick = { u:d.u, t:now };
+    if (d.shift || e.shiftKey){ setGroup([d.u], true); return; }
+    G.group = []; selectUnit(d.u); return;
+  }
+  G.group = [];
   if (!t) { cancelSel(); return; }
   if (G.armed && canPlace(G.armed, t.x, t.z)){ build(G.armed, t.x, t.z); return; }
   if (canBuild(t.x, t.z)){
@@ -1428,6 +1616,7 @@ addEventListener('keydown', e => {
   if (code === 'KeyQ' || code === 'KeyR'){ keysDown[code] = true; return; }
   if (e.repeat && !code.startsWith('Arrow')) return;
   if (G.modal) return;
+  if (code === 'KeyA' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); setGroup(units.slice(), false); return; }
   if (code === 'Escape'){
     if (G.drag){ const u = G.drag.u; G.drag = null; u.mesh.position.set(wx(u.x), TILE[u.z][u.x].h, wz(u.z)); dropIn(u.mesh); return; }
     cancelSel(); return;
@@ -1456,7 +1645,7 @@ function keyGrab(){
 }
 function rotate(d){ camAngleTarget += d * Math.PI / 2; }
 function placing(){ return !!(G.armed || G.drag || G.topView); }
-function cancelSel(){ G.armed = null; G.selTile = null; G.selUnit = null; $('info').style.display = 'none'; buildCards(); ui(); }
+function cancelSel(){ G.armed = null; G.selTile = null; G.selUnit = null; G.group = []; $('info').style.display = 'none'; buildCards(); ui(); }
 function arm(type){
   audio();
   if (G.selTile && canPlace(type, G.selTile.x, G.selTile.z)){ build(type, G.selTile.x, G.selTile.z); G.selTile = null; return; }
@@ -1496,7 +1685,7 @@ function showInfo(u){
   rows.forEach(([a, b]) => { const tr = document.createElement('tr'); const t1 = document.createElement('td'); t1.textContent = a; const t2 = document.createElement('td'); t2.textContent = b; tr.append(t1, t2); tb.append(tr); });
   el.append(h, sub, tb);
   const hint = document.createElement('div'); hint.className = 'hint';
-  if (u.level < 3) hint.textContent = `같은 ${TYPES[u.type].name} ${u.level}레벨을 끌어다 겹치면 ${u.level + 1}레벨!` + (u.level === 2 ? ' 3레벨에서 전직해요.' : '');
+  if (u.level < 3) hint.textContent = `우클릭한 블록으로 이동 · 같은 ${TYPES[u.type].name} ${u.level}레벨 위에 우클릭하면 ${u.level + 1}레벨!` + (u.level === 2 ? ' 3레벨에서 전직해요.' : '');
   else hint.textContent = '최고 레벨이에요.';
   const hk = Object.keys(HIDDEN).find(k => HIDDEN[k].base === u.type);
   if (hk && !u.hidden){ hint.textContent += ' · 히든: ' + (discovered.has(hk) ? HIDDEN[hk].name : '???'); }
@@ -1609,6 +1798,10 @@ $('startHard').onclick = () => begin('hard');
 $('retryBtn').onclick = () => restart();
 $('topBtn').onclick = () => setTopView(!G.topView);
 $('setBtn').onclick = () => { const p = $('setPanel'); p.hidden = !p.hidden; };
+document.querySelectorAll('#pixSeg button').forEach(b => {
+  b.classList.toggle('on', +b.dataset.v === pixLevel);
+  b.onclick = () => { pixLevel = +b.dataset.v; try { localStorage.setItem('nyandef-pix', String(pixLevel)); } catch(err){} document.querySelectorAll('#pixSeg button').forEach(x => x.classList.toggle('on', x === b)); resize(); };
+});
 $('rotSpd').value = rotSpeed; $('rotSpdVal').textContent = rotSpeed + '°/초';
 $('rotSpd').oninput = e => { rotSpeed = +e.target.value; $('rotSpdVal').textContent = rotSpeed + '°/초'; try { localStorage.setItem('nyandef-rotspd', String(rotSpeed)); } catch(err){} };
 renderDeck();
@@ -1773,12 +1966,22 @@ function animate(rdt, dt){
   clouds.forEach(c => { c.userData.a += c.userData.v * rdt * 0.1; c.position.x = Math.cos(c.userData.a) * c.userData.r; c.position.z = Math.sin(c.userData.a) * c.userData.r; });
   updateBits(dt > 0 ? dt : rdt * 0.25);
   updateTfx(rdt);
+  updateOcclusion(rdt);
+  {
+    const list = G.modal ? [] : selList();
+    const marks = (G.group.length ? list : []).map(u => ({ kind:'sel', x:u.x, z:u.z }));
+    if (list.length && G.hover && !G.drag && !down){
+      const hu = unitAt(G.hover.x, G.hover.z);
+      if (!(hu && list.includes(hu))) planMove(list, G.hover).forEach(p => { if (p.u.x !== p.x || p.u.z !== p.z) marks.push({ kind:'dst', x:p.x, z:p.z }); });
+    }
+    setMarks(marks);
+  }
   // hover / range + coverage preview
   hoverBox.visible = false; rangeViz.visible = false;
   let cover = -1, coverRange = 0, cx = 0, cz = 0, tipElev = 0;
   const tile = G.drag ? G.hover : (G.selTile || G.hover);
   const ptype = G.drag ? G.drag.u.type : G.armed;
-  if (G.selUnit && !G.drag){ const s = statsOf(G.selUnit); showRange(G.selUnit.x, G.selUnit.z, s.range); cx = G.selUnit.x; cz = G.selUnit.z; coverRange = s.range; }
+  if (G.selUnit && !G.drag && !G.group.length){ const s = statsOf(G.selUnit); showRange(G.selUnit.x, G.selUnit.z, s.range); cx = G.selUnit.x; cz = G.selUnit.z; coverRange = s.range; }
   else if (tile && !G.modal){
     const t2 = TILE[tile.z][tile.x];
     const ok = ptype ? canPlace(ptype, tile.x, tile.z) : canBuild(tile.x, tile.z);
@@ -1825,4 +2028,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { screenOf:(u) => { const v = u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0)).project(camera); return [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight]; }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
