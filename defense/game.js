@@ -13,7 +13,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 /* maps: each one is its own route. picked on the title screen (switching reloads the page) */
 const MAPS = {
   mountain: { name:'와인딩 산길', icon:'🗻', desc:'지그재그로 오르는 산길. 높은 곳이 명당', w:11, d:16,
-    wp:[[1, 15], [1, 11], [9, 11], [9, 7], [1, 7], [1, 3], [5, 3], [5, 1]], base:[5, 0], hstep:3, hp:1 },
+    wp:[[1, 15], [1, 11], [9, 11], [9, 7], [1, 7], [1, 3], [5, 3], [5, 1]], base:[5, 0], hstep:3, hp:0.92 },
   stadium: { name:'운동장', icon:'🏟', desc:'트랙을 한 바퀴 반 돌아 한가운데 창고로. 두 트랙 사이가 명당', w:13, d:13,
     wp:[[1, 12], [1, 1], [11, 1], [11, 11], [3, 11], [3, 3], [9, 3], [9, 6], [7, 6]], base:[6, 6], hstep:999, hp:1.4, fly:[[1, 1], [11, 1], [11, 11], [3, 11], [3, 4]], isNew:true },
 };
@@ -278,12 +278,27 @@ const SYN = [
 const SYN_BY = {}; SYN.forEach(s => { SYN_BY[s.a + '|' + s.b] = s; SYN_BY[s.b + '|' + s.a] = s; });
 const NB4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const synPair = (t1, t2) => SYN_BY[t1 + '|' + t2] || null;
+// crowding: an animal boxed in by 3+ neighbours is too squashed to combo (no synergy given or taken).
+// so a blob made by dragging a whole group onto one spot fizzles; neat lines and pairs keep their links
+const CROWD = 3;
+function nbCount(x, z, self, extra){
+  let n = 0;
+  for (const [dx, dz] of NB4){
+    const nx = x + dx, nz = z + dz;
+    if (extra && extra[0] === nx && extra[1] === nz){ n++; continue; }
+    if (units.some(q => q !== self && q.x === nx && q.z === nz)) n++;
+  }
+  return n;
+}
+const crowdedAt = (x, z, self) => nbCount(x, z, self) >= CROWD;
 // which synergies a unit of `type` standing on (x, z) gets from its four neighbours
 function synAt(type, x, z, self){
   const out = [];
+  if (crowdedAt(x, z, self)) return out;
   for (const [dx, dz] of NB4){
     const o = units.find(q => q.x === x + dx && q.z === z + dz);
     if (!o || o === self) continue;
+    if (nbCount(o.x, o.z, self, [x, z]) >= CROWD) continue;
     const sy = synPair(type, o.type);
     if (sy && !out.includes(sy)) out.push(sy);
   }
@@ -774,7 +789,17 @@ function makeAnimal(type, level = 1, branch = null, hidden = null, awake = false
   }
   // level dressing: bandana for 2, crown for 3
   if (level === 2 && !hidden) vox(body, 0.3, 0.06, 0.08, '#6fa8ff', 0, 0.4, 0.2);
-  if (level >= 3 && hidden !== 'witch' && hidden !== 'aurora'){
+  if (level >= 3 && !hidden && TYPES[type].br){
+    const k = type + branch;
+    if (k === 'cata'){ for (let i = 0; i < 8; i++){ const a = i / 8 * TAU; vox(body, 0.12, 0.12, 0.08, '#8a4410', Math.cos(a) * 0.33, 0.56 + Math.sin(a) * 0.3, -0.12); } }   // spiky mane
+    if (k === 'catb'){ vox(body, 0.46, 0.09, 0.12, '#2e2738', 0, 0.5, 0.22); const sw = vox(body, 0.05, 0.05, 0.62, '#c9d1e0', 0.18, 0.5, -0.18, '#333344'); sw.rotation.x = 0.9; vox(body, 0.08, 0.08, 0.08, '#e04a5a', 0.18, 0.22, 0.06); } // mask + katana
+    if (k === 'doga'){ vox(body, 0.46, 0.08, 0.42, '#c23a3a', 0, 0.4, 0.04); [-0.18, 0, 0.18].forEach(x => vox(body, 0.05, 0.07, 0.05, '#e6e6f0', x, 0.4, 0.26, '#333')); }  // spiked collar
+    if (k === 'dogb'){ vox(body, 0.18, 0.16, 0.14, '#b5651d', 0, 0.3, 0.3); vox(body, 0.04, 0.1, 0.02, '#e04a5a', 0, 0.3, 0.375); vox(body, 0.1, 0.04, 0.02, '#e04a5a', 0, 0.3, 0.376); } // rescue barrel
+    if (k === 'rabbita'){ vox(body, 0.05, 0.05, 0.05, '#ff3b3b', 0.2, 0.62, 0.3, '#aa0000'); vox(body, 0.42, 0.06, 0.06, '#5f7d3a', 0, 0.36, 0.2); }  // laser sight + strap
+    if (k === 'rabbitb'){ const b1 = vox(body, 0.06, 0.4, 0.04, '#7a4a2a', 0, 0.3, 0.2); b1.rotation.z = 0.7; [-0.1, 0, 0.1].forEach((x, i) => vox(body, 0.06, 0.1, 0.05, '#ff9f3f', x, 0.24 + i * 0.08, 0.23)); } // carrot bandolier
+    if (k === 'penguinb'){ vox(body, 0.08, 0.5, 0.08, '#8a5a3a', 0.26, 0.4, 0.12); vox(body, 0.14, 0.14, 0.14, '#9fe8ff', 0.26, 0.7, 0.12, '#2a6a9a'); } // ice staff
+  }
+  if (level >= 3 && hidden !== 'witch' && hidden !== 'aurora' && (!TYPES[type].br || (type === 'penguin' && branch === 'a') || hidden)){
     const crownY = type === 'rabbit' ? 1.1 : type === 'penguin' ? (branch === 'b' ? 1.18 : 0.9) : type === 'bear' ? 1.0 : type === 'owl' ? 1.0 : type === 'hamster' ? 0.76 : type === 'hedgehog' ? 0.44 : type === 'raccoon' ? 0.86 : 0.86;
     if (!(type === 'rabbit')){
       vox(body, 0.22, 0.06, 0.22, '#ffcf3f', 0, crownY, 0.06, '#5a4200');
@@ -782,7 +807,7 @@ function makeAnimal(type, level = 1, branch = null, hidden = null, awake = false
     } else vox(body, 0.36, 0.05, 0.05, '#ffcf3f', 0, 0.75, 0.24, '#5a4200');
   }
   g.userData.legs = legs;
-  const s = [0, 1.18, 1.32, 1.48][level] || 1.18;
+  const s = [0, 1.0, 1.1, 1.22][level] || 1.0;
   g.scale.setScalar(awake ? s * 1.16 : hidden ? s * 1.06 : s);
   return g;
 }
@@ -1179,7 +1204,7 @@ function placeUnit(type, x, z, level = 1, branch = null, hidden = null){
 }
 const PLUS_COLS = [null, '#5ff0c0', '#5aa8ff', '#b67aff', '#ffc21a', '#f0a8ff'];
 // each step repaints the animal: mint → sky → violet → shining gold → hologram
-const PLUS_TINT = [null, { c:'#5ff0c0', k:0.42, e:0.10 }, { c:'#5aa8ff', k:0.52, e:0.14 }, { c:'#b67aff', k:0.6, e:0.18 }, { c:'#ffc21a', k:0.86, e:0.3 }, { c:'#ffffff', k:0, e:0 }];
+const PLUS_TINT = [null, { c:'#5ff0c0', k:0.1, e:0.04 }, { c:'#5aa8ff', k:0.14, e:0.05 }, { c:'#b67aff', k:0.18, e:0.06 }, { c:'#ffc21a', k:0.24, e:0.08 }, { c:'#ffffff', k:0, e:0 }];
 function tintUnit(u){
   const tn = PLUS_TINT[u.plus]; if (!tn) return;
   const mats = [];
@@ -1192,7 +1217,7 @@ function tintUnit(u){
     // recolour like a statue of that colour: keep the shading (brightness), swap the hue, so it never turns muddy
     const shade = 0.45 + Math.min(1, lum * 1.4) * 0.75;
     if (u.plus === 5){ m.userData.base = base; m.userData.shade = shade; m.userData.ph = o.position.y * 3 + o.position.x * 2; mats.push(m); }
-    else { m.color.lerp(new THREE.Color(tn.c).multiplyScalar(shade), tn.k); m.emissive = new THREE.Color(tn.c).multiplyScalar(tn.e); if (u.plus === 4) mats.push(m); }
+    else { m.color.lerp(new THREE.Color(tn.c).multiplyScalar(shade), tn.k); m.emissive = new THREE.Color(tn.c).multiplyScalar(tn.e); }
     o.material = m;
   });
   u.mesh.userData.shine = mats;
@@ -1203,7 +1228,21 @@ function plusDecor(u){
   const r = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.6 + u.plus * 0.015, 4, 1), new THREE.MeshBasicMaterial({ color:PLUS_COLS[u.plus], transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
   r.rotation.x = -Math.PI / 2; r.position.y = 0.03; r.userData.unit = u;
   u.mesh.add(r); u.mesh.userData.plusRing = r;
-  if (u.plus >= 4){ for (let i = 0; i < u.plus - 2; i++){ const sp = vox(u.mesh, 0.06, 0.06, 0.06, PLUS_COLS[u.plus], Math.cos(i * 2.1) * 0.42, 0.5 + i * 0.12, Math.sin(i * 2.1) * 0.42); sp.userData.unit = u; } }
+  // gear stacks up with each step so an enhanced animal reads at a glance: +1 scarf, +2 shoulder guards, +3 cape, +4 floating gem, +5 halo
+  const body = u.mesh.userData.body, col = PLUS_COLS[u.plus], dark = new THREE.Color(col).multiplyScalar(0.55).getStyle();
+  const box = new THREE.Box3(); body.children.forEach(o => { if (o.isMesh) box.expandByPoint(o.position.clone().add(o.scale.clone().multiplyScalar(0.5))).expandByPoint(o.position.clone().sub(o.scale.clone().multiplyScalar(0.5))); });
+  const top = box.max.y, gearM = [];
+  const G2 = (w, h, d, c, x, y, z, e) => { const m = vox(body, w, h, d, c, x, y, z, e); m.material = m.material.clone(); m.material.userData = { gear:true, base:m.material.color.clone(), shade:1, ph:y * 3 + x * 2 }; gearM.push(m.material); m.userData.unit = u; return m; };
+  if (u.type !== 'hedgehog'){
+    G2(0.5, 0.11, 0.46, col, 0, 0.4, 0.04, dark); const tl = G2(0.11, 0.24, 0.05, col, 0.13, 0.3, 0.28, dark); tl.rotation.z = 0.25;
+    if (u.plus >= 2){ G2(0.19, 0.13, 0.22, col, -0.27, 0.45, 0.02, dark); G2(0.19, 0.13, 0.22, col, 0.27, 0.45, 0.02, dark); G2(0.07, 0.07, 0.07, '#ffffff', -0.27, 0.53, 0.02); G2(0.07, 0.07, 0.07, '#ffffff', 0.27, 0.53, 0.02); }
+    if (u.plus >= 3){ const cp = G2(0.6, 0.5, 0.05, col, 0, 0.24, -0.3, dark); cp.rotation.x = 0.28; G2(0.62, 0.07, 0.07, '#ffffff', 0, 0.02, -0.37); }
+  } else { for (let i = 0; i < u.plus; i++) G2(0.07, 0.07, 0.07, col, Math.cos(i * 1.3) * 0.22, 0.32, Math.sin(i * 1.3) * 0.22, dark); }
+  if (u.plus >= 4){ const gem = G2(0.18, 0.18, 0.18, col, 0, top + 0.3, 0, col); gem.rotation.set(0.6, 0.8, 0); u.mesh.userData.gem = gem; }
+  if (u.plus >= 5){ const halo = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.29, 6), new THREE.MeshBasicMaterial({ color:'#ffffff', transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+    halo.rotation.x = -Math.PI / 2; halo.position.y = top + 0.08; halo.userData.unit = u; halo.raycast = () => {}; body.add(halo); u.mesh.userData.halo5 = halo; }
+  const sh = u.mesh.userData.shine || (u.mesh.userData.shine = []);
+  if (u.plus >= 4) sh.push(...gearM);
 }
 function rebuildUnit(u){
   const pos = u.mesh.position.clone(), yaw = u.mesh.rotation.y;
@@ -2064,6 +2103,14 @@ function synIconTex(sy){
   const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
   return synTex[sy.id] = t;
 }
+let crowdT = null;
+function crowdTex(){
+  if (crowdT) return crowdT;
+  const c = document.createElement('canvas'); c.width = c.height = 48; const x = c.getContext('2d');
+  x.fillStyle = '#ff6b81'; x.beginPath(); x.arc(24, 24, 21, 0, TAU); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.stroke();
+  x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('😣', 24, 26);
+  crowdT = new THREE.CanvasTexture(c); crowdT.magFilter = crowdT.minFilter = THREE.NearestFilter; return crowdT;
+}
 const synMats = {};
 const synMat = sy => synMats[sy.id] || (synMats[sy.id] = new THREE.MeshBasicMaterial({ color:sy.col, transparent:true, opacity:0.9, depthWrite:false }));
 let synKey = null, synPairs = new Map(), synLinks = [];
@@ -2075,6 +2122,8 @@ function pairsNow(){
       const o = unitAt(u.x + dx, u.z + dz);
       if (!o || (G.drag && G.drag.u === o)) continue;
       const sy = synPair(u.type, o.type);
+      const dg = G.drag ? G.drag.u : null;
+      if (sy && (crowdedAt(u.x, u.z, dg) || crowdedAt(o.x, o.z, dg))) continue;
       if (sy) m.set(u.x + ',' + u.z + '-' + o.x + ',' + o.z + ':' + sy.id, { a:u, b:o, sy });
     }
   }
@@ -2105,13 +2154,24 @@ function updateSynLinks(t){
         [880, 1320].forEach((f, i) => setTimeout(() => blip(f, f * 1.01, 0.08, 'triangle', 0.035), i * 70));
       }
     }
+    // squashed animals that would have had a partner get a little 😣 so you can see why the link is off
+    for (const u of units){
+      if (G.drag && G.drag.u === u) continue;
+      if (!crowdedAt(u.x, u.z, G.drag ? G.drag.u : null)) continue;
+      if (!NB4.some(([dx, dz]) => { const o = unitAt(u.x + dx, u.z + dz); return o && synPair(u.type, o.type); })) continue;
+      const ic = new THREE.Sprite(new THREE.SpriteMaterial({ map:crowdTex(), depthTest:false, transparent:true }));
+      const p = new THREE.Vector3(wx(u.x), TILE[u.z][u.x].h + 1.15, wz(u.z));
+      ic.scale.setScalar(0.34); ic.position.copy(p); ic.renderOrder = 12;
+      const g = new THREE.Group(); g.add(ic); synRoot.add(g);
+      synLinks.push({ g, ic, plank:null, mid:p.clone().add(new THREE.Vector3(0, 0.83, 0)), ph:Math.random() * TAU });
+    }
     synPairs = now;
     renderSynPanel();
     if (G.selUnit && units.includes(G.selUnit) && !G.group.length) showInfo(G.selUnit);
   }
   for (const l of synLinks){
     l.ic.position.y = l.mid.y + 0.32 + Math.sin(t * 3 + l.ph) * 0.04;
-    l.plank.material.opacity = 0.65 + Math.sin(t * 4 + l.ph) * 0.25;
+    if (l.plank) l.plank.material.opacity = 0.65 + Math.sin(t * 4 + l.ph) * 0.25;
   }
 }
 // left panel: every synergy your deck can make, lit up when it's on the board
@@ -2120,7 +2180,7 @@ function renderSynPanel(){
   const list = SYN.filter(sy => deck.includes(sy.a) && deck.includes(sy.b));
   const cnt = {}; for (const p of synPairs.values()) cnt[p.sy.id] = (cnt[p.sy.id] || 0) + 1;
   el.textContent = '';
-  const h = document.createElement('div'); h.className = 'sh'; h.textContent = '시너지 (상하좌우로 붙이기)'; el.append(h);
+  const h = document.createElement('div'); h.className = 'sh'; h.textContent = '시너지 · 상하좌우로 붙이기 (이웃 3마리 이상이면 비좁아서 꺼짐)'; el.append(h);
   for (const sy of list){
     const r = document.createElement('div'); r.className = 'sr' + (cnt[sy.id] ? ' on' : ''); r.style.setProperty('--c', sy.col);
     const i = document.createElement('i'); i.textContent = sy.icon;
@@ -2530,7 +2590,8 @@ function showInfo(u){
   rows.forEach(([a, b]) => { const tr = document.createElement('tr'); const t1 = document.createElement('td'); t1.textContent = a; const t2 = document.createElement('td'); t2.textContent = b; tr.append(t1, t2); tb.append(tr); });
   el.append(h, sub, tb);
   const sl = document.createElement('div'); sl.className = 'syns';
-  if (s.syn.length) s.syn.forEach(sy => { const d = document.createElement('div'); d.style.setProperty('--c', sy.col); d.textContent = sy.icon + ' ' + sy.name + ' — ' + sy.desc; sl.append(d); });
+  if (crowdedAt(u.x, u.z, u)){ sl.classList.add('crowd'); sl.textContent = '😣 비좁아요! 상하좌우 이웃이 3마리 이상이면 시너지가 꺼져요'; }
+  else if (s.syn.length) s.syn.forEach(sy => { const d = document.createElement('div'); d.style.setProperty('--c', sy.col); d.textContent = sy.icon + ' ' + sy.name + ' — ' + sy.desc; sl.append(d); });
   else { const partners = SYN.filter(sy => (sy.a === u.type || sy.b === u.type) && deck.includes(sy.a === u.type ? sy.b : sy.a)).map(sy => TYPES[sy.a === u.type ? sy.b : sy.a].name);
     sl.textContent = partners.length ? '시너지 없음 · 옆에 붙일 짝꿍: ' + partners.join(', ') : '시너지 없음'; sl.classList.add('none'); }
   el.append(sl);
@@ -2969,11 +3030,13 @@ function animate(rdt, dt){
     const sh = u.mesh.userData.shine;
     if (sh && sh.length){
       if (u.plus === 5){ // hologram: rainbow sweeping across the body
-        for (const m of sh){ const hc = new THREE.Color().setHSL((t * 0.35 + m.userData.ph * 0.15) % 1, 0.9, 0.62); m.color.copy(m.userData.base).lerp(hc.clone().multiplyScalar(m.userData.shade), 0.8); m.emissive.copy(hc).multiplyScalar(0.3); }
+        for (const m of sh){ const hc = new THREE.Color().setHSL((t * 0.35 + m.userData.ph * 0.15) % 1, 0.9, 0.62); m.color.copy(m.userData.base).lerp(hc.clone().multiplyScalar(m.userData.shade), m.userData.gear ? 0.9 : 0.3); m.emissive.copy(hc).multiplyScalar(m.userData.gear ? 0.35 : 0.12); }
       } else { // gold: a glint that pulses
         const g = 0.22 + Math.max(0, Math.sin(t * 3 + u.x)) * 0.3; for (const m of sh) m.emissive.setRGB(g, g * 0.75, g * 0.1);
       }
     }
+    if (u.mesh.userData.gem){ const gm = u.mesh.userData.gem; gm.rotation.y = t * 2.4; gm.position.y = gm.userData.y0 ?? (gm.userData.y0 = gm.position.y); gm.position.y += Math.sin(t * 3 + u.x) * 0.04; }
+    if (u.mesh.userData.halo5) u.mesh.userData.halo5.rotation.z = t * 1.5;
     if (u.mesh.userData.orb){ u.mesh.userData.orb.position.y = 0.75 + Math.sin(t * 3) * 0.06; u.mesh.userData.orb.rotation.y = t * 2; }
     if (u.mesh.userData.aura){ u.mesh.userData.aura.rotation.z = t; u.mesh.userData.aura.material.opacity = 0.5 + Math.sin(t * 4) * 0.25; }
     const dr = u.mesh.userData.drop;
@@ -3020,7 +3083,7 @@ function animate(rdt, dt){
   }
   // hover / range + coverage preview
   hoverBox.visible = false; rangeViz.visible = false;
-  let cover = -1, coverRange = 0, cx = 0, cz = 0, tipElev = 0, tipSyn = [];
+  let cover = -1, coverRange = 0, cx = 0, cz = 0, tipElev = 0, tipSyn = [], tipCrowd = false;
   const tile = G.drag ? G.hover : (G.selTile || G.hover);
   const ptype = G.drag ? G.drag.u.type : G.armed;
   if (G.selUnit && !G.drag && !G.group.length){ const s = statsOf(G.selUnit); showRange(G.selUnit.x, G.selUnit.z, s.range); cx = G.selUnit.x; cz = G.selUnit.z; coverRange = s.range; }
@@ -3036,7 +3099,7 @@ function animate(rdt, dt){
       if (ptype && ok){
         const u0 = G.drag ? G.drag.u : null;
         const fake = { type:ptype, level: u0 ? u0.level : 1, branch: u0 ? u0.branch : null, hidden: u0 ? u0.hidden : null, awake: u0 ? u0.awake : false, x:tile.x, z:tile.z, ref:u0 };
-        const fs = statsOf(fake), r = fs.range; tipSyn = fs.syn;
+        const fs = statsOf(fake), r = fs.range; tipSyn = fs.syn; tipCrowd = crowdedAt(tile.x, tile.z, u0);
         showRange(tile.x, tile.z, r, G.drag || G.coins >= costOf(ptype));
         cx = tile.x; cz = tile.z; coverRange = r; tipElev = TYPES[ptype].onPath ? 0 : Math.max(0, t2.elev);
       }
@@ -3048,6 +3111,7 @@ function animate(rdt, dt){
   if (cover >= 0 && lastPtr && !G.selUnit){
     tip.style.display = 'block';
     tip.textContent = `계단 ${cover}칸 커버` + (tipElev > 0 ? ` · 높이 +${Math.min(3, tipElev)}` : '') + (tipSyn.length ? ' · ' + tipSyn.map(q => q.icon + q.name).join(' ') : '');
+    if (tipCrowd) tip.textContent += ' · 😣 비좁아서 시너지 꺼짐';
     tip.classList.toggle('syn', tipSyn.length > 0);
     tip.style.transform = `translate(${lastPtr.clientX + 16}px, ${lastPtr.clientY + 14}px)`;
   } else tip.style.display = 'none';
@@ -3075,4 +3139,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { setMapHP:(v) => { MAPDEF.hp = v; }, scene, walls, gasAt:(x, z) => clouds2.some(c => Math.hypot(wx(x) - c.c.x, wz(z) - c.c.z) <= c.r), fx:(u) => transformFx(u, 3, '강화 성공! +4', { cols:[PLUS_COLS[4], '#ffffff'], banner:'강화 +4!' }), dbgPick:(x, y) => { pointerRay({ clientX:x, clientY:y }); const o = ray.ray.origin, d = ray.ray.direction, out = []; for (let z = 0; z < MAP_D; z++) for (let xx = 0; xx < MAP_W; xx++){ const t = TILE[z][xx]; if (t.type === 'void') continue; const tt = (t.h - o.y) / d.y; const px = o.x + d.x * tt - wx(xx), pz = o.z + d.z * tt - wz(z); if (Math.abs(px) <= 0.5 && Math.abs(pz) <= 0.5) out.push([xx, z, t.type, t.h, +tt.toFixed(2)]); } return out.sort((a, b) => a[4] - b[4]); }, MAX_WAVE, synAt, SYN, tileXYo:(x, z, ox, oz) => screenXY(new THREE.Vector3(wx(x) + ox, TILE[z][x].h, wz(z) + oz)), pickAt:(x, y, vis) => { pointerRay({ clientX:x, clientY:y }); return vis ? pickVisible() : pickTile(); }, rotate:(d) => { camAngleTarget += d * Math.PI / 2; camAngle = camAngleTarget; }, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { nbCount, crowdIcons:() => synLinks.filter(l => !l.plank).length, setMapHP:(v) => { MAPDEF.hp = v; }, scene, walls, gasAt:(x, z) => clouds2.some(c => Math.hypot(wx(x) - c.c.x, wz(z) - c.c.z) <= c.r), fx:(u) => transformFx(u, 3, '강화 성공! +4', { cols:[PLUS_COLS[4], '#ffffff'], banner:'강화 +4!' }), dbgPick:(x, y) => { pointerRay({ clientX:x, clientY:y }); const o = ray.ray.origin, d = ray.ray.direction, out = []; for (let z = 0; z < MAP_D; z++) for (let xx = 0; xx < MAP_W; xx++){ const t = TILE[z][xx]; if (t.type === 'void') continue; const tt = (t.h - o.y) / d.y; const px = o.x + d.x * tt - wx(xx), pz = o.z + d.z * tt - wz(z); if (Math.abs(px) <= 0.5 && Math.abs(pz) <= 0.5) out.push([xx, z, t.type, t.h, +tt.toFixed(2)]); } return out.sort((a, b) => a[4] - b[4]); }, MAX_WAVE, synAt, SYN, tileXYo:(x, z, ox, oz) => screenXY(new THREE.Vector3(wx(x) + ox, TILE[z][x].h, wz(z) + oz)), pickAt:(x, y, vis) => { pointerRay({ clientX:x, clientY:y }); return vis ? pickVisible() : pickTile(); }, rotate:(d) => { camAngleTarget += d * Math.PI / 2; camAngle = camAngleTarget; }, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };

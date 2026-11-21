@@ -126,6 +126,7 @@ body{background:#000}
 #coverTip.syn{background:#4a2a6b;border-color:#ffe14d}
 #info .syns{margin-top:8px;display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.35}
 #info .syns div{padding:3px 6px;border-left:4px solid var(--c);background:#f6eefa}
+#info .syns.crowd{padding:5px 6px;border:2px solid #ff6b81;background:#ffe9ee;color:#a8203a;font-weight:700}
 #info .syns.none{opacity:.7;padding:4px 6px;border:2px dashed #d6c6e2}
 #bigBanner{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%) scale(.3);z-index:9;pointer-events:none;opacity:0;display:flex;flex-direction:column;align-items:center;gap:2px;color:#fff;text-shadow:3px 0 0 #2b2147,-3px 0 0 #2b2147,0 3px 0 #2b2147,0 -3px 0 #2b2147,3px 3px 0 #2b2147}
 #bigBanner img{width:112px;height:112px;image-rendering:pixelated;filter:drop-shadow(0 0 14px var(--c)) drop-shadow(0 0 4px #fff)}
@@ -287,7 +288,7 @@ kbd{display:inline-block;border:2px solid var(--ink);background:#fff;padding:0 5
     <ol>
       <li>아래 카드에서 동물을 고르고 <b>빈 블록</b>을 좌클릭이나 <b>우클릭</b>해서 배치해요. 좌클릭 드래그로 <b>여러 마리를 박스 선택</b>하고 우클릭하면 그쪽으로 모여요. 놓기 전에 <b>계단 몇 칸을 커버하는지</b> 초록색으로 보여요. (<kbd>Tab</kbd> 탑뷰로 보면 더 쉬워요)</li>
       <li><b>같은 동물, 같은 레벨</b>끼리 끌어다 겹치면 합성해서 레벨업! 3레벨에서는 두 갈래 중 하나로 전직해요.</li>
-      <li>🔗 <b>서로 다른 동물을 상하좌우로 붙이면 시너지!</b> 고양이+강아지는 공격속도, 토끼+펭귄은 얼음 저격… 누구 옆에 누구를 세울지가 핵심이에요. 왼쪽 목록에서 켜진 시너지를 확인하세요.</li>
+      <li>🔗 <b>서로 다른 동물을 상하좌우로 붙이면 시너지!</b> 단, 이웃이 3마리 이상 붙으면 <b>비좁아서 꺼져요</b>. 고양이+강아지는 공격속도, 토끼+펭귄은 얼음 저격… 누구 옆에 누구를 세울지가 핵심이에요. 왼쪽 목록에서 켜진 시너지를 확인하세요.</li>
       <li>👑 웨이브 후반엔 금빛 <b>정예 몬스터</b>가 섞여 나와요. 놓치면 하트 3개! 한 마리도 안 놓치면 <b>무실점 보너스</b>가 연속으로 커져요.</li>
       <li><b>높은 블록</b>일수록 사거리와 공격력이 올라가요. 계단이 꺾이는 모서리가 명당이에요.</li>
       <li>짝수 웨이브를 깨면 <b>강화 카드</b>를 한 장 골라요.</li>
