@@ -178,34 +178,37 @@ const FOES = {
   wolf: { name:'늑대', hp:55, speed:1.1, reward:8, dmg:1, pack:true },
   croc: { name:'악어', hp:230, speed:0.55, reward:18, dmg:3, armor:4 },
   hawk: { name:'매', hp:42, speed:1.35, reward:9, dmg:1, fly:true },
+  beaver: { name:'비버', hp:95, speed:0.95, reward:12, dmg:1, gnaw:true, desc:'길옆 블록을 갉아 먹어요. 그 위 동물은 낮아지고 흔들려요.' },
+  skunk: { name:'스컹크', hp:75, speed:1.05, reward:12, dmg:1, gas:true, desc:'방귀 구름을 던져요. 구름 안 동물은 공격을 못 해요. 옮겨 주세요!' },
   boss: { name:'늑대왕', hp:2600, speed:0.42, reward:200, dmg:10, armor:3, boss:true },
 };
 // the challenge comes from the crowd: lots more foes per wave, each lighter, with smaller bounties
 const COUNT_MUL = 1.9, GAP_MUL = 0.7, REWARD_MUL = 0.85;
-let HP_MUL = 0.72, HP_GROW = 1.105;
+let HP_MUL = 0.68, HP_GROW = 1.105;
 const WAVES = [
   [{ t:'fox', n:8, gap:1.1 }],
   [{ t:'fox', n:10, gap:0.9 }, { t:'wolf', n:4, gap:1.2, at:4 }],
   [{ t:'wolf', n:10, gap:0.55 }],
   [{ t:'fox', n:12, gap:0.7 }, { t:'croc', n:2, gap:3, at:3 }],
-  [{ t:'hawk', n:6, gap:1.4 }, { t:'fox', n:8, gap:0.8, at:1 }],
-  [{ t:'wolf', n:12, gap:0.5 }, { t:'croc', n:3, gap:2.5, at:2 }],
-  [{ t:'hawk', n:10, gap:0.9 }, { t:'wolf', n:8, gap:0.6, at:3 }],
-  [{ t:'croc', n:5, gap:1.8 }, { t:'fox', n:16, gap:0.5, at:1 }],
-  [{ t:'wolf', n:12, gap:0.45 }, { t:'hawk', n:8, gap:0.9, at:2 }, { t:'croc', n:4, gap:2, at:5 }],
+  [{ t:'hawk', n:6, gap:1.4 }, { t:'fox', n:8, gap:0.8, at:1 }, { t:'beaver', n:1, gap:4, at:7 }],
+  [{ t:'wolf', n:12, gap:0.5 }, { t:'croc', n:3, gap:2.5, at:2 }, { t:'skunk', n:1, gap:4, at:6 }],
+  [{ t:'hawk', n:10, gap:0.9 }, { t:'wolf', n:8, gap:0.6, at:3 }, { t:'beaver', n:2, gap:3, at:5 }],
+  [{ t:'croc', n:5, gap:1.8 }, { t:'fox', n:16, gap:0.5, at:1 }, { t:'skunk', n:2, gap:3, at:4 }],
+  [{ t:'wolf', n:12, gap:0.45 }, { t:'hawk', n:8, gap:0.9, at:2 }, { t:'croc', n:4, gap:2, at:5 }, { t:'beaver', n:1, gap:3, at:3 }, { t:'skunk', n:1, gap:3, at:7 }],
   [{ t:'boss', n:1, gap:1 }, { t:'fox', n:12, gap:0.7, at:3 }, { t:'hawk', n:6, gap:1, at:8 }],
 ];
 const MAX_WAVE = 50;
 function genWave(w){            // w is 1-based, 11..50
   const tier = Math.floor((w - 1) / 10), grow = 1 + 0.03 * (w - 10);
   const N = n => Math.round(n * grow);
-  if (w % 10 === 0) return [{ t:'boss', n:1 + Math.floor(tier / 2), gap:7 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'hawk', n:N(6), gap:0.9, at:6 }, { t:'croc', n:N(2 + tier), gap:2.5, at:10 }];
+  const S = n => Math.min(4, Math.round(n * (1 + 0.03 * (w - 10))));   // skill monsters grow slowly, max 4 per group
+  if (w % 10 === 0) return [{ t:'boss', n:1 + Math.floor(tier / 2), gap:7 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'hawk', n:N(6), gap:0.9, at:6 }, { t:'croc', n:N(2 + tier), gap:2.5, at:10 }, { t:'skunk', n:S(1), gap:5, at:8 }];
   switch (w % 5){
-    case 1: return [{ t:'fox', n:N(16), gap:0.5 }, { t:'croc', n:N(3), gap:2.2, at:3 }];
-    case 2: return [{ t:'wolf', n:N(14), gap:0.45 }, { t:'hawk', n:N(7), gap:0.9, at:3 }];
-    case 3: return [{ t:'croc', n:N(6), gap:1.6 }, { t:'fox', n:N(14), gap:0.5, at:1 }];
-    case 4: return [{ t:'hawk', n:N(10), gap:0.8 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'croc', n:N(3), gap:2, at:5 }];
-    default: return [{ t:'fox', n:N(10), gap:0.5 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'hawk', n:N(6), gap:0.9, at:4 }, { t:'croc', n:N(4), gap:2, at:6 }];
+    case 1: return [{ t:'fox', n:N(16), gap:0.5 }, { t:'croc', n:N(3), gap:2.2, at:3 }, { t:'beaver', n:S(2), gap:3, at:4 }];
+    case 2: return [{ t:'wolf', n:N(14), gap:0.45 }, { t:'hawk', n:N(7), gap:0.9, at:3 }, { t:'skunk', n:S(2), gap:3, at:4 }];
+    case 3: return [{ t:'croc', n:N(6), gap:1.6 }, { t:'fox', n:N(14), gap:0.5, at:1 }, { t:'beaver', n:S(1), gap:3, at:3 }, { t:'skunk', n:S(1), gap:3, at:6 }];
+    case 4: return [{ t:'hawk', n:N(10), gap:0.8 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'croc', n:N(3), gap:2, at:5 }, { t:'skunk', n:S(2), gap:3, at:3 }];
+    default: return [{ t:'fox', n:N(10), gap:0.5 }, { t:'wolf', n:N(10), gap:0.5, at:2 }, { t:'hawk', n:N(6), gap:0.9, at:4 }, { t:'croc', n:N(4), gap:2, at:6 }, { t:'beaver', n:S(1), gap:3, at:3 }, { t:'skunk', n:S(1), gap:3, at:5 }];
   }
 }
 for (let w = WAVES.length + 1; w <= MAX_WAVE; w++) WAVES.push(genWave(w));
@@ -811,6 +814,32 @@ function makeFoe(type){
     body.add(wl, wr); g.userData.wings = [wl, wr];
     vox(body, 0.18, 0.04, 0.2, '#5e3a24', 0, 0, -0.28);
   }
+  else if (type === 'beaver'){
+    const c = '#9a6232', d = '#6e4220';
+    vox(body, 0.34, 0.28, 0.44, c, 0, 0.24, 0);
+    vox(body, 0.32, 0.28, 0.28, c, 0, 0.46, 0.2);
+    vox(body, 0.2, 0.12, 0.08, '#d9b48a', 0, 0.4, 0.35);
+    vox(body, 0.1, 0.1, 0.03, '#ffffff', 0, 0.32, 0.385);          // big front teeth
+    vox(body, 0.02, 0.1, 0.035, '#c8c0b0', 0, 0.32, 0.39);
+    vox(body, 0.06, 0.04, 0.03, '#2a1d2a', 0, 0.46, 0.39);
+    vox(body, 0.08, 0.07, 0.05, d, -0.12, 0.62, 0.18); vox(body, 0.08, 0.07, 0.05, d, 0.12, 0.62, 0.18);
+    face(body, 0.52, 0.345, 0.32, { blush:false, eye:'#1a1010' });
+    const tail = vox(body, 0.26, 0.06, 0.34, '#4a3a3a', 0, 0.12, -0.36); g.userData.tail = tail;
+    for (let i = 0; i < 3; i++) vox(tail, 0.8, 1.3, 0.08, '#3a2c2c', 0, 0, -0.3 + i * 0.3);
+    leg(d, -0.1, 0.14, 0.1); leg(d, 0.1, 0.14, 0.1); leg(d, -0.1, -0.14, 0.1); leg(d, 0.1, -0.14, 0.1);
+  } else if (type === 'skunk'){
+    const c = '#2e2a36';
+    vox(body, 0.3, 0.24, 0.44, c, 0, 0.24, 0);
+    vox(body, 0.08, 0.04, 0.44, '#ffffff', 0, 0.37, 0);
+    vox(body, 0.3, 0.26, 0.26, c, 0, 0.44, 0.22);
+    vox(body, 0.06, 0.2, 0.04, '#ffffff', 0, 0.5, 0.35);
+    vox(body, 0.05, 0.04, 0.03, '#ff9fbf', 0, 0.4, 0.37);
+    vox(body, 0.08, 0.08, 0.05, c, -0.11, 0.6, 0.2); vox(body, 0.08, 0.08, 0.05, c, 0.11, 0.6, 0.2);
+    face(body, 0.47, 0.355, 0.3, { blush:false, eye:'#ffe14d' });
+    const tail = new THREE.Group(); tail.position.set(0, 0.36, -0.22); body.add(tail); g.userData.tail = tail;
+    vox(tail, 0.26, 0.5, 0.2, c, 0, 0.22, -0.08); vox(tail, 0.08, 0.5, 0.21, '#ffffff', 0, 0.22, -0.08); vox(tail, 0.28, 0.16, 0.24, c, 0, 0.5, 0.02);
+    leg('#1a1820', -0.09, 0.14); leg('#1a1820', 0.09, 0.14); leg('#1a1820', -0.09, -0.14); leg('#1a1820', 0.09, -0.14);
+  }
   g.userData.legs = legs;
   g.scale.setScalar(type === 'boss' ? 2.3 : type === 'croc' ? 1.25 : 1.15);
   return g;
@@ -1091,6 +1120,7 @@ function statsOf(u){
     if (o === u || o.type !== 'raccoon' || Math.max(Math.abs(o.x - u.x), Math.abs(o.z - u.z)) !== 1) continue;
     s.luck = (s.luck || 0) + TYPES.raccoon.lv[o.level - 1].luck + (synAt('raccoon', o.x, o.z, o).some(q => q.id === 'dirty') ? 0.05 : 0);
   }
+  if (TILE[u.z][u.x].gnawed){ s.rate *= 0.7; s.shaky = true; }
   s.syn = synAt(u.type, u.x, u.z, u.ref || u);
   for (const sy of s.syn) applySyn(s, u.type, sy);
   // owls buff neighbours (not themselves)
@@ -1116,7 +1146,7 @@ function placeUnit(type, x, z, level = 1, branch = null, hidden = null){
   dropIn(u.mesh);
   return u;
 }
-const PLUS_COLS = [null, '#9fe8ff', '#7af0a0', '#ffd84d', '#ff8fb8', '#c89aff'];
+const PLUS_COLS = [null, '#5ff0c0', '#5aa8ff', '#b67aff', '#ffc21a', '#f0a8ff'];
 // each step repaints the animal: mint → sky → violet → shining gold → hologram
 const PLUS_TINT = [null, { c:'#5ff0c0', k:0.42, e:0.10 }, { c:'#5aa8ff', k:0.52, e:0.14 }, { c:'#b67aff', k:0.6, e:0.18 }, { c:'#ffc21a', k:0.86, e:0.3 }, { c:'#ffffff', k:0, e:0 }];
 function tintUnit(u){
@@ -1157,8 +1187,10 @@ function rebuildUnit(u){
 function removeUnit(u){ unitRoot.remove(u.mesh); units.splice(units.indexOf(u), 1); }
 function dropIn(m){ m.userData.drop = 0.35; }
 
+const seenFoes = new Set();
 function spawnFoe(type, elite){
   const def = FOES[type];
+  if (def.desc && !seenFoes.has(type)){ seenFoes.add(type); toast('새 몬스터: ' + def.name + '!', def.desc, true); }
   const w = G.wave - 1, wq = Math.min(w, 9);
   const scale = (1 + 0.5 * wq + 0.07 * wq * wq) * Math.pow(HP_GROW, Math.max(0, w - 9)) * 1.06 * (G.mode === 'hard' ? 1.05 + 0.025 * wq + 0.006 * Math.max(0, w - 9) : 1)
     * (def.boss ? (w >= 39 ? 0.3 : w >= 19 ? 0.45 : 1) : 1);
@@ -1263,7 +1295,7 @@ function updateBits(dt){
     if (k < 0.3) b.m.scale.multiplyScalar(0.92);
   }
 }
-const FOE_COLS = { fox:['#ee7a2c', '#fff4e6'], wolf:['#8d939c', '#666b74'], croc:['#5c9a4a', '#3f7434'], hawk:['#8a5a3a', '#f6f1e6'], boss:['#5b5f6b', '#ffcf3f', '#c23a3a'] };
+const FOE_COLS = { fox:['#ee7a2c', '#fff4e6'], wolf:['#8d939c', '#666b74'], croc:['#5c9a4a', '#3f7434'], hawk:['#8a5a3a', '#f6f1e6'], beaver:['#9a6232', '#ffffff'], skunk:['#2e2a36', '#ffffff', '#9be05a'], boss:['#5b5f6b', '#ffcf3f', '#c23a3a'] };
 
 /* ---------------- audio (tiny synth) ---------------- */
 let actx = null, muted = store.get('nyandef-mute', false), bgm = null;
@@ -1482,12 +1514,14 @@ const tracers = [];
 function updateShots(dt){
   for (let i = shots.length - 1; i >= 0; i--){
     const p = shots[i]; p.t += dt;
-    if (!p.e.dead) p.last.copy(p.e.mesh.position).add(new THREE.Vector3(0, p.e.def.fly ? 0 : 0.3, 0));
+    if (p.fixed) p.last.copy(p.fixed);
+    else if (!p.e.dead) p.last.copy(p.e.mesh.position).add(new THREE.Vector3(0, p.e.def.fly ? 0 : 0.3, 0));
     const to = p.last;
     const d = p.m.position.distanceTo(to);
     const step = p.speed * dt;
     if (d <= step || p.t > 2){
       fxRoot.remove(p.m); shots.splice(i, 1);
+      if (p.kind === 'gas'){ makeCloud(p.tile[0], p.tile[1]); continue; }
       if (p.kind !== 'star') popRing(to.clone().add(new THREE.Vector3(0, -0.25, 0)), p.trail || '#ffffff', p.kind === 'snow' ? 1.1 : 0.6);
       impact(p, to);
       continue;
@@ -1594,7 +1628,7 @@ function becomeHidden(u, key){
   u.hidden = key;
   rebuildUnit(u);
   discover(key);
-  transformFx(u, 3, '히든! ' + HIDDEN[key].name);
+  transformFx(u, 3, '히든! ' + HIDDEN[key].name, { banner:'히든 전직!' });
   SFX.hidden();
   toast('히든 전직! ' + HIDDEN[key].name, HIDDEN[key].desc, true);
   if (G.selUnit === u) showInfo(u);
@@ -1607,7 +1641,7 @@ function awaken(h, m, stay){
   h.awake = true;
   rebuildUnit(h);
   discover(h.hidden + '+');
-  transformFx(h, 4, '각성! ' + AWAKE[h.hidden].name);
+  transformFx(h, 4, '각성! ' + AWAKE[h.hidden].name, { banner:'각성!' });
   SFX.hidden(); setTimeout(() => SFX.hidden(), 260);
   toast('각성! ' + AWAKE[h.hidden].name, AWAKE[h.hidden].desc, true);
   if (G.selUnit === h) showInfo(h);
@@ -1627,8 +1661,8 @@ function startWave(auto){
   if (G.curseWave === G.wave) setTimeout(() => toast('💀 룰렛 저주', '이번 웨이브 적이 15% 빨라요'), 300);
   G.spawnQ = [];
   for (const grp of WAVES[G.wave - 1]){
-    const boss = FOES[grp.t].boss;
-    const n0 = boss ? grp.n : Math.round(grp.n * COUNT_MUL);
+    const boss = FOES[grp.t].boss, skill = !!FOES[grp.t].desc;
+    const n0 = boss || skill ? grp.n : Math.round(grp.n * COUNT_MUL);
     const n = G.mode === 'hard' && !boss ? Math.ceil(n0 * 1.05) : n0, gap = grp.gap * (boss ? 1 : GAP_MUL) * (G.mode === 'hard' ? 0.92 : 1);
     for (let i = 0; i < n; i++) G.spawnQ.push({ t:(grp.at || 0) + i * gap, type:grp.t });
   }
@@ -1646,6 +1680,7 @@ function startWave(auto){
 }
 function endWave(){
   G.state = 'build';
+  clearClouds(); restoreGnawed(true);
   const bonus = 18 + G.wave * 4;
   G.coins += bonus;
   let perfect = '';
@@ -1740,14 +1775,25 @@ function tryMerge(src, dst){
 }
 function mergeFx(u){
   const br = u.level >= 3 && TYPES[u.type].br;
-  transformFx(u, br ? 2 : 1, br ? '전직! ' + unitName(u) : '★'.repeat(u.level) + ' ' + (TYPES[u.type].lvName ? unitName(u) : '레벨 ' + u.level));
+  transformFx(u, br || u.level >= 3 ? 2 : 1, br ? '전직! ' + unitName(u) : '★'.repeat(u.level) + ' ' + (TYPES[u.type].lvName ? unitName(u) : '레벨 ' + u.level), { banner: br ? '전직!' : u.level >= 3 ? '최고 레벨!' : null });
   if (G.selUnit === u) showInfo(u);
 }
 /* "슉" transformation: shrink-spin-pop with a light pillar, ground ring and rising sparkles */
 const tfx = [];
 const TF_COLS = { 1:['#ffffff', '#ffe58a'], 2:['#ffe58a', '#ffb347'], 3:['#c9b6f2', '#ffe58a'], 4:['#9ad8ff', '#ff9fd6'] };
-function transformFx(u, tier, label){
-  const [c1, c2] = TF_COLS[tier];
+let slowMo = 0;
+function bigBanner(u, title, sub, col){
+  const el = $('bigBanner'); if (!el) return;
+  el.innerHTML = '';
+  const img = document.createElement('img'); img.src = iconFor(u.type, u.level, u.branch, u.hidden, u.awake); img.alt = '';
+  const t = document.createElement('b'); t.textContent = title;
+  const st = document.createElement('span'); st.textContent = sub;
+  el.append(img, t, st); el.style.setProperty('--c', col);
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  clearTimeout(bigBanner.t); bigBanner.t = setTimeout(() => el.classList.remove('on'), 1700);
+}
+function transformFx(u, tier, label, opt = {}){
+  const [c1, c2] = opt.cols || TF_COLS[tier];
   const base = u.mesh.position.clone();
   u.tf = { t:0, dur: tier >= 3 ? 1.25 : 0.9 };
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 7, 12, 1, true),
@@ -1763,8 +1809,29 @@ function transformFx(u, tier, label){
     m.scale.setScalar(rnd(0.05, 0.1)); fxRoot.add(m);
     sparks.push({ m, a:rnd(0, TAU), r:rnd(0.35, 0.75), y:rnd(0, 0.4), v:rnd(1.6, 3.2), w:rnd(4, 8) });
   }
-  tfx.push({ base, pillar, ring:ringM, sparks, t:0, dur:u.tf.dur + 0.3, tier });
-  if (tier >= 2) screenFlash(tier >= 3 ? 'rgba(201,182,242,.55)' : 'rgba(255,240,180,.45)');
+  // big moments: a second white core beam, staggered shockwaves, light rays fanning out, confetti, shake and slow-mo
+  const extra = [];
+  if (tier >= 2){
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 9, 8, 1, true), new THREE.MeshBasicMaterial({ color:'#ffffff', transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+    core.position.copy(base).add(new THREE.Vector3(0, 4.5, 0)); fxRoot.add(core); extra.push({ m:core, kind:'core' });
+    for (let i = 0; i < 3; i++){
+      const r = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 40), new THREE.MeshBasicMaterial({ color:i % 2 ? c2 : c1, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+      r.rotation.x = -Math.PI / 2; r.position.copy(base).add(new THREE.Vector3(0, 0.08 + i * 0.02, 0)); fxRoot.add(r); extra.push({ m:r, kind:'wave', d:0.12 + i * 0.16 });
+    }
+    const rays = tier >= 3 ? 12 : 8;
+    for (let i = 0; i < rays; i++){
+      const b = new THREE.Mesh(boxGeo, new THREE.MeshBasicMaterial({ color:i % 2 ? c1 : '#ffffff', transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }));
+      const a = i / rays * TAU; b.position.copy(base).add(new THREE.Vector3(0, 0.6, 0)); b.rotation.set(0, -a, Math.PI / 2 - 0.5);
+      fxRoot.add(b); extra.push({ m:b, kind:'ray', a });
+    }
+    burst(base.clone().add(new THREE.Vector3(0, 0.6, 0)), [c1, c2, '#ffffff'], tier >= 3 ? 46 : 28, tier >= 3 ? 4.2 : 3.2);
+    shake = Math.max(shake, tier >= 3 ? 0.55 : 0.32);
+    slowMo = Math.max(slowMo, tier >= 3 ? 0.55 : 0.35);
+    blip(90, 45, 0.45, 'sawtooth', 0.06);
+  }
+  tfx.push({ base, pillar, ring:ringM, sparks, extra, t:0, dur:u.tf.dur + 0.4, tier });
+  if (tier >= 2) screenFlash(opt.flash || (tier >= 3 ? 'rgba(201,182,242,.7)' : 'rgba(255,240,180,.6)'));
+  if (opt.banner) bigBanner(u, opt.banner, unitName(u), c1);
   floatText(base.clone().add(new THREE.Vector3(0, 1.7, 0)), label, tier >= 3 ? 'crit' : 'big', tier >= 3 ? 1.6 : 1.1);
   // whoosh: rising sweep plus sparkle notes
   blip(220, 1400, 0.32, 'triangle', 0.05);
@@ -1786,8 +1853,14 @@ function updateTfx(rdt){
       sp.m.rotation.y += rdt * 8;
       sp.m.visible = k < 0.95;
     });
+    for (const e of f.extra){
+      if (e.kind === 'core'){ e.m.material.opacity = k < 0.15 ? k / 0.15 : Math.max(0, 1 - (k - 0.15) / 0.6); e.m.scale.set(1 + k * 2, 1, 1 + k * 2); }
+      else if (e.kind === 'wave'){ const q = clamp((k - e.d) / 0.5, 0, 1); e.m.scale.setScalar(0.2 + q * (f.tier >= 3 ? 4.2 : 3)); e.m.material.opacity = q > 0 && q < 1 ? 1 - q : 0; }
+      else { const q = clamp(k / 0.7, 0, 1); e.m.scale.set(0.06, 0.4 + q * 3.2, 0.06); e.m.position.set(f.base.x + Math.cos(e.a) * (0.3 + q * 1.4), f.base.y + 0.6 + q * 0.6, f.base.z + Math.sin(e.a) * (0.3 + q * 1.4)); e.m.material.opacity = Math.sin(q * Math.PI) * 0.85; }
+    }
     if (f.t >= f.dur){
       fxRoot.remove(f.pillar, f.ring); f.sparks.forEach(sp => fxRoot.remove(sp.m));
+      f.extra.forEach(e => { fxRoot.remove(e.m); e.m.material.dispose(); if (e.kind !== 'ray') e.m.geometry.dispose(); });
       f.pillar.geometry.dispose(); f.ring.geometry.dispose();
       tfx.splice(i, 1);
     }
@@ -1835,7 +1908,28 @@ function pointerRay(e){
   ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
 }
+/* the tile whose TOP the pointer is over: side faces of taller blocks in front don't steal the click,
+   so a block half-hidden behind a pillar is still picked where its top would be */
 function pickTile(){
+  const o = ray.ray.origin, d = ray.ray.direction;
+  if (d.y > -1e-6) return null;
+  const hits = [];
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    const t = TILE[z][x]; if (t.type === 'void') continue;
+    const tt = (t.h - o.y) / d.y;
+    if (tt < 0) continue;
+    const px = o.x + d.x * tt - wx(x), pz = o.z + d.z * tt - wz(z);
+    if (px >= -0.5 && px <= 0.5 && pz >= -0.5 && pz <= 0.5) hits.push({ x, z, tt, t, dc:Math.hypot(px, pz) });
+  }
+  if (!hits.length) return null;
+  // overlapping tops (a taller block just in front covers part of the one behind): the block whose centre is
+  // nearest the pointer wins, so every block can be picked by pointing at its middle. grass loses to usable blocks.
+  const useful = h => h.t.type === 'build' || h.t.type === 'path' || h.t.type === 'base' || !!unitAt(h.x, h.z);
+  const pool = hits.some(useful) ? hits.filter(useful) : hits;
+  pool.sort((a, b) => a.dc - b.dc);
+  return { x:pool[0].x, z:pool[0].z };
+}
+function pickVisible(){
   const hits = ray.intersectObjects([walls, steps], false);
   for (const h of hits){
     const k = h.object === walls ? 'w' : 's';
@@ -1946,7 +2040,7 @@ function pairsNow(){
   return m;
 }
 function updateSynLinks(t){
-  const key = units.map(u => u.type + u.x + ',' + u.z + (G.drag && G.drag.u === u ? 'd' : '')).join('|');
+  const key = terrainVer + '#' + units.map(u => u.type + u.x + ',' + u.z + (G.drag && G.drag.u === u ? 'd' : '')).join('|');
   if (key !== synKey){
     const first = synKey === null;
     synKey = key;
@@ -2355,7 +2449,7 @@ function enhance(u, instant){
     const pos = u.mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0));
     if (Math.random() < chance){
       u.plus = (u.plus || 0) + 1; rebuildUnit(u);
-      transformFx(u, u.plus >= 4 ? 3 : 2, '강화 성공! +' + u.plus);
+      transformFx(u, u.plus >= 4 ? 3 : 2, '강화 성공! +' + u.plus, { cols:[PLUS_COLS[u.plus], '#ffffff'], banner: u.plus >= 3 ? '강화 +' + u.plus + '!' : null, flash: u.plus >= 4 ? (u.plus === 5 ? 'rgba(200,154,255,.75)' : 'rgba(255,216,77,.75)') : null });
       SFX.merge();
       if (u.plus === 5){ toast('+5 달성!', baseName(u) + ' 최고 강화', true); SFX.hidden(); }
     } else if (step.fail === 'keep'){
@@ -2388,6 +2482,8 @@ function showInfo(u){
   sub.textContent = `레벨 ${u.level}${u.hidden ? ' · 히든 전직' : ''} · ${TYPES[u.type].role}`;
   const tb = document.createElement('table');
   const rows = [['공격력', Math.round(s.dmg)], ['초당 공격', s.rate.toFixed(1)], ['사거리', s.range.toFixed(1)], ['높이 보너스', s.elev > 0 ? `+${s.elev}칸 (사거리 +${Math.round(12 * s.elev)}%)` : '없음'], ['처치', u.kills]];
+  if (s.shaky) rows.unshift(['⚠ 갉힌 블록', '공격속도 -30%']);
+  if (u.gas) rows.unshift(['⚠ 방귀 구름', '공격 못 함 · 옮기세요!']);
   if (s.slow) rows.splice(3, 0, ['둔화', Math.round(s.slow * 100) + '%']);
   if (s.kb) rows.splice(3, 0, ['넉백', s.kb.toFixed(2) + '칸']);
   rows.forEach(([a, b]) => { const tr = document.createElement('tr'); const t1 = document.createElement('td'); t1.textContent = a; const t2 = document.createElement('td'); t2.textContent = b; tr.append(t1, t2); tb.append(tr); });
@@ -2506,7 +2602,7 @@ function renderDeck(){
   });
   $('deckCount').textContent = deck.length + ' / 5';
 }
-function begin(mode){ audio(); G.mode = mode; resetState(); synKey = null; $('introOv').classList.remove('on'); G.modal = false; buildCards(); ui(); czPending = performance.now() + 1500;
+function begin(mode){ audio(); G.mode = mode; resetState(); synKey = null; seenFoes.clear(); $('introOv').classList.remove('on'); G.modal = false; buildCards(); ui(); czPending = performance.now() + 1500;
   if (mode === 'hard') toast('하드 모드', '웨이브가 자동으로 시작돼요. 15초 안에 배치하세요!'); }
 $('startBtn').onclick = () => begin('normal');
 $('startHard').onclick = () => begin('hard');
@@ -2535,7 +2631,7 @@ function restart(){
   foes.length = 0;
   for (const s of shots) fxRoot.remove(s.m);
   shots.length = 0;
-  resetState(); setTopView(false);
+  resetState(); setTopView(false); clearClouds(); restoreGnawed(false);
   $('endOv').classList.remove('on'); $('enhBar').hidden = true; $('info').style.display = 'none';
   G.modal = true; renderDeck(); $('introOv').classList.add('on');
   baseMesh.visible = true;
@@ -2562,6 +2658,9 @@ function update(dt){
     let sp = e.def.speed * e.spd;
     if (e.slowT > 0) sp *= 1 - (e.def.boss ? Math.min(0.4, e.slowP) : e.slowP); else e.slowP = 0;
     if (e.freezeT > 0 || e.stunT > 0) sp = e.def.boss ? sp * 0.5 : 0;   // the wolf king can't be stun-locked, only slowed
+    if (e.def.gnaw && !(e.freezeT > 0 || e.stunT > 0)) foeGnaw(e, dt);
+    if (e.def.gas && !(e.freezeT > 0 || e.stunT > 0)) foeGas(e, dt);
+    if (e.gnawT > 0 || e.castT > 0) sp = 0;
     if (e.def.pack && foes.some(o => o !== e && !o.dead && o.type === 'wolf' && Math.abs(o.s - e.s) < 1.2)) sp *= 1.25;
     e.walk += dt * sp * 9;
     if (e.def.fly){ e.u += sp * dt / FLY_LEN; if (e.u >= 1) leak(e); }
@@ -2584,6 +2683,13 @@ function update(dt){
     u.cd -= dt;
     const s = statsOf(u);
     u.luck = s.luck || 0; u.critX = s.crit2 || 0; u.vsSlow = s.vsSlow || 0;
+    if (u.dazeT > 0) u.dazeT -= dt;
+    u.gas = gassed(u);
+    if (u.dazeT > 0 || u.gas){
+      u.stinkT = (u.stinkT || 0) - dt;
+      if (u.stinkT <= 0){ u.stinkT = 0.5; burst(u.mesh.position.clone().add(new THREE.Vector3(0, 0.8, 0)), u.gas ? ['#9be05a', '#d8ff9a'] : ['#ffe14d', '#ffffff'], 2, 0.6); if (u.gas && Math.random() < 0.3) floatText(u.mesh.position.clone().add(new THREE.Vector3(0, 1.1, 0)), '콜록!', 'miss', 0.5); }
+      continue;
+    }
     if (u.type === 'hedgehog'){
       if (u.cd <= 0){
         u.cd = 1 / s.rate;
@@ -2615,7 +2721,121 @@ function update(dt){
     }
   }
   updateShots(dt);
+  updateClouds(dt);
   if (G.state === 'wave' && !G.spawnQ.length && !foes.length) endWave();
+}
+/* ---- skill monsters ---- */
+// beaver: stops beside the road and gnaws the top block off a tile (animals there drop, get dizzy, and the tile wobbles)
+const gnawedList = [];
+let terrainVer = 0;
+const zeroM = new THREE.Matrix4().makeScale(0, 0, 0);
+function gnawTile(x, z){
+  const t = TILE[z][x], list = colBlocks[z * MAP_W + x]; if (!list) return;
+  const top = list.find(([k, i, y]) => k === 'w' && y === t.h - 1), under = list.find(([k, i, y]) => k === 'w' && y === t.h - 2);
+  if (!top || !under) return;
+  const m0 = new THREE.Matrix4(), c0 = new THREE.Color();
+  walls.getMatrixAt(top[1], m0); walls.getColorAt(under[1], c0);
+  walls.setMatrixAt(top[1], zeroM);
+  walls.setColorAt(under[1], new THREE.Color(TOP_COLS[Math.floor(hash(x * 3, z * 5) * TOP_COLS.length)]).multiplyScalar(0.86));
+  walls.instanceMatrix.needsUpdate = true; walls.instanceColor.needsUpdate = true;
+  gnawedList.push({ x, z, top:top[1], m0, under:under[1], c0 });
+  t.h--; t.elev--; t.gnawed = (t.gnawed || 0) + 1; terrainVer++; occKey = '';
+  const p = new THREE.Vector3(wx(x), t.h + 0.5, wz(z));
+  burst(p, ['#f4e7d4', '#ead9c1', '#9a6232'], 16, 2.6);
+  floatText(p.clone().add(new THREE.Vector3(0, 0.8, 0)), '와작!', 'big', 0.7);
+  blip(180, 60, 0.18, 'square', 0.05);
+  const u = unitAt(x, z);
+  if (u){ u.mesh.position.y = t.h; dropIn(u.mesh); u.dazeT = Math.max(u.dazeT || 0, 2.5); floatText(p.clone().add(new THREE.Vector3(0, 1.3, 0)), '어지러워…', 'miss', 1); if (G.selUnit === u) showInfo(u); }
+}
+function restoreGnawed(fx){
+  if (!gnawedList.length) return;
+  while (gnawedList.length){
+    const g = gnawedList.pop(), t = TILE[g.z][g.x];
+    walls.setMatrixAt(g.top, g.m0); walls.setColorAt(g.under, g.c0);
+    t.h++; t.elev++; t.gnawed = 0;
+    const u = unitAt(g.x, g.z); if (u){ u.mesh.position.y = t.h; dropIn(u.mesh); }
+    if (fx) burst(new THREE.Vector3(wx(g.x), t.h, wz(g.z)), ['#a8e6cf', '#ffffff'], 6, 1.4);
+  }
+  walls.instanceMatrix.needsUpdate = true; walls.instanceColor.needsUpdate = true;
+  terrainVer++; occKey = '';
+  if (fx) toast('갉힌 블록이 다시 자라났어요');
+}
+function foeGnaw(e, dt){
+  if (e.gnawT > 0){
+    e.gnawT -= dt;
+    e.chipT = (e.chipT || 0) - dt;
+    if (e.chipT <= 0){ e.chipT = 0.22; burst(new THREE.Vector3(wx(e.gx), TILE[e.gz][e.gx].h, wz(e.gz)), ['#f4e7d4', '#9a6232'], 2, 1.2); if (sfxBudget < 8){ sfxBudget++; blip(900, 700, 0.03, 'square', 0.02); } }
+    if (e.gnawT <= 0) gnawTile(e.gx, e.gz);
+    return;
+  }
+  e.gnawCD = (e.gnawCD == null ? 2.2 : e.gnawCD) - dt;
+  if (e.gnawCD > 0) return;
+  let best = null, bs = -1;
+  const px = e.mesh.position.x, pz = e.mesh.position.z;
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    const t = TILE[z][x];
+    if (t.type !== 'build' || (t.gnawed || 0) >= 2 || t.h <= 2) continue;
+    const d = Math.hypot(wx(x) - px, wz(z) - pz); if (d > 1.7) continue;
+    const sc = (unitAt(x, z) ? 10 : 0) + t.h - d;
+    if (sc > bs){ bs = sc; best = { x, z }; }
+  }
+  e.gnawCD = best ? 4.5 : 0.6;
+  if (!best) return;
+  e.gx = best.x; e.gz = best.z; e.gnawT = 1.4;
+  e.mesh.rotation.y = Math.atan2(wx(best.x) - px, wz(best.z) - pz);
+  floatText(e.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), '갉갉!', 'miss', 0.7);
+}
+// skunk: lobs a stink cloud onto a group of animals. anything inside can't attack until moved out
+const clouds2 = [];
+const gasMat = new THREE.MeshLambertMaterial({ color:'#8ad43a', emissive:'#3f7a12', transparent:true, opacity:0.78, depthWrite:false });
+const gasDiscMat = new THREE.MeshBasicMaterial({ color:'#7ac92a', transparent:true, opacity:0.4, depthWrite:false });
+const gasRingMat = new THREE.MeshBasicMaterial({ color:'#c8ff5a', transparent:true, opacity:0.9, depthWrite:false, side:THREE.DoubleSide });
+function makeCloud(x, z){
+  const t = TILE[z][x], g = new THREE.Group(), c = new THREE.Vector3(wx(x), t.h, wz(z));
+  g.position.copy(c);
+  const puffs = [];
+  for (let i = 0; i < 9; i++){
+    const m = new THREE.Mesh(boxGeo, gasMat); const a = i / 9 * TAU, r = i === 0 ? 0 : 0.55 + (i % 2) * 0.35;
+    m.position.set(Math.cos(a) * r, 0.45 + (i % 3) * 0.22, Math.sin(a) * r); m.scale.setScalar(0.55 + (i % 3) * 0.15);
+    g.add(m); puffs.push({ m, y0:m.position.y, ph:i });
+  }
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.08, 1.2, 28), gasRingMat); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.07; g.add(ring);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(1.08, 28), gasDiscMat); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.06; g.add(disc);
+  fxRoot.add(g);
+  clouds2.push({ g, c, r:1.2, t:0, life:7, puffs });
+  burst(c.clone().add(new THREE.Vector3(0, 0.5, 0)), ['#9be05a', '#d8ff9a', '#ffffff'], 14, 2);
+  blip(160, 90, 0.4, 'sawtooth', 0.05);
+}
+function gassed(u){ const p = u.mesh.position; for (const c of clouds2) if (Math.hypot(p.x - c.c.x, p.z - c.c.z) <= c.r) return true; return false; }
+function updateClouds(dt){
+  for (let i = clouds2.length - 1; i >= 0; i--){
+    const c = clouds2[i]; c.t += dt;
+    const fade = Math.min(1, (c.life - c.t) / 1.2);
+    for (const p of c.puffs){ p.m.position.y = p.y0 + Math.sin(c.t * 2 + p.ph) * 0.08; p.m.rotation.y += dt * 0.6; }
+    c.g.scale.setScalar(Math.min(1, c.t * 4) * Math.max(0.01, fade));
+    if (c.t >= c.life){ fxRoot.remove(c.g); c.g.children.forEach(m => m.geometry !== boxGeo && m.geometry.dispose()); clouds2.splice(i, 1); }
+  }
+}
+function clearClouds(){ for (const c of clouds2) fxRoot.remove(c.g); clouds2.length = 0; }
+function foeGas(e, dt){
+  if (e.castT > 0){ e.castT -= dt; return; }
+  e.gasCD = (e.gasCD == null ? 2.5 + Math.random() * 1.5 : e.gasCD) - dt;
+  if (e.gasCD > 0) return;
+  // aim at the animal with the most neighbours in reach: synergy clusters are the juiciest target
+  let best = null, bs = -1;
+  for (const u of units){
+    const d = Math.hypot(u.mesh.position.x - e.mesh.position.x, u.mesh.position.z - e.mesh.position.z); if (d > 3.4 || gassed(u)) continue;
+    const sc = NB4.reduce((a, [dx, dz]) => a + (unitAt(u.x + dx, u.z + dz) ? 1 : 0), 0) * 2 + (u.level || 1) - d * 0.3;
+    if (sc > bs){ bs = sc; best = u; }
+  }
+  e.gasCD = best ? 7.5 : 0.8;
+  if (!best) return;
+  e.castT = 0.6;
+  const from = e.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0)), tx = best.x, tz = best.z;
+  const to = new THREE.Vector3(wx(tx), TILE[tz][tx].h + 0.3, wz(tz));
+  const ball = new THREE.Mesh(boxGeo, gasMat); ball.scale.setScalar(0.3); ball.position.copy(from); fxRoot.add(ball);
+  shots.push({ kind:'gas', m:ball, e, u:null, s:{}, last:to.clone(), t:0, from:from.clone(), d0:Math.max(0.5, from.distanceTo(to)), arc:1.4, spin:'tumble', trail:'#9be05a', tt:0, speed:6, fixed:to, tile:[tx, tz] });
+  floatText(e.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), '뿌웅~', 'miss', 0.7);
 }
 let dangerA = 0, beatT = 0;
 function updateDanger(rdt){
@@ -2711,6 +2931,8 @@ function animate(rdt, dt){
     if (ud.tail) ud.tail.rotation.y = Math.sin(t * 6 + e.walk) * 0.3;
     const frozen = e.freezeT > 0, slowed = e.slowT > 0;
     if (ud.flash > 0){ ud.flash -= rdt; ud.body.scale.setScalar(1.12); } else ud.body.scale.setScalar(1);
+    ud.body.rotation.x = e.gnawT > 0 ? 0.35 + Math.sin(t * 45) * 0.12 : e.castT > 0 ? -0.3 : 0;
+    if (e.castT > 0 && ud.tail) ud.tail.rotation.x = -0.8;
     ud.body.children.forEach(c => { if (c.material){ c.material = c.userData.mat0 || (c.userData.mat0 = c.material); if (frozen) c.material = mat('#bfe0ff'); } });
     if (slowed && !frozen && Math.random() < rdt * 6) burst(e.mesh.position.clone().add(new THREE.Vector3(0, 0.4, 0)), ['#ffffff'], 1, 0.4);
     const bar = e.bar;
@@ -2778,7 +3000,8 @@ function animate(rdt, dt){
 function loop(now){
   const rdt = Math.min(0.05, (now - last) / 1000); last = now;
   sfxBudget = 0;
-  const dt = (G.paused || G.modal || G.state === 'over' || G.state === 'win') ? 0 : rdt * G.speed;
+  if (slowMo > 0) slowMo -= rdt;
+  const dt = (G.paused || G.modal || G.state === 'over' || G.state === 'win') ? 0 : rdt * G.speed * (slowMo > 0 ? 0.25 : 1);
   if (dt > 0){
     // sub-step at high speed for stable combat
     const n = Math.ceil(dt / 0.034);
@@ -2794,4 +3017,4 @@ buildCards(); ui();
 requestAnimationFrame(loop);
 
 /* test hook for automated checks */
-window.__nd = { MAX_WAVE, synAt, SYN, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
+window.__nd = { gasAt:(x, z) => clouds2.some(c => Math.hypot(wx(x) - c.c.x, wz(z) - c.c.z) <= c.r), fx:(u) => transformFx(u, 3, '강화 성공! +4', { cols:[PLUS_COLS[4], '#ffffff'], banner:'강화 +4!' }), dbgPick:(x, y) => { pointerRay({ clientX:x, clientY:y }); const o = ray.ray.origin, d = ray.ray.direction, out = []; for (let z = 0; z < MAP_D; z++) for (let xx = 0; xx < MAP_W; xx++){ const t = TILE[z][xx]; if (t.type === 'void') continue; const tt = (t.h - o.y) / d.y; const px = o.x + d.x * tt - wx(xx), pz = o.z + d.z * tt - wz(z); if (Math.abs(px) <= 0.5 && Math.abs(pz) <= 0.5) out.push([xx, z, t.type, t.h, +tt.toFixed(2)]); } return out.sort((a, b) => a[4] - b[4]); }, MAX_WAVE, synAt, SYN, tileXYo:(x, z, ox, oz) => screenXY(new THREE.Vector3(wx(x) + ox, TILE[z][x].h, wz(z) + oz)), pickAt:(x, y, vis) => { pointerRay({ clientX:x, clientY:y }); return vis ? pickVisible() : pickTile(); }, rotate:(d) => { camAngleTarget += d * Math.PI / 2; camAngle = camAngleTarget; }, setHP:(v, g) => { HP_MUL = v; if (g) HP_GROW = g; }, WAVES, screenOf:(u) => screenXY(u.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))), tileXY:(x, z) => screenXY(new THREE.Vector3(wx(x), TILE[z][x].h, wz(z))), fadeCount:() => fadeGoal.w.reduce((a, b) => a + b, 0) + fadeGoal.s.reduce((a, b) => a + b, 0), setGroup, moveGroup, selList, enhance, rebuildUnit, ENH, spinCount:() => spinCount, openCasino, closeCasino, spinWheel, ROUL, setPix:(v) => { pixLevel = v; resize(); }, step:(dt) => update(dt), endWave, begin, awaken, canAwaken, canPlace, keyGrab, sellUnit, setTopView, deck:() => deck, unlocked, G, units, foes, TILE, PATH, startWave, build, tryMerge, placeUnit, openCards, takeCard, chooseBranch, becomeHidden, spawnFoe, statsOf, canBuild };
