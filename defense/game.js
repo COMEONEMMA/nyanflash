@@ -34,25 +34,61 @@ for (let z = 0; z < MAP_D; z++){
   for (let x = 0; x < MAP_W; x++) TILE[z].push({ type:'void', h:0, near:-1, elev:0 });
 }
 PATH.forEach(([x, z], i) => { TILE[z][x] = { type:'path', h:PATH_H[i], near:i, elev:0, step:i }; });
-for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
-  const t = TILE[z][x];
-  if (t.type === 'path') continue;
-  let best = 99, bi = -1;
-  PATH.forEach(([px, pz], i) => { const d = Math.max(Math.abs(px - x), Math.abs(pz - z)); if (d < best || (d === best && PATH_H[i] > PATH_H[bi])){ best = d; bi = i; } });
-  const r = hash(x, z);
-  if (best === 1 || (best === 2 && r < 0.22)){
-    // platforms hug the stairs a little lower so the climb stays readable; rare tall pillars are sniper spots
-    const offs = [-2, -1, -1, -1, 0, 0, 1];
-    let off = offs[Math.floor(hash(z + 7, x + 3) * offs.length)];
-    if (best === 2) off -= 1;
-    if (r > 0.9) off = 2;
-    if (r > 0.97) off = 3;
-    const h = clamp(PATH_H[bi] + off, 1, 15);
-    TILE[z][x] = { type:'build', h, near:bi, elev:h - PATH_H[bi] };
+const CX = (MAP_W - 1) / 2, CZ = (MAP_D - 1) / 2;
+/* winding mountain road: the ground climbs with the road like a hill-climb course.
+   Everything on the downhill (front) or outer side of the road is always LOWER than the road,
+   so from the default view nothing ever stands in front of the route. Uphill ground overlooks the road below. */
+{
+  const isPath = (x, z) => z >= 0 && z < MAP_D && x >= 0 && x < MAP_W && TILE[z][x].type === 'path';
+  const H = [];
+  const baseH = PATH_H[PATH_H.length - 1];
+  for (let z = 0; z < MAP_D; z++){ H.push([]); for (let x = 0; x < MAP_W; x++) H[z].push(null); }
+  for (let x = 0; x < MAP_W; x++) for (let z = 0; z < MAP_D; z++){
+    if (isPath(x, z)){ H[z][x] = TILE[z][x].h; continue; }
+    let f = null, df = 0, b = null, db = 0;
+    for (let k = z + 1; k < MAP_D; k++) if (isPath(x, k)){ f = TILE[k][x].h; df = k - z; break; }
+    for (let k = z - 1; k >= 0; k--) if (isPath(x, k)){ b = TILE[k][x].h; db = z - k; break; }
+    // the slope climbs steeply right above each road (overlook spots), then the next road's rule trims it
+    if (f != null && b != null) H[z][x] = Math.max(f + (b - f) * df / (df + db), f + 2 * df);
+    else if (b != null) H[z][x] = b - db * 1.1;                 // below the lowest road: falls away toward the viewer
+    else if (f != null) H[z][x] = Math.min(baseH + 1, f + df * 1.3); // above the top road: rises to the summit
+  }
+  // columns with no road at all are the valley edges
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    if (H[z][x] != null) continue;
+    let n = null, bd = 99;
+    for (let k = 0; k < MAP_W; k++) if (H[z][k] != null && Math.abs(k - x) < bd){ bd = Math.abs(k - x); n = H[z][k]; }
+    H[z][x] = (n ?? 1) - 1.5 * bd;
+  }
+  // hard rule: never higher than a road that sits behind it, or beside it on the inner side
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    if (isPath(x, z)) continue;
+    let h = Math.round(H[z][x]);
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++){
+      const px = x + dx, pz = z + dz;
+      if (!isPath(px, pz)) continue;
+      const ph = TILE[pz][px].h, d = Math.max(Math.abs(dx), Math.abs(dz));
+      const behind = pz < z, outer = pz === z && Math.abs(x - CX) > Math.abs(px - CX);
+      if ((behind || outer) && d === 1) h = Math.min(h, ph - 1);
+      else if (behind && d === 2) h = Math.min(h, ph + 1);   // two rows ahead it may peek one block above: still can't hide the road at this pitch
+    }
+    // ...and a little jitter so it reads as a hillside, not a ramp
+    if (hash(x * 5 + 1, z * 3 + 2) > 0.8) h -= 1;
+    H[z][x] = clamp(h, 1, 15);
+  }
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    if (isPath(x, z)) continue;
+    let best = 99;
+    PATH.forEach(([px, pz]) => { best = Math.min(best, Math.max(Math.abs(px - x), Math.abs(pz - z))); });
+    // height bonus = how far it looks DOWN onto any road within two blocks
+    let elev = -9, near = -1;
+    PATH.forEach(([px, pz], i) => { if (Math.max(Math.abs(px - x), Math.abs(pz - z)) <= Math.max(2, best) && H[z][x] - PATH_H[i] > elev){ elev = H[z][x] - PATH_H[i]; near = i; } });
+    const r = hash(x, z);
+    const type = best === 1 || (best === 2 && r < 0.35) ? 'build' : 'land';
+    TILE[z][x] = { type, h:H[z][x], near, elev, dist:best };
   }
 }
 { const [bx, bz] = BASE_TILE; TILE[bz][bx] = { type:'base', h:PATH_H[PATH_H.length - 1], near:PATH.length - 1, elev:0 }; }
-const CX = (MAP_W - 1) / 2, CZ = (MAP_D - 1) / 2;
 const MAX_H = Math.max(...PATH_H) + 3;
 const wx = x => x - CX, wz = z => z - CZ;
 
@@ -244,6 +280,8 @@ function blockTexture(edge = 0.8, noise = 0.05, stripes = false){
 const STEP_COLS = ['#ff8fb8', '#ffd84d', '#5fd4a8', '#a98bf0', '#5fb8f0', '#ff9f6b'];
 const TOP_COLS = ['#fffaf2', '#f7f0e6', '#f1ecf7', '#eef6f1'];
 const WALL_A = new THREE.Color('#f4e7d4'), WALL_B = new THREE.Color('#ead9c1');
+const LAND_COLS = ['#b9e3a0', '#a9dc95', '#c4e8ad', '#b2deb0'];
+const ROCK_A = new THREE.Color('#d8cbb8'), ROCK_B = new THREE.Color('#cdbfa9');
 const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 const blockMat = new THREE.MeshLambertMaterial({ map: blockTexture() });
 const stepMat = new THREE.MeshLambertMaterial({ map: blockTexture(0.72, 0.04, true) });
@@ -291,7 +329,8 @@ const instTile = { walls:[], steps:[] };
         steps.setMatrixAt(si, m); steps.setColorAt(si, col); instTile.steps[si] = [x, z];
         (colBlocks[z * MAP_W + x] ||= []).push(['s', si, y]); instY.s[si] = y; si++;
       } else {
-        if (y === top) col.set(t.type === 'base' ? '#ffe58a' : TOP_COLS[Math.floor(hash(x * 3, z * 5) * TOP_COLS.length)]);
+        if (y === top) col.set(t.type === 'base' ? '#ffe58a' : t.type === 'land' ? LAND_COLS[Math.floor(hash(x * 7, z * 2) * LAND_COLS.length)] : TOP_COLS[Math.floor(hash(x * 3, z * 5) * TOP_COLS.length)]);
+        else if (t.type === 'land') col.copy(y % 2 ? ROCK_A : ROCK_B);
         else col.copy(y % 2 ? WALL_A : WALL_B);
         walls.setMatrixAt(wi, m); walls.setColorAt(wi, col); instTile.walls[wi] = [x, z];
         (colBlocks[z * MAP_W + x] ||= []).push(['w', wi, y]); instY.w[wi] = y; wi++;
@@ -300,6 +339,29 @@ const instTile = { walls:[], steps:[] };
   }
 }
 scene.add(walls, steps);
+
+/* hillside dressing: little voxel pines and flowers on the grass (never on the downhill side of a road) */
+{
+  const trunkM = new THREE.MeshLambertMaterial({ color:'#a9714a' });
+  const leafCols = ['#5fbf7a', '#4fae6c', '#7fd08a'];
+  const flowerCols = ['#ff8fb8', '#ffd84d', '#ffffff', '#a98bf0'];
+  for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
+    const t = TILE[z][x]; if (t.type !== 'land') continue;
+    const r = hash(x * 11 + 3, z * 13 + 7);
+    let inFront = false;
+    PATH.forEach(([px, pz]) => { if (pz < z && Math.abs(px - x) <= 3 && z - pz <= 4) inFront = true; });
+    const g = new THREE.Group(); g.position.set(wx(x), t.h, wz(z));
+    if (!inFront && r < 0.45){
+      const tr = new THREE.Mesh(boxGeo, trunkM); tr.scale.set(0.16, 0.3, 0.16); tr.position.y = 0.15; g.add(tr);
+      const lc = leafCols[Math.floor(r * 10) % 3];
+      [[0.62, 0.34, 0.42], [0.44, 0.3, 0.7], [0.24, 0.24, 0.95]].forEach(([w, hh, y]) => { const m = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({ color:lc })); m.scale.set(w, hh, w); m.position.y = y; m.castShadow = true; g.add(m); });
+      g.rotation.y = r * 6; g.scale.setScalar(0.75 + r * 0.6);
+    } else if (r > 0.6){
+      for (let i = 0; i < 3; i++){ const m = new THREE.Mesh(boxGeo, new THREE.MeshLambertMaterial({ color:flowerCols[(i + Math.floor(r * 7)) % 4] })); m.scale.setScalar(0.09); m.position.set(Math.cos(i * 2.1 + r * 9) * 0.25, 0.05, Math.sin(i * 2.1 + r * 9) * 0.25); g.add(m); }
+    } else continue;
+    scene.add(g);
+  }
+}
 
 /* outline rails along both edges of the climbing route, plus little arrows showing direction */
 {
@@ -832,7 +894,7 @@ function dropIn(m){ m.userData.drop = 0.35; }
 
 function spawnFoe(type){
   const def = FOES[type];
-  const w = G.wave - 1, scale = (1 + 0.5 * w + 0.07 * w * w) * (G.mode === 'hard' ? 1.08 + 0.035 * w : 1);
+  const w = G.wave - 1, scale = (1 + 0.5 * w + 0.07 * w * w) * 1.06 * (G.mode === 'hard' ? 1.12 + 0.045 * w : 1);
   const e = { type, def, hp:def.hp * scale, maxHp:def.hp * scale, s:0, u:0, spd: G.mode === 'hard' ? 1.07 : 1, curseT:0, curseP:0, slowT:0, slowP:0, freezeT:0, stunT:0, dead:false, summonT:5, walk:Math.random() * TAU };
   e.mesh = makeFoe(type);
   e.bar = makeBar(def.boss ? 1.6 : 0.7);
@@ -1438,7 +1500,7 @@ function updateOcclusion(rdt){
       }
     };
     for (let z = 0; z < MAP_D; z++) for (let x = 0; x < MAP_W; x++){
-      const t = TILE[z][x]; if (t.type === 'void') continue;
+      const t = TILE[z][x]; if (t.type === 'void' || t.type === 'land') continue;
       const key = t.type === 'path' || t.type === 'base' || unitAt(x, z);
       cast(x, z, t.h + 0.05, key ? 0 : 2);
       if (key) cast(x, z, t.h + 0.8);
